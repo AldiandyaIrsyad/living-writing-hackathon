@@ -152,7 +152,9 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
 
       {report && (
         <div className="agent-report small" data-testid="agent-report">
-          {Object.values(report).every((v) => (Array.isArray(v) ? v.length === 0 : v === undefined || v === false)) && (
+          {Object.values({ ...report, contradictions: report.contradictions.filter((c) => !dismissed.has(contradictionKey(c))) }).every((v) =>
+            Array.isArray(v) ? v.length === 0 : v === undefined || v === false,
+          ) && (
             <div className="faint">Read it: nothing new to file.</div>
           )}
           {report.created.map((c) =>
