@@ -44,6 +44,31 @@ test('the agent makes a page for a new [[link]], shows a contradiction with its 
   await expect(nora).toHaveClass(/unresolved/);
 });
 
+test('"After I stop typing" reads the scene once the wait the writer picked has passed', async ({ page }) => {
+  await page.goto('/');
+  await page.getByTestId('login-switch').click();
+  await page.getByTestId('login-email').fill(`idle-${Date.now()}@example.com`);
+  await page.getByTestId('login-password').fill('correct horse');
+  await page.getByTestId('login-submit').click();
+  await page.getByTestId('vault-menu').click();
+  await page.getByTestId('load-demo').click();
+  await openScene(page, 'The Stranger');
+  await page.getByLabel('When the agent reads').selectOption('idle');
+  await page.getByTestId('agent-idle').selectOption('5');
+
+  const editor = page.getByTestId('scene-editor').locator('.cm-content');
+  await editor.click();
+  await page.keyboard.press('Control+End');
+  await page.keyboard.type(' A bell rang.');
+  // The default wait is 20 s; this one is 5.
+  await expect(page.getByTestId('agent-report')).toBeVisible({ timeout: 12_000 });
+  // Only the scene the writer typed in is read: loading the demo is not writing every scene in it.
+  await expect(page.getByTestId('agent-stop')).toHaveCount(0);
+  await page.keyboard.press('Escape'); // the timeline hides while the writer types
+  await openScene(page, 'Supper at the Inn');
+  await expect(page.getByTestId('agent-report')).toHaveCount(0);
+});
+
 test('logging out forgets the agent’s reports, which quote the manuscript, from this browser', async ({ page }) => {
   await page.goto('/');
   await page.getByTestId('login-switch').click();

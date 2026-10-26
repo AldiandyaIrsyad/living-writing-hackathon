@@ -31,7 +31,9 @@ const TITLES_KEY = 'lw-agent-titles';
 const SETTINGS_OPEN_KEY = 'lw-agent-settings-open';
 const OVERWRITE_KEY = 'lw-agent-overwrite';
 const REPORTS_KEY = 'lw-agent-reports-v2';
-const IDLE_MS = 20_000;
+const IDLE_KEY = 'lw-agent-idle-seconds';
+/** How long "After I stop typing" waits, in seconds: a writer who stops to think may want longer than one who stops to check. */
+export const IDLE_CHOICES = [5, 20, 60, 120];
 const MAX_STEPS = 5;
 
 interface ChatMessage {
@@ -43,6 +45,9 @@ interface ChatMessage {
 
 interface AgentStore {
   trigger: Trigger;
+  /** One of IDLE_CHOICES. */
+  idleSeconds: number;
+  setIdleSeconds: (s: number) => void;
   /** Null until the server has said whether it has a model key. */
   enabled: boolean | null;
   /** The model service the server talks to, by name (Meta, or Google Gemini as a stand-in). */
@@ -114,6 +119,11 @@ function loadReports(): Record<Id, AgentReport> {
 
 export const useAgent = create<AgentStore>((set) => ({
   trigger: loadTrigger(),
+  idleSeconds: ((s) => (IDLE_CHOICES.includes(s) ? s : 20))(Number(recall(IDLE_KEY))),
+  setIdleSeconds: (idleSeconds) => {
+    remember(IDLE_KEY, String(idleSeconds));
+    set({ idleSeconds });
+  },
   enabled: null,
   provider: null,
   models: [],
@@ -348,9 +358,14 @@ export function startAgent(): void {
   let idle: ReturnType<typeof setTimeout> | null = null;
   useStore.subscribe((s, prev) => {
     if (s.vault.scenes !== prev.vault.scenes) {
-      for (const scene of Object.values(s.vault.scenes)) if (scene.prose !== prev.vault.scenes[scene.id]?.prose && scene.prose.trim() !== '') edited.add(scene.id);
+      // A scene that was not there before arrived whole (the demo, an import), and is not the writer writing it.
+      for (const scene of Object.values(s.vault.scenes)) {
+        const before = prev.vault.scenes[scene.id];
+        if (before && scene.prose !== before.prose && scene.prose.trim() !== '') edited.add(scene.id);
+      }
       if (idle) clearTimeout(idle);
-      if (useAgent.getState().trigger === 'idle') idle = setTimeout(() => readEdited(), IDLE_MS);
+      const { trigger, idleSeconds } = useAgent.getState();
+      if (trigger === 'idle') idle = setTimeout(() => readEdited(), idleSeconds * 1000);
     }
     // Leaving a scene (to another scene, or to anything that is not a scene) is the writer handing it in.
     const was = prev.view.kind === 'scene' ? prev.view.id : null;

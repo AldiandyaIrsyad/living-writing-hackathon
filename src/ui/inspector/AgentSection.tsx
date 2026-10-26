@@ -4,7 +4,7 @@
 
 import { createHeldPage, editPage, fixNearMiss, propValue, revertAgentOutput, type AgentReport, type Contradiction } from '../../agent/apply';
 import type { PageEdit } from '../../agent/page';
-import { enqueueScene, isContributor, readChapter, readSceneNow, stopReading, useAgent, type Effort, type LinkNames, type Trigger } from '../../agent/run';
+import { enqueueScene, IDLE_CHOICES, isContributor, readChapter, readSceneNow, stopReading, useAgent, type Effort, type LinkNames, type Trigger } from '../../agent/run';
 import { isUntitled, linkName, type SceneTitles } from '../../agent/context';
 import { linkFirstMention } from '../../core/links';
 import type { Id, Scene, Vault } from '../../core/types';
@@ -47,7 +47,7 @@ const commit = (next: Vault, label: string) => useStore.getState().commit(next, 
 
 export function AgentSection({ scene, writing }: { scene: Scene; writing: boolean }) {
   const vault = useVault();
-  const { trigger, setTrigger, enabled, provider, models, model, setModel, allowOverwrite, setAllowOverwrite, effort, setEffort, linkNames, setLinkNames, sceneTitles, setSceneTitles, settingsOpen, setSettingsOpen, running, waiting, progress, errors, reports, setReport } = useAgent();
+  const { trigger, setTrigger, idleSeconds, setIdleSeconds, enabled, provider, models, model, setModel, allowOverwrite, setAllowOverwrite, effort, setEffort, linkNames, setLinkNames, sceneTitles, setSceneTitles, settingsOpen, setSettingsOpen, running, waiting, progress, errors, reports, setReport } = useAgent();
   const error = errors[scene.id];
   const dismissed = useDismissed();
   if (!BACKEND) return null;
@@ -152,6 +152,9 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
 
       {report && (
         <div className="agent-report small" data-testid="agent-report">
+          {Object.values(report).every((v) => (Array.isArray(v) ? v.length === 0 : v === undefined || v === false)) && (
+            <div className="faint">Read it: nothing new to file.</div>
+          )}
           {report.created.map((c) =>
             vault.entities[c.id] ? (
               <div key={c.id} className="agent-row">
@@ -464,6 +467,18 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
             ))}
           </select>
         </label>
+        {trigger === 'idle' && (
+          <label className="agent-row small">
+            <span className="faint">Wait</span>
+            <select value={idleSeconds} onChange={(e) => setIdleSeconds(Number(e.target.value))} aria-label="How long to wait after I stop typing" data-testid="agent-idle">
+              {IDLE_CHOICES.map((s) => (
+                <option key={s} value={s}>
+                  {s < 60 ? `${s} seconds` : s === 60 ? '1 minute' : `${s / 60} minutes`}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         {models.length > 0 && (
           <label className="agent-row small">
             <span className="faint">Model</span>
