@@ -13,6 +13,7 @@ import type { Id } from '../core/types';
 export type Trigger = 'off' | 'leave' | 'idle';
 
 const TRIGGER_KEY = 'lw-agent-trigger';
+const MODEL_KEY = 'lw-agent-model';
 const IDLE_MS = 20_000;
 const MAX_STEPS = 5;
 
@@ -27,37 +28,57 @@ interface AgentStore {
   trigger: Trigger;
   /** Null until the server has said whether it has a model key. */
   enabled: boolean | null;
+  /** The models the server offers, its default first. */
+  models: string[];
+  /** The writer's pick among `models`. */
   model: string | null;
   running: Id | null;
   error: string | null;
   /** What the last run of each scene did. Kept for this session only. */
   reports: Record<Id, AgentReport>;
   setTrigger: (t: Trigger) => void;
+  setModel: (m: string) => void;
+}
+
+/** A "-contributor" model is cheaper, but Meta may train its models on what is sent to it: here, the manuscript. */
+export const isContributor = (model: string): boolean => model.endsWith('-contributor');
+
+function remember(key: string, value: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // The choice only lasts for this session.
+  }
+}
+
+function recall(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
 }
 
 function loadTrigger(): Trigger {
-  try {
-    const t = localStorage.getItem(TRIGGER_KEY);
-    return t === 'leave' || t === 'idle' ? t : 'off';
-  } catch {
-    return 'off';
-  }
+  const t = recall(TRIGGER_KEY);
+  return t === 'leave' || t === 'idle' ? t : 'off';
 }
 
 export const useAgent = create<AgentStore>((set) => ({
   trigger: loadTrigger(),
   enabled: null,
+  models: [],
   model: null,
   running: null,
   error: null,
   reports: {},
   setTrigger: (trigger) => {
-    try {
-      localStorage.setItem(TRIGGER_KEY, trigger);
-    } catch {
-      // The choice only lasts for this session.
-    }
+    remember(TRIGGER_KEY, trigger);
     set({ trigger });
+  },
+  setModel: (model) => {
+    remember(MODEL_KEY, model);
+    set({ model });
   },
 }));
 
@@ -77,7 +98,7 @@ async function askModel(sceneId: Id): Promise<{ text: string; model: string }> {
   ];
   for (let step = 0; step < MAX_STEPS; step++) {
     // The last step offers no tools, so the model has to answer.
-    const { message, model } = await post<{ message: ChatMessage; model: string }>('/api/agent/chat', { messages, ...(step < MAX_STEPS - 1 ? { tools: TOOLS } : {}) });
+    const { message, model } = await post<{ message: ChatMessage; model: string }>('/api/agent/chat', { messages, model: useAgent.getState().model, ...(step < MAX_STEPS - 1 ? { tools: TOOLS } : {}) });
     messages.push(message);
     if (!message.tool_calls?.length) return { text: message.content ?? '', model };
     for (const call of message.tool_calls) {
@@ -142,8 +163,12 @@ function readEdited(): void {
 export function startAgent(): void {
   if (!BACKEND) return;
   void fetch('/api/agent')
-    .then((r) => r.json() as Promise<{ enabled: boolean; model: string | null }>)
-    .then((a) => useAgent.setState({ enabled: a.enabled, model: a.model }))
+    .then((r) => r.json() as Promise<{ enabled: boolean; models: string[] }>)
+    .then((a) => {
+      // A model remembered from before is kept only while the server still offers it.
+      const saved = recall(MODEL_KEY);
+      useAgent.setState({ enabled: a.enabled, models: a.models, model: saved && a.models.includes(saved) ? saved : (a.models[0] ?? null) });
+    })
     .catch(() => useAgent.setState({ enabled: false }));
 
   let idle: ReturnType<typeof setTimeout> | null = null;

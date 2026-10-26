@@ -130,27 +130,36 @@ describe('the story agent relay', () => {
 
   const ask = { messages: [{ role: 'user', content: 'a scene' }] };
 
-  it('relays one chat call with the server’s key and model, only for a signed-in account, and never returns the key', async () => {
+  it('relays one chat call with the server’s key and the chosen model, only for a signed-in account, and never returns the key', async () => {
     const model = await fakeModel();
-    const app = await newApp(true, { apiKey: 'secret-key', baseUrl: model.baseUrl, model: 'muse-test' });
+    const app = await newApp(true, { apiKey: 'secret-key', baseUrl: model.baseUrl, models: ['muse-a', 'muse-b'] });
     const b = browser(app);
     expect((await b.call('POST', '/api/agent/chat', ask)).status).toBe(401);
 
     await b.call('POST', '/api/signup', credentials('a@example.com'));
-    const res = await b.call('POST', '/api/agent/chat', ask);
-    expect(res.body).toEqual({ message: { role: 'assistant', content: '{}' }, model: 'muse-test' });
-    expect(model.seen).toEqual({ auth: 'Bearer secret-key', body: { model: 'muse-test', messages: ask.messages } });
+    const res = await b.call('POST', '/api/agent/chat', { ...ask, model: 'muse-b' });
+    expect(res.body).toEqual({ message: { role: 'assistant', content: '{}' }, model: 'muse-b' });
+    expect(model.seen).toEqual({ auth: 'Bearer secret-key', body: { model: 'muse-b', messages: ask.messages } });
     expect(JSON.stringify(res.body)).not.toContain('secret-key');
+  });
+
+  it('uses the first model when none is chosen, and refuses one the server does not offer', async () => {
+    const model = await fakeModel();
+    const b = browser(await newApp(true, { apiKey: 'k', baseUrl: model.baseUrl, models: ['muse-a', 'muse-b'] }));
+    await b.call('POST', '/api/signup', credentials('a@example.com'));
+    expect((await b.call('GET', '/api/agent')).body).toEqual({ enabled: true, models: ['muse-a', 'muse-b'] });
+    expect((await b.call('POST', '/api/agent/chat', ask)).body.model).toBe('muse-a');
+    expect((await b.call('POST', '/api/agent/chat', { ...ask, model: 'someone-elses-model' })).status).toBe(400);
   });
 
   it('says so when the server has no key, and when the model service refuses', async () => {
     const off = browser(await newApp());
     await off.call('POST', '/api/signup', credentials('a@example.com'));
-    expect((await off.call('GET', '/api/agent')).body).toEqual({ enabled: false, model: null });
+    expect((await off.call('GET', '/api/agent')).body).toEqual({ enabled: false, models: [] });
     expect((await off.call('POST', '/api/agent/chat', ask)).status).toBe(503);
 
     const model = await fakeModel(500);
-    const on = browser(await newApp(true, { apiKey: 'k', baseUrl: model.baseUrl, model: 'm' }));
+    const on = browser(await newApp(true, { apiKey: 'k', baseUrl: model.baseUrl, models: ['m'] }));
     await on.call('POST', '/api/signup', credentials('b@example.com'));
     const refused = await on.call('POST', '/api/agent/chat', ask);
     expect(refused.status).toBe(502);

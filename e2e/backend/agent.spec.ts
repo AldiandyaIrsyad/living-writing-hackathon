@@ -21,9 +21,16 @@ test('the agent makes a page for a new [[link]], shows a contradiction with its 
   const nora = editor.locator('.cm-wikilink[data-link-target="Nora"]');
   await expect(nora).toHaveClass(/unresolved/);
 
+  // A contributor model is called out before anything is sent; the model picked is the one that reads.
+  await page.getByTestId('agent-model').selectOption('muse-spark-1.3-contributor');
+  await expect(page.getByTestId('agent-contributor-warning')).toBeVisible();
+  await page.getByTestId('agent-model').selectOption('muse-spark-1.2');
+  await expect(page.getByTestId('agent-contributor-warning')).toHaveCount(0);
+
   await page.getByTestId('agent-read').click();
   const report = page.getByTestId('agent-report');
   await expect(report).toContainText('New pages: Nora');
+  await expect(report).toContainText('read by muse-spark-1.2');
   await expect(nora).not.toHaveClass(/unresolved/);
   await expect(page.getByTestId('agent-contradiction')).toContainText('Norman keeps the inn at');
 

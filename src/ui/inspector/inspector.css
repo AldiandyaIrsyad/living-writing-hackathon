@@ -441,12 +441,6 @@
   flex: 1;
   min-width: 0;
 }
-.agent-model {
-  margin-left: auto;
-  font-size: 10px;
-  letter-spacing: 0;
-  text-transform: none;
-}
 .agent-report {
   display: flex;
   flex-direction: column;

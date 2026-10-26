@@ -7,7 +7,7 @@ createServer((req, res) => {
   req.on('data', (chunk) => (raw += chunk));
   req.on('end', () => {
     if (req.method !== 'POST') return res.writeHead(200).end('ok');
-    const { messages, tools } = JSON.parse(raw);
+    const { model, messages, tools } = JSON.parse(raw);
     const reply = (message) => res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ choices: [{ message }] }));
     if (tools && !messages.some((m) => m.role === 'tool')) {
       return reply({ role: 'assistant', content: null, tool_calls: [{ id: 'look', type: 'function', function: { name: 'get_entity', arguments: JSON.stringify({ name: 'Norman' }) } }] });
@@ -16,7 +16,7 @@ createServer((req, res) => {
     const missing = (/Links with no page yet: (.*)/.exec(prompt)?.[1] ?? '').split(', ').filter((name) => name && name !== '(none)');
     const answer = {
       newEntities: missing.map((name) => ({ name, type: 'Character', page: ['Arrived at the inn in the rain.'], aliases: [] })),
-      states: [{ entity: 'Norman', state: 'surprised by a late guest' }],
+      states: [{ entity: 'Norman', state: `surprised by a late guest (read by ${model})` }],
       contradictions: prompt.includes('never set foot in Ashford')
         ? [{ entity: 'Norman', claim: 'Norman has never been to Ashford', sceneQuote: 'Norman had never set foot in Ashford', wikiQuote: 'Norman keeps the inn at' }]
         : [],

@@ -17,8 +17,11 @@ export interface ServerOptions {
   secureCookie: boolean;
   /** Built frontend to serve next to the API. */
   staticDir?: string;
-  /** The model behind the story agent (an OpenAI-style chat completions service). Without it the agent is off. */
-  agent?: { apiKey: string; baseUrl: string; model: string };
+  /**
+   * The models behind the story agent (an OpenAI-style chat completions service); the writer picks one of `models`, and
+   * the first is the default. Without it the agent is off.
+   */
+  agent?: { apiKey: string; baseUrl: string; models: string[] };
 }
 
 const AGENT_CALLS_PER_WINDOW = 120;
@@ -217,15 +220,16 @@ export async function buildApp(opts: ServerOptions) {
 
   app.get('/api/agent', async (req, reply) => {
     if (!sessionUser(req)) return reply.code(401).send({ error: 'Not signed in.' });
-    return { enabled: !!opts.agent, model: opts.agent?.model ?? null };
+    return { enabled: !!opts.agent, models: opts.agent?.models ?? [] };
   });
 
   app.post('/api/agent/chat', async (req, reply) => {
     const user = sessionUser(req);
     if (!user) return reply.code(401).send({ error: 'Not signed in.' });
     if (!opts.agent) return reply.code(503).send({ error: 'The story agent is off: the server has no MODEL_API_KEY.' });
-    const { messages, tools } = (req.body ?? {}) as { messages?: unknown; tools?: unknown };
+    const { messages, tools, model = opts.agent.models[0] } = (req.body ?? {}) as { messages?: unknown; tools?: unknown; model?: unknown };
     if (!Array.isArray(messages) || messages.length === 0 || (tools !== undefined && !Array.isArray(tools))) return reply.code(400).send({ error: 'Malformed agent request.' });
+    if (typeof model !== 'string' || !opts.agent.models.includes(model)) return reply.code(400).send({ error: 'That model is not offered on this server.' });
     if (JSON.stringify(req.body).length > AGENT_MAX_REQUEST_CHARS) return reply.code(413).send({ error: 'That is too much text for one agent call.' });
 
     const now = Date.now();
@@ -234,7 +238,7 @@ export async function buildApp(opts: ServerOptions) {
     if (used.count >= AGENT_CALLS_PER_WINDOW) return reply.code(429).send({ error: 'Too many agent calls. Try again in a few minutes.' });
     agentCalls.set(user.id, { count: used.count + 1, since: used.since });
 
-    const { apiKey, baseUrl, model } = opts.agent;
+    const { apiKey, baseUrl } = opts.agent;
     let upstream: Response;
     try {
       upstream = await fetch(`${baseUrl.replace(/\/$/, '')}/chat/completions`, {

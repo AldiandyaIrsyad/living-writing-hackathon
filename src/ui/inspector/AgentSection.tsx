@@ -2,7 +2,7 @@
 // writer to decide. Everything it wrote can be taken back for this scene in one click.
 
 import { revertAgentOutput } from '../../agent/apply';
-import { enqueueScene, forgetReport, readSceneNow, useAgent, type Trigger } from '../../agent/run';
+import { enqueueScene, forgetReport, isContributor, readSceneNow, useAgent, type Trigger } from '../../agent/run';
 import type { Scene } from '../../core/types';
 import { slugify } from '../../core/types';
 import { setMomentConcrete, setMomentTimeSkip } from '../../store/actions';
@@ -18,7 +18,7 @@ const TRIGGERS: { value: Trigger; label: string }[] = [
 
 export function AgentSection({ scene, writing }: { scene: Scene; writing: boolean }) {
   const vault = useVault();
-  const { trigger, setTrigger, enabled, model, running, error, reports } = useAgent();
+  const { trigger, setTrigger, enabled, models, model, setModel, running, error, reports } = useAgent();
   const dismissed = useDismissed();
   if (!BACKEND) return null;
 
@@ -31,7 +31,6 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
     <section className="insp-section agent" data-testid="insp-agent">
       <div className="insp-sec-head">
         <span>Story agent</span>
-        {model && <span className="agent-model faint">{model}</span>}
       </div>
 
       <label className="agent-row small">
@@ -44,6 +43,24 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
           ))}
         </select>
       </label>
+
+      {models.length > 0 && (
+        <label className="agent-row small">
+          <span className="faint">Model</span>
+          <select value={model ?? ''} onChange={(e) => setModel(e.target.value)} aria-label="Model the agent uses" data-testid="agent-model">
+            {models.map((m) => (
+              <option key={m} value={m}>
+                {isContributor(m) ? `${m} (cheaper, may train Meta models)` : m}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {model && isContributor(model) && (
+        <div className="small agent-error" data-testid="agent-contributor-warning">
+          Contributor mode: Meta may use what the agent sends (your scenes and wiki pages) to train its models.
+        </div>
+      )}
 
       {enabled === false ? (
         <div className="small faint">The server has no model key. Set MODEL_API_KEY and restart it.</div>

@@ -50,7 +50,9 @@ reload"). `npm run test:e2e:backend` runs the browser test for server mode.
 
 A model reads each scene you hand in and keeps the wiki current, so you only write the story. It runs in the Inspector's
 "Story agent" section and needs the server: set `MODEL_API_KEY` (and optionally `META_API_BASE`, default
-`https://api.meta.ai/v1`, and `AGENT_MODEL`, default `muse-spark-1.3`), then `npm run dev:full`.
+`https://api.meta.ai/v1`, and `AGENT_MODELS`, a comma-separated list the writer picks from in the panel, the first being
+the default), then `npm run dev:full`. The default list is Meta's chat models, Standard first: a `-contributor` model is
+cheaper, but Meta may train its models on what is sent to it, so the panel warns when one is picked.
 
 - **When it reads:** only when you press "Read this scene" (default), when you leave a scene you edited, or 20 seconds
   after you stop typing. A scene whose text has not changed since the last reading is not read again.
