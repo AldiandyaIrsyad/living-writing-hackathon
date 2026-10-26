@@ -57,12 +57,14 @@ default model `gemini-3.8-flash`) through its OpenAI-compatible endpoint; the pa
 cheaper, but Meta may train its models on what is sent to it, so the panel warns when one is picked.
 
 - **When it reads:** only when you press "Read this scene" (or "Read the chapter": its scenes in order, skipping
-  those already read and unchanged) (default), when you leave a scene you edited, or 20 seconds
-  after you stop typing. A scene whose text has not changed since the last reading is not read again, and a scene marked
-  as an idea is only read when you ask (it is not canon yet).
+  those already read and unchanged) (default), when you leave a scene you edited, or a while
+  after you stop typing (**Wait**: 5 seconds, 20 seconds by default, 1 or 2 minutes). A scene whose text has not
+  changed since the last reading is not read again, a scene marked as an idea is only read when you ask (it is not
+  canon yet), and loading the demo or importing a vault is not writing: its scenes wait until you ask or edit them.
 - **A `[[link]]` with no page** gets a page, of the entity type the scene suggests (a person, a place, an object…); the
   panel lets you change the type in one click. Names you did not link are listed, each with "Link it" (and "Link all
-  and read again", which gives them all pages in one reading); set **Names I
+  and read again", which gives them all pages in one reading); a short name that is part of one page's name links to
+  that page ("Mara" → `[[Mara Voss|Mara]]`) rather than making a second one. Set **Names I
   didn't link → Link and file them** and the agent links a name where it first appears and makes its page, so you can
   write without `[[ ]]` at all. A name a letter or two off an existing page is never linked this way (it asks instead).
 - **Untitled scenes** ("Untitled scene", "New scene"): the agent suggests a title ("Use it"), titles them, or leaves
