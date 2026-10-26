@@ -374,6 +374,24 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
               </button>
             </div>
           )}
+          {report.unlinkedNames.filter((n) => linkFirstMention(scene.prose, n.name)).length > 1 && (
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              data-testid="agent-link-all"
+              title="Link each name where it first appears, then read the scene again so they get pages: one reading for all of them."
+              onClick={() => {
+                flushEditors();
+                const now = useStore.getState().vault;
+                const prose = report.unlinkedNames.reduce((p, n) => linkFirstMention(p, n.name) ?? p, now.scenes[scene.id].prose);
+                commit({ ...now, scenes: { ...now.scenes, [scene.id]: { ...now.scenes[scene.id], prose } } }, 'Link names');
+                patch({ unlinkedNames: [] });
+                if (enabled) readSceneNow(scene.id);
+              }}
+            >
+              Link all and read again
+            </button>
+          )}
           {report.unlinkedNames.map((n) => {
             const linked = linkFirstMention(scene.prose, n.name);
             return (
