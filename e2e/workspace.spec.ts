@@ -5,6 +5,7 @@ import { clip, expectOpenScene, focusTimeline, loadDemo, openCastCard, openEntit
 
 test.describe('starting the app again', () => {
   test('reopens the tabs that were open, the front one in front, unless the writer asks for the home page', async ({ page }) => {
+    test.slow(); // the demo and two reloads pass 30 s when the whole suite runs at once
     await loadDemo(page);
     await openScene(page, 'Supper at the Inn');
     await openEntity(page, 'Mira');
