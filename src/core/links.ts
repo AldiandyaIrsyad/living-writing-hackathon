@@ -428,6 +428,12 @@ function mapChanges(
   return changed ? out : changes;
 }
 
+/** Points every link to `from` in the text at `to` instead (a misspelt [[Mria]] becomes [[Mira]]), keeping the rest of each link. */
+export function retargetLinks(text: string, from: string, to: string): string {
+  const slug = slugify(from);
+  return rewriteText(text, (p) => (slugify(p.target) === slug ? { target: to } : null));
+}
+
 export function renameEntity(vault: Vault, entityId: Id, newName: string): Vault {
   const entity = vault.entities[entityId];
   if (!entity) return { ...vault };

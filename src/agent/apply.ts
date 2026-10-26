@@ -3,7 +3,7 @@
 // up is dropped rather than written. The result is one vault; the caller commits it as a single step.
 
 import { compareConcretes, momentConcrete, parseConcrete } from '../core/concrete';
-import { findEntity } from '../core/links';
+import { findEntity, parseLinks, retargetLinks } from '../core/links';
 import { installPreset } from '../core/presets';
 import { Resolver, valueEquals } from '../core/resolve';
 import type { Id, PropValue, StateChange, Vault } from '../core/types';
@@ -65,6 +65,13 @@ export interface AgentReport {
   /** The time label was written (the scene's moment had none); otherwise `timeLabel` is only a suggestion. */
   timeLabelSet?: boolean;
   unlinkedNames: { name: string; reason: string }[];
+  /**
+   * Links with no page whose name is a letter or two off a page that exists ([[Mria]], with Mira in the wiki): no page
+   * was made. The writer fixes the link, or says it is someone new and gets the page the agent held back.
+   */
+  nearMisses?: { link: string; entityId: Id; name: string; type: string; aliases: string[]; edits: PageEdit[] }[];
+  /** Pages an earlier read of this scene made for a link that is gone (a typo, retyped): removed, as nothing else used them. */
+  removed?: string[];
 }
 
 const str = (x: unknown): string => (typeof x === 'string' ? x.trim() : typeof x === 'number' || typeof x === 'boolean' ? String(x) : '');
@@ -141,17 +148,78 @@ function undoAgentChanges(vault: Vault, sceneId: Id): { vault: Vault; entityIds:
   return { vault: { ...v, changes }, entityIds: new Set(mine.map((c) => c.entityId)) };
 }
 
+/** Of these pages, the ones nothing has written to: still their type's template, with no change left on them. */
+function blankPages(v: Vault, ids: Iterable<Id>): Id[] {
+  const changed = new Set(Object.values(v.changes).map((c) => c.entityId));
+  return [...ids].filter((id) => {
+    const e = v.entities[id];
+    return e && !changed.has(id) && e.note.trim() === (v.entityTypes[e.typeId]?.template ?? '').trim();
+  });
+}
+
+const without = (v: Vault, ids: Id[]): Vault => {
+  if (!ids.length) return v;
+  const entities = { ...v.entities };
+  for (const id of ids) delete entities[id];
+  return { ...v, entities };
+};
+
+/** Does any scene, page, revision or link-valued property still point at the entity? */
+function linkedAnywhere(v: Vault, id: Id): boolean {
+  const points = (text: string) => parseLinks(text).some((l) => findEntity(v, l.target)?.id === id);
+  return (
+    Object.values(v.scenes).some((s) => points(s.prose)) ||
+    Object.values(v.entities).some((e) => points(e.note) || Object.values(e.props).some((p) => typeof p === 'object' && p !== null && 'target' in p && findEntity(v, p.target)?.id === id)) ||
+    Object.values(v.changes).some((c) => (c.note !== undefined && points(c.note)) || (typeof c.value === 'object' && c.value !== null && 'target' in c.value && findEntity(v, c.value.target)?.id === id))
+  );
+}
+
 /** Undoes the agent's output for one scene, and removes pages it created that nothing else has touched since. */
 export function revertAgentOutput(vault: Vault, sceneId: Id): Vault {
   const undone = undoAgentChanges(vault, sceneId);
-  const entities = { ...undone.vault.entities };
-  const stillChanged = new Set(Object.values(undone.vault.changes).map((c) => c.entityId));
-  for (const id of undone.entityIds) {
-    const e = entities[id];
-    const untouched = e && e.note.trim() === (undone.vault.entityTypes[e.typeId]?.template ?? '').trim();
-    if (untouched && !stillChanged.has(id)) delete entities[id];
+  return without(undone.vault, blankPages(undone.vault, undone.entityIds));
+}
+
+type NearMiss = NonNullable<AgentReport['nearMisses']>[number];
+
+/** "Fix the link": the misspelt links in the scene now point at the page that was meant. */
+export function fixNearMiss(vault: Vault, sceneId: Id, miss: NearMiss): Vault {
+  const scene = vault.scenes[sceneId];
+  const name = vault.entities[miss.entityId]?.name ?? miss.name;
+  return { ...vault, scenes: { ...vault.scenes, [sceneId]: { ...scene, prose: retargetLinks(scene.prose, miss.link, name) } } };
+}
+
+/** "It's someone new": the page the agent held back, made now, with what it would have written (as the writer's). */
+export function createHeldPage(vault: Vault, sceneId: Id, miss: NearMiss): Vault {
+  const type = typeFor(vault, miss.type);
+  const added = addEntity(type.vault, { name: miss.link, typeId: type.id });
+  const aliases = miss.aliases.filter((a) => !findEntity(added.vault, a));
+  const v = { ...added.vault, entities: { ...added.vault.entities, [added.id]: { ...added.vault.entities[added.id], aliases } } };
+  return miss.edits.length ? editPage(v, sceneId, added.id, miss.edits, 'writer', 'Accepted from the story agent').vault : v;
+}
+
+/** Edit distance between two slugs, for spotting a misspelt link; two swapped letters ("Mria") count as one edit. */
+function distance(a: string, b: string): number {
+  const d: number[][] = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 0; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+    }
   }
-  return { ...undone.vault, entities };
+  return d[a.length][b.length];
+}
+
+/** The existing page a link probably meant: one letter off for short names, two for longer ones. */
+function nearMiss(v: Vault, target: string): { id: Id; name: string } | undefined {
+  const t = slugify(target);
+  if (t.length < 3) return undefined;
+  const allowed = t.length <= 5 ? 1 : 2;
+  for (const e of Object.values(v.entities)) {
+    if ([e.name, ...e.aliases].some((n) => distance(t, slugify(n)) <= allowed)) return { id: e.id, name: e.name };
+  }
+  return undefined;
 }
 
 /**
@@ -220,15 +288,28 @@ export function propValue(raw: string): PropValue {
 export function applyAgentOutput(vault: Vault, sceneId: Id, out: AgentOutput, opts: AgentOptions): { vault: Vault; report: AgentReport } {
   const scene = vault.scenes[sceneId];
   const report: AgentReport = { created: [], pages: [], suggestions: [], properties: [], propertySuggestions: [], states: [], claimed: [], skipped: [], contradictions: [], unlinkedNames: [...out.unlinkedNames] };
-  let v = undoAgentChanges(vault, sceneId).vault;
+  const undone = undoAgentChanges(vault, sceneId);
+  // A page the last read made for a link the writer has since retyped ([[Nora]] → [[Norah]]) goes, once nothing uses it.
+  const stray = blankPages(undone.vault, undone.entityIds).filter((id) => !linkedAnywhere(undone.vault, id));
+  if (stray.length) report.removed = stray.map((id) => undone.vault.entities[id].name);
+  let v = without(undone.vault, stray);
 
   // 1. A [[link]] with no page is the writer asking for one. Only those become entities; other names are suggestions.
+  // A link a letter or two off an existing page is more likely a typo than a new character: it is asked about instead.
   const wanted = new Map(unresolvedLinks(v, sceneId).map((t) => [slugify(t), t]));
+  const held = new Set<string>();
   for (const n of out.newEntities) {
     if (findEntity(v, n.name)) continue;
     const target = wanted.get(slugify(n.name));
     if (!target) {
       report.unlinkedNames.push({ name: n.name, reason: 'Not linked in the scene, so no page was made.' });
+      continue;
+    }
+    const near = nearMiss(v, target);
+    if (near) {
+      const edits = out.pages.filter((p) => p.certainty !== 'claimed' && slugify(p.entity) === slugify(n.name)).flatMap((p) => p.edits);
+      (report.nearMisses ??= []).push({ link: target, entityId: near.id, name: near.name, type: n.type, aliases: n.aliases, edits });
+      held.add(slugify(n.name));
       continue;
     }
     const type = typeFor(v, n.type);
@@ -243,6 +324,7 @@ export function applyAgentOutput(vault: Vault, sceneId: Id, out: AgentOutput, op
   const byEntity = new Map<Id, { edits: PageEdit[]; message?: string }>();
   for (const p of out.pages) {
     const e = findEntity(v, p.entity);
+    if (!e && held.has(slugify(p.entity))) continue;
     if (!e) report.skipped.push(`No page called “${p.entity}”, so its edits were not made.`);
     else if (p.certainty === 'claimed') report.claimed.push({ entity: e.name, edits: p.edits });
     else {

@@ -4,7 +4,7 @@ import { Resolver } from '../core/resolve';
 import { VaultBuilder } from '../core/testkit';
 import type { Vault } from '../core/types';
 import { commitRevision } from '../store/actions';
-import { applyAgentOutput, editPage, parseAgentOutput, revertAgentOutput, type AgentOptions, type AgentOutput } from './apply';
+import { applyAgentOutput, createHeldPage, editPage, fixNearMiss, parseAgentOutput, revertAgentOutput, type AgentOptions, type AgentOutput } from './apply';
 import { buildContext } from './context';
 import { applyEdits, pageLines, type PageEdit } from './page';
 
@@ -60,6 +60,32 @@ describe('a [[link]] with no page', () => {
     const tam = findEntity(vault, 'Tam')!.id;
     expect(r.entityAt(tam, r.atScene('s2')).note).toBe('');
     expect(r.entityAt(tam, r.atScene('s2', true)).note).toBe('- A courier from the north\n');
+  });
+
+  it('made by a read and then retyped ([[Tam]] → [[Tamsin]]), is removed on the next read, unless something still links it', () => {
+    const v = world('[[Tam]] arrived.');
+    const first = applyAgentOutput(v, 's2', answer({ newEntities: [{ name: 'Tam', type: 'Thing', aliases: [] }], pages: [adds('Tam', 'A courier')] }), agent).vault;
+    const retyped = (x: Vault): Vault => ({ ...x, scenes: { ...x.scenes, s2: { ...x.scenes.s2, prose: '[[Tamsin]] arrived.' } } });
+    const again = answer({ newEntities: [{ name: 'Tamsin', type: 'Thing', aliases: [] }] });
+
+    const fixed = applyAgentOutput(retyped(first), 's2', again, agent);
+    expect([findEntity(fixed.vault, 'Tam'), findEntity(fixed.vault, 'Tamsin')?.name, fixed.report.removed]).toEqual([undefined, 'Tamsin', ['Tam']]);
+
+    const stillUsed = retyped(first);
+    stillUsed.scenes.s1 = { ...stillUsed.scenes.s1, prose: 'Nora met [[Tam]].' };
+    expect(findEntity(applyAgentOutput(stillUsed, 's2', again, agent).vault, 'Tam')?.name).toBe('Tam');
+  });
+
+  it('a letter or two off an existing page, asks “did you mean?” instead of making one; the writer fixes it or says it is new', () => {
+    const v = world('[[Mria]] waved from the cart.');
+    const { vault, report } = applyAgentOutput(v, 's2', answer({ newEntities: [{ name: 'Mria', type: 'Thing', aliases: [] }], pages: [adds('Mria', 'Waves from carts')] }), agent);
+    expect([findEntity(vault, 'Mria'), report.created, report.skipped]).toEqual([undefined, [], []]);
+    const miss = report.nearMisses![0];
+    expect([miss.link, miss.name]).toEqual(['Mria', 'Mira']);
+
+    expect(fixNearMiss(vault, 's2', miss).scenes.s2.prose).toBe('[[Mira]] waved from the cart.');
+    const someoneNew = createHeldPage(vault, 's2', miss);
+    expect(noteAfter(someoneNew, 'Mria', 's2')).toContain('- Waves from carts');
   });
 
   it('gets a page even when it shares its own scene’s title, since a scene never links itself', () => {

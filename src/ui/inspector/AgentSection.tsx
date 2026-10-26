@@ -2,14 +2,14 @@
 // writer to decide. Everything it wrote can be taken back for this scene in one click; everything it only offered can
 // be accepted one line at a time.
 
-import { editPage, propValue, revertAgentOutput, type AgentReport } from '../../agent/apply';
+import { createHeldPage, editPage, fixNearMiss, propValue, revertAgentOutput, type AgentReport } from '../../agent/apply';
 import type { PageEdit } from '../../agent/page';
 import { enqueueScene, isContributor, readSceneNow, useAgent, type Trigger } from '../../agent/run';
 import type { Id, Scene, Vault } from '../../core/types';
 import { slugify } from '../../core/types';
 import { addChange, setMomentConcrete, setMomentLabel, setMomentTimeSkip, sortedTypes, updateEntity } from '../../store/actions';
 import { BACKEND } from '../../store/server';
-import { useStore, useVault } from '../../store/store';
+import { flushEditors, useStore, useVault } from '../../store/store';
 import { setDismissed, useDismissed } from '../dismissed';
 
 const TRIGGERS: { value: Trigger; label: string }[] = [
@@ -149,6 +149,44 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
               </div>
             ) : null,
           )}
+
+          {(report.removed ?? []).map((name) => (
+            <div key={name} className="faint" data-testid="agent-removed">
+              Removed the page <b>{name}</b>: nothing links to it any more.
+            </div>
+          ))}
+          {(report.nearMisses ?? []).map((m, i) => (
+            <div key={m.link} className="agent-flag" data-testid="agent-near-miss">
+              <div>
+                [[{m.link}]] has no page. Did you mean <b>{vault.entities[m.entityId]?.name ?? m.name}</b>?
+              </div>
+              <div className="agent-row">
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => {
+                    flushEditors();
+                    commit(fixNearMiss(useStore.getState().vault, scene.id, m), 'Fix a link');
+                    patch({ nearMisses: report.nearMisses!.filter((_, k) => k !== i) });
+                    // What the agent read about the typo belongs to the page that was meant: read the scene again.
+                    if (enabled) readSceneNow(scene.id);
+                  }}
+                >
+                  Fix the link
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-ghost"
+                  onClick={() => {
+                    commit(createHeldPage(useStore.getState().vault, scene.id, m), 'New page');
+                    patch({ nearMisses: report.nearMisses!.filter((_, k) => k !== i) });
+                  }}
+                >
+                  It’s someone new
+                </button>
+              </div>
+            </div>
+          ))}
 
           {report.pages.map((p) => (
             <div key={p.entity}>
