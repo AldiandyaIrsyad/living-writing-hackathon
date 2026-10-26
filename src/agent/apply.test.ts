@@ -261,10 +261,12 @@ describe('properties and time', () => {
     expect([label(kept.vault), kept.report.timeLabel, kept.report.timeLabelSet]).toEqual(['Winter, 2026', 'Early Winter, 2026', undefined]);
   });
 
-  it('does not also offer a date that only repeats the time label', () => {
-    const v = world('Snow fell.');
-    expect(applyAgentOutput(v, 's2', answer({ timeLabel: 'Late Autumn, 2026', concrete: 'Late autumn, 2026' }), agent).report.concrete).toBeUndefined();
-    expect(applyAgentOutput(v, 's2', answer({ timeLabel: 'Late Autumn, 2026', concrete: '2026-11-03' }), agent).report.concrete).toBe('2026-11-03');
+  it.each([
+    ['repeats the time label', 'Late autumn, 2026', undefined],
+    ['is a span of time, not a date', '3 weeks', undefined],
+    ['is a date the timeline can order', '2026-11-03', '2026-11-03'],
+  ])('offers a date only when it is not one that %s', (_, concrete, offered) => {
+    expect(applyAgentOutput(world('Snow fell.'), 's2', answer({ timeLabel: 'Late Autumn, 2026', concrete }), agent).report.concrete).toBe(offered);
   });
 });
 

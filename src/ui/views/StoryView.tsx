@@ -11,6 +11,7 @@ import {
   addChapter,
   addChapterLabel,
   arcsOfStory,
+  chapterForNewScene,
   chaptersOfStory,
   deleteArc,
   deleteChapter,
@@ -102,7 +103,9 @@ function StoryPage({ storyId }: { storyId: Id }) {
       (best, s) => (!best || graph.topoIndex(s.momentId) > graph.topoIndex(best.momentId) ? s : best),
       undefined,
     );
-    const created = insertScene(current, { storyId, title: 'Untitled scene' }, latest ? 'after' : null, latest?.id ?? null);
+    // Like a scene made anywhere else, it joins a chapter (its neighbour's, the last one, or a new "Chapter 1").
+    const chapter = chapterForNewScene(current, storyId, latest?.id ?? null);
+    const created = insertScene(chapter.vault, { storyId, title: 'Untitled scene', chapterId: chapter.chapterId }, latest ? 'after' : null, latest?.id ?? null);
     store.commit(created.vault);
     store.navigate({ kind: 'scene', id: created.sceneId });
   };

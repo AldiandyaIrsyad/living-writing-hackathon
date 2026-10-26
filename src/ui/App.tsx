@@ -371,6 +371,7 @@ function SaveStatus() {
 
 function TopBar({ zen, toggleZen }: { zen: boolean; toggleZen: () => void }) {
   const canUndo = useStore((s) => s.past.length > 0);
+  const reopenTabs = useStore((s) => s.reopenTabs);
   const canRedo = useStore((s) => s.future.length > 0);
   const theme = useTheme();
   const [menu, setMenu] = useState(false);
@@ -450,6 +451,10 @@ function TopBar({ zen, toggleZen }: { zen: boolean; toggleZen: () => void }) {
             >
               Delete everything…
             </button>
+            <div className="menu-sep" />
+            <label className="menu-item" title="Off: the app starts on the home page.">
+              <input type="checkbox" checked={reopenTabs} onChange={(e) => useStore.getState().setReopenTabs(e.target.checked)} data-testid="reopen-tabs" /> Reopen my tabs on start
+            </label>
             <div className="menu-sep" />
             {BACKEND && (
               <button className="menu-item" onClick={() => (setMenu(false), void flushPendingSave().then(logOut))} data-testid="log-out">

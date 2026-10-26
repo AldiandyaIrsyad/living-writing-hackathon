@@ -400,7 +400,8 @@ export function applyAgentOutput(vault: Vault, sceneId: Id, out: AgentOutput, op
     if (out.timeSkip && out.timeSkip !== moment?.timeSkip) report.timeSkip = out.timeSkip;
     // A date that only repeats the scene's time label adds nothing ("Late autumn, 2026" twice).
     const label = moment && momentConcrete(moment);
-    if (out.concrete && out.concrete !== moment?.concrete && squash(out.concrete) !== squash(label || out.timeLabel || '')) report.concrete = out.concrete;
+    // A date is one the timeline can order: "3 weeks" is a time skip, not a date.
+    if (out.concrete && parseConcrete(out.concrete) && out.concrete !== moment?.concrete && squash(out.concrete) !== squash(label || out.timeLabel || '')) report.concrete = out.concrete;
     // A time label is a date the timeline orders by ("Late Autumn, 2026"); "morning" orders nothing and is dropped. The
     // agent fills an empty one only where it fits between the dated scenes around it, else it only suggests, as it
     // does over the writer's.

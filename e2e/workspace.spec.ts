@@ -1,7 +1,27 @@
 import { expect, test } from '@playwright/test';
-import { clip, expectOpenScene, focusTimeline, loadDemo, openCastCard, openEntity, openScene } from './helpers';
+import { clip, expectOpenScene, focusTimeline, loadDemo, openCastCard, openEntity, openScene, waitSaved } from './helpers';
 
 // Workspace behaviour from SPEC §3 / §6.3: the Cast, commits, timeline tracks, focus mode.
+
+test.describe('starting the app again', () => {
+  test('reopens the tabs that were open, the front one in front, unless the writer asks for the home page', async ({ page }) => {
+    await loadDemo(page);
+    await openScene(page, 'Supper at the Inn');
+    await openEntity(page, 'Mira');
+    await page.getByRole('tab', { name: /Chapter 1/ }).click();
+    await waitSaved(page);
+
+    await page.reload();
+    await expect(page.getByRole('tab', { name: /Chapter 1/ })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('tab', { name: /Mira/ })).toBeVisible();
+
+    await page.getByTestId('vault-menu').click();
+    await page.getByTestId('reopen-tabs').uncheck();
+    await page.reload();
+    await expect(page.getByTestId('home-continue')).toBeVisible();
+    await expect(page.getByRole('tab')).toHaveCount(0);
+  });
+});
 
 test.describe('the Cast (Inspector)', () => {
   test('follows the open scene, then the playhead when no scene is open', async ({ page }) => {

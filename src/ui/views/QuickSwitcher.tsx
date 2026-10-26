@@ -24,7 +24,7 @@ import { relationsAt } from '../../core/relations';
 import { answerStateQuery, formatStateQuery, parseStateQuery, type ParseResult } from '../../core/stateQuery';
 import { insertScene } from '../../core/timeline';
 import type { Chapter, Entity, EntityType, Id, Scene, Story, Vault } from '../../core/types';
-import { addEntity, addEntityType, addStory, scenesOfStory, sortedStories, sortedTypes } from '../../store/actions';
+import { addEntity, addEntityType, addStory, chapterForNewScene, scenesOfStory, sortedStories, sortedTypes } from '../../store/actions';
 import { addToCast } from '../../store/cast';
 import { getGraph, getResolver, useStore, useVault, type Tab, type View } from '../../store/store';
 import { saveQuery } from '../../store/savedQueries';
@@ -992,7 +992,10 @@ function newSceneAtPlayhead(): void {
 
   const model = buildTimelineModel(vault, getGraph(vault), []);
   const target = targetForColumn(vault, model, Math.floor(store.playhead));
-  const result = insertScene(vault, { storyId, title: 'New scene' }, target?.relation ?? null, target?.sceneId ?? null);
+  // A scene placed in another story's column has no neighbour in its own story: it joins that story's last chapter.
+  const near = target && vault.scenes[target.sceneId]?.storyId === storyId ? target.sceneId : null;
+  const chapter = chapterForNewScene(vault, storyId, near);
+  const result = insertScene(chapter.vault, { storyId, title: 'New scene', chapterId: chapter.chapterId }, target?.relation ?? null, target?.sceneId ?? null);
   const scene = result.vault.scenes[result.sceneId];
   store.commit(result.vault);
   store.navigate({ kind: 'scene', id: result.sceneId });

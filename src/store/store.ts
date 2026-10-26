@@ -94,6 +94,9 @@ interface AppState {
   view: View;
   /** Views of recently closed tabs, newest last (see reopenClosedTab). */
   closedViews: View[];
+  /** On start, open the tabs that were open last time (else the home page). */
+  reopenTabs: boolean;
+  setReopenTabs(on: boolean): void;
 
   /** Timeline playhead, in columns (see TimePoint 'position'). */
   playhead: number;
@@ -250,6 +253,7 @@ export const useStore = create<AppState>((set, get) => ({
   inspectorPin: null,
   highlightEntities: [],
   showNotesInEditor: loadUi<boolean>('showNotesInEditor', true),
+  reopenTabs: loadUi<boolean>('reopenTabs', true),
   currentStoryId: loadUi<Id | null>('currentStory', null),
   lastVisits: loadUi<Visits>('lastVisits', {}),
   timelineBehaviour: loadUi<TimelineBehaviour>('timelineBehaviour', 'autohide'),
@@ -453,6 +457,11 @@ export const useStore = create<AppState>((set, get) => ({
     set({ inspectorPin: sceneId });
   },
 
+  setReopenTabs(on) {
+    saveUi('reopenTabs', on);
+    set({ reopenTabs: on });
+  },
+
   setShowNotesInEditor(on) {
     saveUi('showNotesInEditor', on);
     set({ showNotesInEditor: on });
@@ -558,6 +567,23 @@ useStore.subscribe((s, prev) => {
   useStore.setState({ lastVisits });
 });
 
+// The open tabs, kept for the next start (see reopenTabs).
+useStore.subscribe((s, prev) => {
+  if (s.loaded && (s.tabs !== prev.tabs || s.activeTabId !== prev.activeTabId))
+    saveUi('openTabs', { views: s.tabs.map((t) => t.view), active: s.tabs.findIndex((t) => t.id === s.activeTabId) });
+});
+
+/** Opens the tabs saved last time, those whose document still exists, and the one that was in front. */
+function reopenSavedTabs(vault: Vault): void {
+  const saved = loadUi<{ views: View[]; active: number } | null>('openTabs', null);
+  if (!saved) return;
+  const s = useStore.getState();
+  const views = saved.views.filter((v) => viewExists(v, vault));
+  for (const view of views) s.navigate(view);
+  const front = saved.views[saved.active];
+  if (front && viewExists(front, vault)) s.navigate(front);
+}
+
 // ---- Derived data, memoised by the references they depend on ----
 
 let graphCache: { moments: Vault['moments']; constraints: Vault['constraints']; graph: MomentGraph } | null = null;
@@ -643,6 +669,7 @@ export async function initPersistence(): Promise<void> {
     const v = await storage.load();
     if (v) useStore.getState().replaceVault(v);
     lastSaved = v;
+    if (v && useStore.getState().reopenTabs) reopenSavedTabs(v);
   } catch (e) {
     console.error('Failed to load vault', e);
     useStore.setState({ loadError: e instanceof Error ? e.message : String(e) });
