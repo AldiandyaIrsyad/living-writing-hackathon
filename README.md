@@ -76,8 +76,13 @@ cheaper, but Meta may train its models on what is sent to it, so the panel warns
 - **Facts a character only claims** (lies, rumours, dreams) are listed, never written, with "It's true, write it".
 - **Possible inconsistencies** come with a quote from the scene and one from the wiki; one the agent cannot back with
   both quotes is dropped. A flashback is checked against the story as it was at its own place on the timeline.
-- **Time:** the agent fills in a moment's time label ("late autumn") when it has none, and only suggests one over yours;
-  time skips and dates are suggestions with Apply. It never moves a scene.
+- **Time:** the agent dates a scene with a label the timeline can order ("Late Autumn, 2026", "Winter, Year 3"), worked
+  out from the latest dated scene before it plus any time the scene says has passed; "morning" is never written. It
+  fills an empty label only where the date fits between the dated scenes around it, and otherwise only suggests one, as
+  it does over yours. It never invents a year: date one scene (or say it in a chapter note) and it carries on from
+  there. Time skips and dates are suggestions with Apply. It never moves a scene.
+- **Chapter notes:** the box under a chapter's title holds notes on the whole chapter ("Set in late autumn, 2026.");
+  the agent reads them with every scene in it.
 - **Talking to the agent:** author notes (`%% this is not true, she is lying %%`) reach it marked as notes, where
   you left them. A note about the story outranks the scene; notes about the writing itself (pacing, "fix later") are
   ignored, and an idea a note only wonders about is never recorded as fact. Put a note next to what it is about: a

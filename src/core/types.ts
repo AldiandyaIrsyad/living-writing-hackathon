@@ -109,6 +109,8 @@ export interface Chapter extends Carries {
   arcId?: Id;
   /** Milestone / event labels bookmarked on this chapter (e.g. "The Death of Hero Nora"). */
   labels?: string[];
+  /** The writer's notes on the whole chapter ("set in late autumn, 2026"); the story agent reads them with each of its scenes. */
+  note?: string;
 }
 
 /** How far along a scene is. Absent means the writer has not said. */

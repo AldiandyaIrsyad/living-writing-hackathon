@@ -69,6 +69,14 @@ describe('JSON export/import', () => {
     expect(await importMarkdownZip(await exportMarkdownZip(v))).toStrictEqual(v);
   });
 
+  it('round-trips a chapter’s notes through JSON and markdown (the story agent reads them)', async () => {
+    const v = new VaultBuilder().scene('s1').build();
+    v.chapters.ch = { id: 'ch', storyId: 's', title: 'The Crossing', order: 0, note: 'Set in late autumn, 2026.\nMira lies all chapter.' };
+    v.scenes.s1.chapterId = 'ch';
+    expect(importJSON(exportJSON(v))).toStrictEqual(v);
+    expect(await importMarkdownZip(await exportMarkdownZip(v))).toStrictEqual(v);
+  });
+
   it('keeps parent / sibling links, including ones set after a scene, so the relations resolve the same after import', async () => {
     const b = new VaultBuilder();
     for (const id of ['asia', 'ashford', 'harbor', 'mira']) b.entity(id, {}, id);

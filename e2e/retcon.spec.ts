@@ -20,6 +20,7 @@ test.describe('retcon preview', () => {
     await fall.hover();
     await fall.getByTestId('tl-insert-after').click();
     await page.getByTestId('scene-editor').locator('.cm-content').click();
+    await page.keyboard.press('Control+End'); // the new scene is the last of the fall's chapter
     await page.keyboard.type('[[Norman]] is still here.');
     await expect(page.locator('[data-testid="cast-card"][data-entity="Norman"]')).toBeVisible();
     await page.keyboard.press('Control+j'); // typing hid the timeline

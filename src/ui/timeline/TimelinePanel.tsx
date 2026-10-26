@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { flushSync } from 'react-dom';
 import { findEntity, parseLinks } from '../../core/links';
 import { constrainScenes, insertScene, moveScenes, setSceneSpan, type Relation } from '../../core/timeline';
+import { addChapterAfter, chapterForNewScene } from '../../store/actions';
 import type { Id, Scene, Vault } from '../../core/types';
 import { describeImpact, impactOf } from '../../store/impact';
 import { getGraph, getResolver, useStore, useVault, ZOOM_MAX, ZOOM_MIN } from '../../store/store';
@@ -462,11 +463,21 @@ export function TimelinePanel() {
     window.addEventListener('keydown', onKey, true);
   };
 
-  const insertAt = (storyId: Id, relation: Relation | null, targetSceneId: Id | null, chapterId?: Id) => {
+  /** A new scene next to a target; it joins a chapter (see chapterForNewScene) unless `chapterId` is null. */
+  const insertAt = (storyId: Id, relation: Relation | null, targetSceneId: Id | null, chapterId?: Id | null) => {
     const s = useStore.getState();
-    const { vault: next, sceneId } = insertScene(s.vault, { storyId, title: 'Untitled scene', chapterId }, relation, targetSceneId);
+    let v = s.vault;
+    if (chapterId === undefined) ({ vault: v, chapterId } = chapterForNewScene(v, storyId, targetSceneId));
+    const { vault: next, sceneId } = insertScene(v, { storyId, title: 'Untitled scene', chapterId }, relation, targetSceneId);
     s.commit(next);
     s.navigate({ kind: 'scene', id: sceneId });
+  };
+
+  const addChapterAt = (storyId: Id, afterChapterId: Id | null, relation: Relation | null, targetSceneId: Id | null) => {
+    const s = useStore.getState();
+    const made = addChapterAfter(s.vault, storyId, afterChapterId, relation, targetSceneId);
+    s.commit(made.vault, undefined, `Create ${made.vault.chapters[made.chapterId].title}`);
+    s.navigate({ kind: 'scene', id: made.sceneId });
   };
 
   const openClip = (scene: Scene, col: number) => {
@@ -479,7 +490,7 @@ export function TimelinePanel() {
   const openMenu = (track: TrackModel | null, target: MenuTarget, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setMenu({ x: e.clientX, y: e.clientY, items: buildMenu(target, { model, track, selected, setSelected, insertAt }) });
+    setMenu({ x: e.clientX, y: e.clientY, items: buildMenu(target, { model, track, selected, setSelected, insertAt, addChapterAt }) });
   };
   const laneTarget = (t: LaneContext): MenuTarget => (t.kind === 'lane' ? { kind: 'lane', col: Math.max(0, Math.floor(colAtClientX(t.clientX))) } : t);
 

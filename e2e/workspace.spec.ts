@@ -34,10 +34,14 @@ test.describe('the Cast (Inspector)', () => {
     const supper = clip(page, 'Supper at the Inn');
     await supper.hover();
     await supper.getByTestId('tl-insert-after').click();
-    await expect(page.getByTestId('scene-title')).toHaveValue('Untitled scene');
+    await expect(page.getByTestId('scene-editor').locator('.cm-content')).toContainText('Untitled scene');
+
+    // The new scene joins Supper's chapter, whose cast covers the whole chapter by default; this is about the scene's own.
+    await page.getByLabel('Cast covers').selectOption({ label: 'This scene' });
     await expect(page.getByTestId('cast-empty')).toBeVisible();
 
     await page.getByTestId('scene-editor').locator('.cm-content').click();
+    await page.keyboard.press('Control+End'); // the new scene is the last of Supper's chapter
     await page.keyboard.type('[[Bob]] waits by the door.');
     await expect(page.locator('[data-testid="cast-card"][data-entity="Bob"]')).toBeVisible();
     await expect(page.getByTestId('cast-empty')).toHaveCount(0);

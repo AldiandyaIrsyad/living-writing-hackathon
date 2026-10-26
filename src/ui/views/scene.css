@@ -49,6 +49,13 @@
   border-top: 1px solid var(--border);
 }
 
+/* The writer's notes on a whole chapter, under its title. */
+.chapter-note {
+  width: 100%;
+  resize: vertical;
+  font-style: italic;
+}
+
 /* Reader-style bottom chapter navigation bar */
 .chapter-footer-nav {
   display: flex;

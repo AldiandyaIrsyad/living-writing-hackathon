@@ -2,13 +2,14 @@
 // name is looked up, every quote is checked against the text it claims to come from, and anything that does not hold
 // up is dropped rather than written. The result is one vault; the caller commits it as a single step.
 
+import { compareConcretes, momentConcrete, parseConcrete } from '../core/concrete';
 import { findEntity } from '../core/links';
+import { installPreset } from '../core/presets';
 import { Resolver, valueEquals } from '../core/resolve';
 import type { Id, PropValue, StateChange, Vault } from '../core/types';
 import { slugify } from '../core/types';
 import { addChange, addEntity, addEntityType, commitRevision, setMomentLabel, sortedTypes, updateChange } from '../store/actions';
-import { installPreset } from '../core/presets';
-import { GALLERY_TYPES, sceneText, unresolvedLinks } from './context';
+import { datedNeighbours, GALLERY_TYPES, sceneText, unresolvedLinks } from './context';
 import { agentLines, applyEdits, findLine, inverseEdits, isAgentLine, pageLines, squash, type PageEdit } from './page';
 
 export type Certainty = 'stated' | 'implied' | 'claimed';
@@ -307,14 +308,19 @@ export function applyAgentOutput(vault: Vault, sceneId: Id, out: AgentOutput, op
     const moment = v.moments[scene.momentId];
     if (out.timeSkip && out.timeSkip !== moment?.timeSkip) report.timeSkip = out.timeSkip;
     if (out.concrete && out.concrete !== moment?.concrete) report.concrete = out.concrete;
-    // A label is display only, never used for ordering: the agent fills an empty one, and only suggests over the writer's.
-    if (out.timeLabel && moment) {
-      const shownLabel = moment.concrete ?? moment.label;
-      if (!shownLabel) {
+    // A time label is a date the timeline orders by ("Late Autumn, 2026"); "morning" orders nothing and is dropped. The
+    // agent fills an empty one only where it fits between the dated scenes around it, else it only suggests, as it
+    // does over the writer's.
+    const parsed = out.timeLabel ? parseConcrete(out.timeLabel) : null;
+    if (out.timeLabel && parsed && moment) {
+      const shownLabel = momentConcrete(moment);
+      const { before, after } = datedNeighbours(v, sceneId);
+      const fits = (!before || compareConcretes(before.parsed, parsed) <= 0) && (!after || compareConcretes(parsed, after.parsed) <= 0);
+      if (!shownLabel && fits) {
         v = setMomentLabel(v, moment.id, out.timeLabel);
         report.timeLabel = out.timeLabel;
         report.timeLabelSet = true;
-      } else if (squash(shownLabel) !== squash(out.timeLabel)) report.timeLabel = out.timeLabel;
+      } else if (!shownLabel || squash(shownLabel) !== squash(out.timeLabel)) report.timeLabel = out.timeLabel;
     }
   }
 

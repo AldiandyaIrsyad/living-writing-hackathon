@@ -205,15 +205,23 @@ describe('properties and time', () => {
     expect(r.entityAt('norman', r.atScene('s2')).props.status.value).toBe('alive');
   });
 
-  it('fills an empty time label, and only suggests one over the writer’s', () => {
+  it('dates a scene only with a label the timeline can order, and only suggests one that would not fit or over the writer’s', () => {
     const v = world('Snow fell.');
-    const filled = applyAgentOutput(v, 's2', answer({ timeLabel: 'Early winter' }), agent);
-    expect(filled.vault.moments[v.scenes.s2.momentId].label).toBe('Early winter');
+    const label = (x: Vault) => x.moments[v.scenes.s2.momentId].label;
+    const vague = applyAgentOutput(v, 's2', answer({ timeLabel: 'morning' }), agent);
+    expect([label(vague.vault), vague.report.timeLabel]).toEqual([undefined, undefined]);
 
-    v.moments[v.scenes.s2.momentId].label = 'The long night';
-    const kept = applyAgentOutput(v, 's2', answer({ timeLabel: 'Early winter' }), agent);
-    expect(kept.vault.moments[v.scenes.s2.momentId].label).toBe('The long night');
-    expect([kept.report.timeLabel, kept.report.timeLabelSet]).toEqual(['Early winter', undefined]);
+    expect(label(applyAgentOutput(v, 's2', answer({ timeLabel: 'Early Winter, 2026' }), agent).vault)).toBe('Early Winter, 2026');
+
+    // The scene before is already dated later: writing this date would contradict the order the writer gave.
+    v.moments[v.scenes.s1.momentId].concrete = 'Spring, 2027';
+    const misfit = applyAgentOutput(v, 's2', answer({ timeLabel: 'Early Winter, 2026' }), agent);
+    expect([label(misfit.vault), misfit.report.timeLabel, misfit.report.timeLabelSet]).toEqual([undefined, 'Early Winter, 2026', undefined]);
+
+    delete v.moments[v.scenes.s1.momentId].concrete;
+    v.moments[v.scenes.s2.momentId].label = 'Winter, 2026';
+    const kept = applyAgentOutput(v, 's2', answer({ timeLabel: 'Early Winter, 2026' }), agent);
+    expect([label(kept.vault), kept.report.timeLabel, kept.report.timeLabelSet]).toEqual(['Winter, 2026', 'Early Winter, 2026', undefined]);
   });
 });
 
@@ -247,6 +255,16 @@ describe('what the agent is shown', () => {
     v.changes.c1 = { id: 'c1', sceneId: 's1', entityId: 'nora', op: 'set', property: 'state', value: 'grieving', order: 0 };
     expect(buildContext(v, 'flash')).toContain('Current state: (none recorded)');
     expect(buildContext(v, 's2')).not.toContain('Current state: (none recorded)');
+  });
+
+  it('shows the chapter’s notes and the latest dated scene before, so the scene can be dated from it', () => {
+    const v = world('[[Nora]] slept.');
+    v.chapters.ch = { id: 'ch', storyId: v.scenes.s2.storyId, title: 'The Crossing', order: 0, note: 'Set in late autumn, 2026.' };
+    v.scenes.s2.chapterId = 'ch';
+    v.moments[v.scenes.s1.momentId].label = 'Late Autumn, 2026';
+    const context = buildContext(v, 's2');
+    expect(context).toContain('Latest dated scene before this one: "s1", Late Autumn, 2026');
+    expect(context).toContain('Chapter notes from the writer (they hold for every scene in "The Crossing"):\nSet in late autumn, 2026.');
   });
 
   it('marks the writer’s notes as notes where they stand, so a note about one passage is read against that passage', () => {

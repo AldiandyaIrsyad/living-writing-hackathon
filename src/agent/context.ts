@@ -3,6 +3,8 @@
 // is checked against its own past and not against the latest state. Pure data in, text out.
 
 import { findAuthorNotesOutsideCode, findEntity, findScene, parseLinks } from '../core/links';
+import { momentConcrete, parseConcrete, type ParsedConcrete } from '../core/concrete';
+import { buildGraph } from '../core/graph';
 import { TYPE_PRESETS } from '../core/presets';
 import { formatValue, Resolver } from '../core/resolve';
 import type { Id, Vault } from '../core/types';
@@ -32,9 +34,10 @@ Rules:
 - properties: only properties the entity already has (listed under Properties), when the scene changes them for good (status alive -> dead, a new owner). A value naming another entity is written as [[Name]].
 - states is a SHORT-LIVED snapshot for each character present: where they are, their condition and mood, who they are with, what they have just learned. One short sentence each, replacing the previous state. Hunger, mood and position belong here, never in pages. A character who dies in the scene gets the state "Dead" and how.
 - contradictions: check each thing the scene says about a linked entity (looks, belongings, injuries, where they are) against its page, properties and state. Report one only when the scene plainly conflicts with what you were shown. "sceneQuote" is copied verbatim from the scene and "wikiQuote" verbatim from what you were shown. A change the scene itself narrates (she loses the hand in this scene) is an update, not a contradiction. If the scene's time is unknown, report none. When in doubt, report nothing.
-- timeSkip / concrete: only when the scene says how much time passed ("three days later") or gives a date. timeLabel: a short label for when the scene happens, from what the scene shows ("late autumn", "the night of the fire"). Otherwise omit them.
+- timeSkip / concrete: only when the scene says how much time passed ("three days later") or a note or the scene gives a date outright.
+- timeLabel: when the scene happens, as a date the timeline can order: "Late Autumn, 2026", "Early Winter, Year 3", "October 2026", "2026-10-25". Work it out from the scene, the writer's notes and the latest dated scene before it plus any time the scene says has passed (three weeks after late autumn is early winter). Never a time of day or an event ("morning", "the night of the fire"), and never a year nobody gave: when no year can be known, omit it.
 - unlinkedNames: named people, places or things in the scene that have no page and are not linked. Skip throwaway mentions.
-- [Writer's note: ...] in the scene text is the writer's comment, left where it applies; it is not story text. When a note says something about the story ("this is not true", "she is lying", "this is a dream", "Tam is the courier from chapter 2"), it outranks the scene: follow it. A note about a passage ("this section is a dream") covers only that passage, the one it closes or opens; the rest of the scene still counts. Ignore notes about the writing itself (pacing, wording, "fix later"), and never record an idea a note only wonders about ("maybe Nora dies?") as a fact.
+- [Writer's note: ...] in the scene text is the writer's comment, left where it applies; it is not story text. Chapter notes are the same, for the whole chapter. When a note says something about the story ("this is not true", "she is lying", "this is a dream", "Tam is the courier from chapter 2"), it outranks the scene: follow it. A note about a passage ("this section is a dream") covers only that passage, the one it closes or opens; the rest of the scene still counts. Ignore notes about the writing itself (pacing, wording, "fix later"), and never record an idea a note only wonders about ("maybe Nora dies?") as a fact.
 - Write in the language of the scene. Invent nothing. If the scene establishes nothing new, return empty arrays.`;
 
 export const TOOLS = [
@@ -91,6 +94,32 @@ export function unresolvedLinks(vault: Vault, sceneId: Id): string[] {
   return [...seen.values()];
 }
 
+/**
+ * The nearest scenes before and after this one in story time that carry a date the timeline can order ("Late Autumn,
+ * 2026"). The agent dates a scene from the one before, and a date it proposes must fall between the two.
+ */
+export function datedNeighbours(vault: Vault, sceneId: Id): { before?: DatedScene; after?: DatedScene } {
+  const graph = buildGraph(vault);
+  const own = vault.scenes[sceneId].momentId;
+  const at = graph.topoIndex(own);
+  let before: (DatedScene & { i: number }) | undefined;
+  let after: (DatedScene & { i: number }) | undefined;
+  for (const s of Object.values(vault.scenes)) {
+    if (s.momentId === own || s.someday) continue;
+    const text = momentConcrete(vault.moments[s.momentId]);
+    const parsed = text ? parseConcrete(text) : null;
+    if (!parsed) continue;
+    const i = graph.topoIndex(s.momentId);
+    if (i < at && (!before || i > before.i)) before = { title: s.title, parsed, i };
+    if (i > at && (!after || i < after.i)) after = { title: s.title, parsed, i };
+  }
+  return { before, after };
+}
+export interface DatedScene {
+  title: string;
+  parsed: ParsedConcrete;
+}
+
 /** Gallery types the agent may file a new page under; one is installed the first time it is used. */
 export const GALLERY_TYPES = TYPE_PRESETS.filter((p) => !['template', 'inbox', 'query'].includes(p.key));
 
@@ -130,10 +159,14 @@ export function buildContext(vault: Vault, sceneId: Id): string {
   const installed = new Set(Object.values(vault.entityTypes).map((t) => slugify(t.name)));
   const more = GALLERY_TYPES.filter((p) => !installed.has(slugify(p.name))).map((p) => `- ${p.name}${sections(p.template)}: ${p.description}`);
   const missing = unresolvedLinks(vault, sceneId);
+  const { before } = scene.someday ? {} : datedNeighbours(vault, sceneId);
+  const chapter = scene.chapterId ? vault.chapters[scene.chapterId] : undefined;
 
   return [
     `Scene: ${scene.title || 'Untitled'}`,
     `Time: ${time}`,
+    before ? `Latest dated scene before this one: "${before.title}", ${before.parsed.raw}` : '',
+    chapter?.note ? `Chapter notes from the writer (they hold for every scene in "${chapter.title}"):\n${chapter.note}` : '',
     `Entity types:\n${types.join('\n')}`,
     more.length ? `Types the writer has not used yet (pick one only when no type above fits):\n${more.join('\n')}` : '',
     `Roster:\n${roster.join('\n') || '(none yet)'}`,

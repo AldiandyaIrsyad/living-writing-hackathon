@@ -4,7 +4,8 @@ import { anchorFields, sameAnchor } from '../core/anchor';
 import { buildGraph } from '../core/graph';
 import { addLabelToList, removeLabelFromList } from '../core/labels';
 import { parseLinks, renameEntity, renameScene } from '../core/links';
-import type { PlaceResult } from '../core/timeline';
+import { moveChapterBeside } from '../core/reorder';
+import { insertScene, type PlaceResult, type Relation } from '../core/timeline';
 import type { Anchor, Arc, Chapter, Entity, EntityType, Id, Moment, Props, StateChange, Story, Vault } from '../core/types';
 import { newId } from '../core/types';
 
@@ -90,6 +91,33 @@ export function addChapter(v: Vault, storyId: Id, title: string): { vault: Vault
   const order = Math.max(-1, ...Object.values(v.chapters).filter((c) => c.storyId === storyId).map((c) => c.order)) + 1;
   const c: Chapter = { id: newId('ch'), storyId, title, order };
   return { vault: put(v, 'chapters', c), id: c.id };
+}
+
+/**
+ * A new chapter with its first scene: it reads right after `afterChapterId` (at the story's end when null), and the
+ * scene is placed in time by `relation` to `targetSceneId` (floating when null). Titled by its place ("Chapter 3").
+ */
+export function addChapterAfter(v: Vault, storyId: Id, afterChapterId: Id | null, relation: Relation | null, targetSceneId: Id | null): { vault: Vault; chapterId: Id; sceneId: Id } {
+  const chapters = chaptersOfStory(v, storyId);
+  const at = afterChapterId ? chapters.findIndex((c) => c.id === afterChapterId) : chapters.length - 1;
+  const preferred = `Chapter ${at + 2}`;
+  const made = addChapter(v, storyId, chapters.some((c) => c.title === preferred) ? `Chapter ${chapters.length + 1}` : preferred);
+  // Placed beside its neighbour, it also joins the neighbour's arc.
+  const placed = afterChapterId ? moveChapterBeside(made.vault, made.id, afterChapterId, 'after') : made.vault;
+  const ins = insertScene(placed, { storyId, title: 'Opening scene', chapterId: made.id }, targetSceneId ? relation : null, targetSceneId);
+  return { vault: ins.vault, chapterId: made.id, sceneId: ins.sceneId };
+}
+
+/**
+ * The chapter a new scene joins unless the writer asks for a chapterless one: the chapter of the scene it is placed
+ * next to, else the story's last chapter, else a new "Chapter 1".
+ */
+export function chapterForNewScene(v: Vault, storyId: Id, nearSceneId: Id | null): { vault: Vault; chapterId: Id } {
+  const near = nearSceneId ? v.scenes[nearSceneId]?.chapterId : null;
+  const chapterId = (near && v.chapters[near] ? near : null) ?? chaptersOfStory(v, storyId).at(-1)?.id;
+  if (chapterId) return { vault: v, chapterId };
+  const made = addChapter(v, storyId, 'Chapter 1');
+  return { vault: made.vault, chapterId: made.id };
 }
 
 export function updateChapter(v: Vault, id: Id, patch: Partial<Omit<Chapter, 'id'>>): Vault {

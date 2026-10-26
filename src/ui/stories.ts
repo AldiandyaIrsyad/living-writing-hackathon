@@ -2,7 +2,7 @@
 
 import { insertScene } from '../core/timeline';
 import type { Id, Scene } from '../core/types';
-import { addStory } from '../store/actions';
+import { addStory, chapterForNewScene } from '../store/actions';
 import { getGraph, useStore } from '../store/store';
 
 /** Creates "New story" (numbered when the name is taken) and opens its page. */
@@ -17,10 +17,13 @@ export function createStory(): void {
   st.navigate({ kind: 'story', id: r.id });
 }
 
-/** Appends a scene after the story's chronologically last scene (or floats it when there is none) and opens it. */
-export function appendScene(storyId: Id, chapterId: Id | null = null): void {
+/**
+ * Appends a scene after the story's chronologically last scene (or floats it when there is none) and opens it. A scene
+ * belongs in a chapter: with no chapter given it joins the last scene's (see chapterForNewScene).
+ */
+export function appendScene(storyId: Id, chapterId?: Id): void {
   const st = useStore.getState();
-  const v = st.vault;
+  let v = st.vault;
   const graph = getGraph(v);
   let last: Scene | null = null;
   let lastIndex = -Infinity;
@@ -32,6 +35,7 @@ export function appendScene(storyId: Id, chapterId: Id | null = null): void {
       last = s;
     }
   }
+  if (!chapterId) ({ vault: v, chapterId } = chapterForNewScene(v, storyId, last?.id ?? null));
   const r = insertScene(v, { storyId, title: 'New scene', chapterId }, last ? 'after' : null, last?.id ?? null);
   st.commit(r.vault);
   st.navigate({ kind: 'scene', id: r.sceneId });

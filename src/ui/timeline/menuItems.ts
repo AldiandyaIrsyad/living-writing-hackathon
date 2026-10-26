@@ -23,8 +23,10 @@ export interface MenuDeps {
   track: TrackModel | null;
   selected: Set<Id>;
   setSelected: (s: Set<Id>) => void;
-  /** Create a scene next to a target (or floating) and open it. */
-  insertAt: (storyId: Id, relation: Relation | null, targetSceneId: Id | null, chapterId?: Id) => void;
+  /** Create a scene next to a target (or floating) and open it: in a chapter by default, chapterless when `chapterId` is null. */
+  insertAt: (storyId: Id, relation: Relation | null, targetSceneId: Id | null, chapterId?: Id | null) => void;
+  /** Create a chapter reading after `afterChapterId` (at the end when null), its first scene placed by relation to a target. */
+  addChapterAt: (storyId: Id, afterChapterId: Id | null, relation: Relation | null, targetSceneId: Id | null) => void;
 }
 
 const sep: MenuItem = { kind: 'sep' };
@@ -57,8 +59,16 @@ export function buildMenu(target: MenuTarget, d: MenuDeps): MenuItem[] {
   const newHere = (col: number): MenuItem[] => {
     if (!track) return [];
     const t = targetForColumn(vault, d.model, col);
-    return [{ kind: 'item', label: `New scene in column ${col + 1}`, onSelect: () => d.insertAt(track.story.id, t?.relation ?? null, t?.sceneId ?? null) }];
+    const relation = t?.relation ?? null;
+    const near = t?.sceneId ?? null;
+    return [
+      { kind: 'item', label: `New chapter in column ${col + 1}`, onSelect: () => d.addChapterAt(track.story.id, (near && vault.scenes[near]?.chapterId) || null, relation, near) },
+      { kind: 'item', label: `New scene in column ${col + 1}`, hint: 'Joins the chapter of the scene beside it', onSelect: () => d.insertAt(track.story.id, relation, near) },
+      { kind: 'item', label: 'New chapterless scene here', onSelect: () => d.insertAt(track.story.id, relation, near, null) },
+    ];
   };
+  /** The scene of a chapter that ends latest on this track: a new chapter after it starts after that. */
+  const endOf = (chapterId: Id) => [...(track?.clips ?? [])].filter((c) => c.scene.chapterId === chapterId).sort((a, b) => b.col + b.span - (a.col + a.span))[0];
 
   if (target.kind === 'clip' && track) {
     const { clip } = target;
@@ -71,6 +81,12 @@ export function buildMenu(target: MenuTarget, d: MenuDeps): MenuItem[] {
       { kind: 'item', label: 'New scene before', onSelect: () => d.insertAt(track.story.id, 'before', sc.id) },
       { kind: 'item', label: 'New scene after', onSelect: () => d.insertAt(track.story.id, 'after', sc.id) },
       { kind: 'item', label: 'New scene at the same time', onSelect: () => d.insertAt(track.story.id, 'same', sc.id) },
+      {
+        kind: 'item',
+        label: sc.chapterId ? 'New chapter after this chapter' : 'New chapter after this scene',
+        onSelect: () => d.addChapterAt(track.story.id, sc.chapterId, 'after', sc.chapterId ? (endOf(sc.chapterId)?.scene.id ?? sc.id) : sc.id),
+      },
+      { kind: 'item', label: 'New chapterless scene after', onSelect: () => d.insertAt(track.story.id, 'after', sc.id, null) },
       sep,
       { kind: 'title', label: 'Make room' },
       gap(clip.col, 'Insert gap before this scene', 'Everything from this scene on moves one column right, in every story'),
@@ -120,9 +136,12 @@ export function buildMenu(target: MenuTarget, d: MenuDeps): MenuItem[] {
       out.push({ kind: 'item', label: 'Go to the next part ›', disabled: !next, onSelect: next ? hop(next) : () => {} });
     }
     if (level === 'chapter') {
-      const mine = track.clips.filter((c) => c.scene.chapterId === span.id);
-      const last = [...mine].sort((a, b) => b.col + b.span - (a.col + a.span))[0];
-      out.push(sep, { kind: 'item', label: 'New scene at the end of this chapter', disabled: !last, onSelect: () => last && d.insertAt(track.story.id, 'after', last.scene.id, span.id) });
+      const last = endOf(span.id);
+      out.push(
+        sep,
+        { kind: 'item', label: 'New scene at the end of this chapter', disabled: !last, onSelect: () => last && d.insertAt(track.story.id, 'after', last.scene.id, span.id) },
+        { kind: 'item', label: 'New chapter after this one', onSelect: () => d.addChapterAt(track.story.id, span.id, 'after', last?.scene.id ?? null) },
+      );
     }
     return out;
   }

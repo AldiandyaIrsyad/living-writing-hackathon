@@ -238,6 +238,7 @@ function checkChapter(v: unknown, where: string): Chapter {
   // Absent means "no arc"; the key is only present when the chapter has one.
   if (r.arcId !== undefined) chapter.arcId = str(r, 'arcId', where);
   if (r.labels !== undefined) chapter.labels = strList(r, 'labels', where);
+  if (r.note !== undefined) chapter.note = str(r, 'note', where);
   return chapter;
 }
 
@@ -311,7 +312,7 @@ const readMoment = carrying(checkMoment, ['id', 'timelineId', 'label', 'concrete
 const readConstraint = carrying(checkConstraint, ['id', 'before', 'after', 'timelineId', 'offset', 'gap']);
 const readStory = carrying(checkStory, ['id', 'name', 'color', 'order']);
 const readArc = carrying(checkArc, ['id', 'storyId', 'title', 'order']);
-const readChapter = carrying(checkChapter, ['id', 'storyId', 'title', 'order', 'arcId', 'labels']);
+const readChapter = carrying(checkChapter, ['id', 'storyId', 'title', 'order', 'arcId', 'labels', 'note']);
 const readScene = carrying(checkScene, ['id', 'storyId', 'chapterId', 'title', 'prose', 'synopsis', 'momentId', 'order', 'cast', 'span', 'status', 'labels', 'someday']);
 const readChange = carrying(checkChange, ['id', 'sceneId', 'at', 'entityId', 'op', 'property', 'value', 'order', 'message', 'note', 'rename', 'agent']);
 const readReviewItem = carrying(checkReviewItem, ['id', 'sceneId', 'cause', 'status', 'created']);

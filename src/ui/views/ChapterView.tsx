@@ -4,11 +4,10 @@
 import { EditorView } from '@codemirror/view';
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { applyChapterPlan, chapterScenes, composeChapter, parseChapterText, reconcile } from '../../core/chapterDoc';
-import { moveChapterBeside } from '../../core/reorder';
 import { insertScene } from '../../core/timeline';
 import type { Id, Scene } from '../../core/types';
 import { formatCount, readingMinutes, sceneWordCount } from '../../core/wordcount';
-import { addChapter, chaptersOfStory, setChapterArc, updateChapter } from '../../store/actions';
+import { addChapterAfter, chaptersOfStory, updateChapter } from '../../store/actions';
 import { flushEditors, update, useStore, useVault } from '../../store/store';
 import { anchorsOf, chapterExtensions, sceneAtPos, sceneStart, setAnchors } from '../editor/chapterExtensions';
 import { Editor, refreshLinks, sceneContext, type InsertTextDetail } from '../editor/Editor';
@@ -103,6 +102,18 @@ export function ChapterView({ chapterId, activeSceneId }: ChapterViewProps) {
               onBlur={commitTitle}
               onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()}
             />
+            {showNotes && (
+              <textarea
+                className="input small chapter-note"
+                rows={2}
+                aria-label="Chapter notes"
+                data-testid="chapter-note"
+                placeholder="Chapter notes, for you and the story agent (it reads them with every scene here): “Set in late autumn, 2026.” “Mira lies all chapter.”"
+                defaultValue={chapter.note ?? ''}
+                key={`${chapterId}:${chapter.note ?? ''}`}
+                onBlur={(e) => e.target.value.trim() !== (chapter.note ?? '') && update((v) => updateChapter(v, chapterId, { note: e.target.value.trim() || undefined }))}
+              />
+            )}
           </div>
           {preview ? <ChapterPreview scenes={scenes} /> : <ChapterEditor chapterId={chapterId} activeSceneId={activeSceneId} addScene={addScene} />}
           <ChapterFooterNav chapterId={chapterId} />
@@ -112,7 +123,7 @@ export function ChapterView({ chapterId, activeSceneId }: ChapterViewProps) {
   );
 }
 
-/** Reader-style bottom bar: jump to the previous or next chapter, or create the next chapter right from the bottom of the page. */
+/** Reader-style bottom bar: the previous chapter on the left, the next on the right; past the last chapter, "Next chapter" starts one. */
 function ChapterFooterNav({ chapterId }: { chapterId: Id }) {
   const vault = useVault();
   const navigate = useStore((s) => s.navigate);
@@ -140,45 +151,22 @@ function ChapterFooterNav({ chapterId }: { chapterId: Id }) {
     st.navigate({ kind: 'scene', id: ins.sceneId });
   };
 
+  /** After the last chapter, "Next chapter" starts one: its first scene follows this chapter's last. */
   const createNextChapter = () => {
     flushEditors();
     const st = useStore.getState();
-    let v = st.vault;
-    const allChapters = chaptersOfStory(v, chapter.storyId);
-    const preferredTitle = `Chapter ${idx + 2}`;
-    const defaultTitle = allChapters.some((c) => c.title === preferredTitle) ? `Chapter ${allChapters.length + 1}` : preferredTitle;
-    const createdCh = addChapter(v, chapter.storyId, defaultTitle);
-    v = createdCh.vault;
-    if (chapter.arcId) {
-      v = setChapterArc(v, createdCh.id, chapter.arcId);
-    }
-    if (next) {
-      v = moveChapterBeside(v, createdCh.id, chapter.id, 'after');
-    }
-    const curScenes = chapterScenes(v, chapterId);
-    const lastScene = curScenes[curScenes.length - 1];
-    const ins = insertScene(
-      v,
-      { storyId: chapter.storyId, title: 'Opening scene', chapterId: createdCh.id },
-      lastScene ? 'after' : null,
-      lastScene?.id ?? null,
-    );
-    st.commit(ins.vault, undefined, `Create ${defaultTitle}`);
-    navigate({ kind: 'scene', id: ins.sceneId });
+    const last = chapterScenes(st.vault, chapterId).at(-1);
+    const made = addChapterAfter(st.vault, chapter.storyId, chapterId, 'after', last?.id ?? null);
+    st.commit(made.vault, undefined, `Create ${made.vault.chapters[made.chapterId].title}`);
+    navigate({ kind: 'scene', id: made.sceneId });
   };
 
   return (
     <nav className="chapter-footer-nav" aria-label="Chapter navigation" data-testid="chapter-footer-nav">
       <div className="chapter-nav-side">
         {prev ? (
-          <button
-            type="button"
-            className="btn btn-sm chapter-nav-btn"
-            data-testid="chapter-prev"
-            onClick={() => openChapter(prev.id, 'prev')}
-            title={`Go to previous chapter: ${prev.title || 'Untitled chapter'}`}
-          >
-            ← <span className="chapter-nav-label">{prev.title || 'Untitled chapter'}</span>
+          <button type="button" className="btn btn-sm chapter-nav-btn" data-testid="chapter-prev" onClick={() => openChapter(prev.id, 'prev')} title={prev.title || 'Untitled chapter'}>
+            ← Previous chapter
           </button>
         ) : (
           <span className="faint small">First chapter</span>
@@ -190,38 +178,15 @@ function ChapterFooterNav({ chapterId }: { chapterId: Id }) {
       </span>
 
       <div className="chapter-nav-side chapter-nav-right">
-        {next ? (
-          <>
-            <button
-              type="button"
-              className="btn btn-sm chapter-nav-btn"
-              data-testid="chapter-next"
-              onClick={() => openChapter(next.id, 'next')}
-              title={`Go to next chapter: ${next.title || 'Untitled chapter'}`}
-            >
-              <span className="chapter-nav-label">{next.title || 'Untitled chapter'}</span> →
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm btn-ghost"
-              data-testid="chapter-insert-next"
-              onClick={createNextChapter}
-              title="Insert a new chapter after this one"
-            >
-              [+]
-            </button>
-          </>
-        ) : (
-          <button
-            type="button"
-            className="btn btn-sm btn-primary chapter-nav-btn"
-            data-testid="chapter-create-next"
-            onClick={createNextChapter}
-            title="Create the next chapter and start writing immediately"
-          >
-            + Next Chapter →
-          </button>
-        )}
+        <button
+          type="button"
+          className="btn btn-sm chapter-nav-btn"
+          data-testid="chapter-next"
+          onClick={() => (next ? openChapter(next.id, 'next') : createNextChapter())}
+          title={next ? next.title || 'Untitled chapter' : 'Start the next chapter'}
+        >
+          Next chapter →
+        </button>
       </div>
     </nav>
   );

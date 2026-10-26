@@ -36,12 +36,16 @@ async function createEntity(page: Page, type: string, name: string): Promise<voi
   await expect(nameField).toHaveValue(name);
 }
 
-/** Insert a scene right after "Supper at the Inn" using the clip's "+" (insert here). */
+/**
+ * Insert a scene right after "Supper at the Inn" using the clip's "+" (insert here). It joins Supper's chapter, so it
+ * opens in Chapter 1's document, as its last scene.
+ */
 async function insertSceneAfterSupper(page: Page): Promise<void> {
   const supper = clip(page, 'Supper at the Inn');
   await supper.hover();
   await supper.getByTestId('tl-insert-after').click();
-  await expect(page.getByTestId('scene-title')).toHaveValue('Untitled scene');
+  await expect(page.getByTestId('chapter-title')).toHaveValue('Chapter 1');
+  await expect(page.getByTestId('scene-editor').locator('.cm-content')).toContainText('Untitled scene');
   await expect(clip(page, 'Untitled scene')).toBeVisible();
 }
 
@@ -191,6 +195,7 @@ test.describe('authoring', () => {
     await insertSceneAfterSupper(page);
 
     await page.getByTestId('scene-editor').locator('.cm-content').click();
+    await page.keyboard.press('Control+End');
     await page.keyboard.type('[[Gan');
     // Pick the option with the mouse: Enter sent right as the popup opens is sometimes not applied.
     await page.locator('.cm-tooltip-autocomplete li').filter({ hasText: 'Gandalf' }).click();

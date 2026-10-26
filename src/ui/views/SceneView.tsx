@@ -2,11 +2,11 @@ import { useMemo, useState } from 'react';
 import { momentConcrete, parseConcrete } from '../../core/concrete';
 import { allLabels, constrainScenesToLabel, moveScenesToLabel } from '../../core/labels';
 import { findEntity, parseLinks } from '../../core/links';
-import { constrainScenes, deleteScene, insertScene, moveScenes, removeConstraint } from '../../core/timeline';
+import { constrainScenes, deleteScene, moveScenes, removeConstraint } from '../../core/timeline';
 import type { ChangeOp, Id, Scene, StateChange, Vault } from '../../core/types';
 import {
   addChange,
-  addChapter,
+  addChapterAfter,
   addChapterLabel,
   addSceneLabel,
   chaptersOfStory,
@@ -94,18 +94,9 @@ function SingleSceneFooterNav({ scene }: { scene: Scene }) {
   const createNextChapterFromScene = () => {
     flushEditors();
     const st = useStore.getState();
-    let v = st.vault;
-    const chs = chaptersOfStory(v, scene.storyId);
-    const createdCh = addChapter(v, scene.storyId, `Chapter ${chs.length + 1}`);
-    v = createdCh.vault;
-    const ins = insertScene(
-      v,
-      { storyId: scene.storyId, title: 'Opening scene', chapterId: createdCh.id },
-      scene.someday ? null : 'after',
-      scene.someday ? null : scene.id,
-    );
-    st.commit(ins.vault);
-    navigate({ kind: 'scene', id: ins.sceneId });
+    const made = addChapterAfter(st.vault, scene.storyId, null, 'after', scene.someday ? null : scene.id);
+    st.commit(made.vault, undefined, `Create ${made.vault.chapters[made.chapterId].title}`);
+    navigate({ kind: 'scene', id: made.sceneId });
   };
 
   return (
@@ -141,8 +132,8 @@ function SingleSceneFooterNav({ scene }: { scene: Scene }) {
             <span className="chapter-nav-label">{next.title || 'Untitled scene'}</span> →
           </button>
         )}
-        <button type="button" className="btn btn-sm btn-primary" data-testid="scene-create-chapter" onClick={createNextChapterFromScene} title="Create a new chapter after this scene">
-          + Next Chapter →
+        <button type="button" className="btn btn-sm" data-testid="scene-create-chapter" onClick={createNextChapterFromScene} title="Start a new chapter after this scene">
+          Next chapter →
         </button>
       </div>
     </nav>
