@@ -78,6 +78,31 @@ test('"After I stop typing" reads the scene once the wait the writer picked has 
   await expect(page.getByTestId('agent-report')).toHaveCount(0);
 });
 
+test('taking back what the agent linked is not read again as the writer’s edit', async ({ page }) => {
+  await page.goto('/');
+  await page.getByTestId('login-switch').click();
+  await page.getByTestId('login-email').fill(`takeback-${Date.now()}@example.com`);
+  await page.getByTestId('login-password').fill('correct horse');
+  await page.getByTestId('login-submit').click();
+  await page.getByTestId('vault-menu').click();
+  await page.getByTestId('load-demo').click();
+  await openScene(page, 'The Stranger');
+  await page.getByTestId('agent-link-names').selectOption('link');
+  await page.getByLabel('When the agent reads').selectOption('idle');
+  await page.getByTestId('agent-idle').selectOption('5');
+
+  const editor = page.getByTestId('scene-editor').locator('.cm-content');
+  await editor.click();
+  await page.keyboard.press('Control+End');
+  await page.keyboard.type(' Bram held the door.');
+  await expect(editor.locator('.cm-wikilink[data-link-target="Bram"]')).toBeVisible({ timeout: 12_000 });
+  await page.getByRole('button', { name: /Take back \d+ changes?/ }).click();
+  await expect(editor.locator('.cm-wikilink[data-link-target="Bram"]')).toHaveCount(0);
+  await page.waitForTimeout(7_000);
+  await expect(editor.locator('.cm-wikilink[data-link-target="Bram"]')).toHaveCount(0);
+  await expect(page.getByTestId('agent-report')).toHaveCount(0);
+});
+
 test('logging out forgets the agent’s reports, which quote the manuscript, from this browser', async ({ page }) => {
   await page.goto('/');
   await page.getByTestId('login-switch').click();

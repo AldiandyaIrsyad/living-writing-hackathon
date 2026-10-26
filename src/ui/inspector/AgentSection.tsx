@@ -4,7 +4,7 @@
 
 import { createHeldPage, editPage, fixNearMiss, propValue, revertAgentOutput, type AgentReport, type Contradiction } from '../../agent/apply';
 import type { PageEdit } from '../../agent/page';
-import { enqueueScene, IDLE_CHOICES, isContributor, readChapter, readSceneNow, stopReading, useAgent, type Effort, type LinkNames, type Trigger } from '../../agent/run';
+import { enqueueScene, IDLE_CHOICES, isContributor, readChapter, readSceneNow, stopReading, tookBack, useAgent, type Effort, type LinkNames, type Trigger } from '../../agent/run';
 import { isUntitled, linkName, type SceneTitles } from '../../agent/context';
 import { linkFirstMention } from '../../core/links';
 import type { Id, Scene, Vault } from '../../core/types';
@@ -107,6 +107,7 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
               onClick={() => {
                 flushEditors();
                 commit(revertAgentOutput(useStore.getState().vault, scene.id, report?.linked), 'Agent output for a scene');
+                tookBack(scene.id);
                 setReport(scene.id, null);
               }}
             >

@@ -375,6 +375,15 @@ export function startAgent(): void {
   });
 }
 
+/**
+ * The writer took back what the agent did here, links in the text included. The text that leaves is theirs again, not
+ * an edit to read: reading it would put back what they just took back.
+ */
+export function tookBack(sceneId: Id): void {
+  read.set(sceneId, useStore.getState().vault.scenes[sceneId].prose);
+  edited.delete(sceneId);
+}
+
 /** The writer asked for this scene to be read, whatever the setting. */
 export function readSceneNow(sceneId: Id): void {
   read.delete(sceneId);

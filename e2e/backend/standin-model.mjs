@@ -14,6 +14,8 @@ createServer((req, res) => {
     }
     const prompt = messages.find((m) => m.role === 'user').content;
     const missing = (/Links with no page yet: (.*)/.exec(prompt)?.[1] ?? '').split(', ').filter((name) => name && name !== '(none)');
+    // Someone named without a link, for "Link and file them".
+    if (/\bBram\b/.test(prompt) && !prompt.includes('[[Bram]]')) missing.push('Bram');
     const answer = {
       newEntities: missing.map((name) => ({ name, type: 'Character', aliases: [] })),
       pages: missing.map((name) => ({ entity: name, edits: [{ add: 'Arrived at the inn in the rain.' }], certainty: 'stated' })),
