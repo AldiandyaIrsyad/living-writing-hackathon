@@ -5,6 +5,7 @@
 import { createHeldPage, editPage, fixNearMiss, propValue, revertAgentOutput, type AgentReport } from '../../agent/apply';
 import type { PageEdit } from '../../agent/page';
 import { enqueueScene, isContributor, readSceneNow, stopReading, useAgent, type Effort, type LinkNames, type Trigger } from '../../agent/run';
+import { isUntitled, type SceneTitles } from '../../agent/context';
 import { linkFirstMention } from '../../core/links';
 import type { Id, Scene, Vault } from '../../core/types';
 import { slugify } from '../../core/types';
@@ -46,7 +47,7 @@ const commit = (next: Vault, label: string) => useStore.getState().commit(next, 
 
 export function AgentSection({ scene, writing }: { scene: Scene; writing: boolean }) {
   const vault = useVault();
-  const { trigger, setTrigger, enabled, provider, models, model, setModel, allowOverwrite, setAllowOverwrite, effort, setEffort, linkNames, setLinkNames, running, progress, error, reports, setReport } = useAgent();
+  const { trigger, setTrigger, enabled, provider, models, model, setModel, allowOverwrite, setAllowOverwrite, effort, setEffort, linkNames, setLinkNames, sceneTitles, setSceneTitles, running, progress, error, reports, setReport } = useAgent();
   const dismissed = useDismissed();
   if (!BACKEND) return null;
 
@@ -114,6 +115,14 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
         <select value={linkNames} onChange={(e) => setLinkNames(e.target.value as LinkNames)} aria-label="What happens to names you did not link" data-testid="agent-link-names">
           <option value="list">List them</option>
           <option value="link">Link and file them</option>
+        </select>
+      </label>
+      <label className="agent-row small" title="A scene still called “Untitled scene” or “New scene”. A title you gave is never changed.">
+        <span className="faint">Untitled scenes</span>
+        <select value={sceneTitles} onChange={(e) => setSceneTitles(e.target.value as SceneTitles)} aria-label="What the agent does about untitled scenes" data-testid="agent-titles">
+          <option value="leave">Leave them</option>
+          <option value="suggest">Suggest a title</option>
+          <option value="set">Title them</option>
         </select>
       </label>
       <label className="agent-row small" title="Off: the agent changes only what it wrote itself (page lines, property values), and offers changes to yours instead.">
@@ -330,6 +339,29 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
               </div>
             ))}
 
+          {report.title &&
+            (report.titleSet ? (
+              <div className="agent-row" data-testid="agent-title">
+                <span>Titled the scene “{report.title}”</span>
+              </div>
+            ) : (
+              isUntitled(scene.title) && (
+                <div className="agent-flag" data-testid="agent-title">
+                  Title: “{report.title}”
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    onClick={() => {
+                      const now = useStore.getState().vault;
+                      commit({ ...now, scenes: { ...now.scenes, [scene.id]: { ...now.scenes[scene.id], title: report.title! } } }, 'Agent title');
+                      patch({ title: undefined });
+                    }}
+                  >
+                    Use it
+                  </button>
+                </div>
+              )
+            ))}
           {report.timeLabel &&
             (report.timeLabelSet ? (
               <div className="agent-row" data-testid="agent-time-label">

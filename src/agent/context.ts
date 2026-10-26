@@ -24,6 +24,7 @@ Finish with ONE JSON object and nothing else:
   "timeSkip": "...",
   "concrete": "...",
   "timeLabel": "...",
+  "title": "...",
   "unlinkedNames": [{"name": "...", "reason": "..."}]
 }
 
@@ -36,6 +37,7 @@ Rules:
 - contradictions: check each thing the scene says about a linked entity (looks, belongings, injuries, where they are) against its page, properties and state. Report one only when the scene plainly conflicts with what you were shown. "sceneQuote" is copied verbatim from the scene and "wikiQuote" verbatim from what you were shown. A change the scene itself narrates (she loses the hand in this scene) is an update, not a contradiction. If the scene's time is unknown, report none. When in doubt, report nothing.
 - timeSkip / concrete: only when the scene says how much time passed ("three days later") or a note or the scene gives a date outright.
 - timeLabel: when the scene happens, as a date the timeline can order: "Late Autumn, 2026", "Early Winter, Year 3", "October 2026", "2026-10-25". Work it out from the scene, the writer's notes and the latest dated scene before it plus any time the scene says has passed (three weeks after late autumn is early winter). Never a time of day or an event ("morning", "the night of the fire"), and never a year nobody gave: when no year can be known, omit it.
+- title: only when you are told the scene has no title; otherwise leave it out.
 - unlinkedNames: named people, places or things in the scene that have no page and are not linked. Skip throwaway mentions.
 - [Writer's note: ...] in the scene text is the writer's comment, left where it applies; it is not story text. Chapter notes are the same, for the whole chapter. When a note says something about the story ("this is not true", "she is lying", "this is a dream", "Tam is the courier from chapter 2"), it outranks the scene: follow it. A note about a passage ("this section is a dream") covers only that passage, the one it closes or opens; the rest of the scene still counts. Ignore notes about the writing itself (pacing, wording, "fix later"), and never record an idea a note only wonders about ("maybe Nora dies?") as a fact.
 - Write in the language of the scene. Invent nothing. If the scene establishes nothing new, return empty arrays.`;
@@ -120,6 +122,13 @@ export interface DatedScene {
   parsed: ParsedConcrete;
 }
 
+/** What the agent does about a scene that still has no title of its own. */
+export type SceneTitles = 'leave' | 'suggest' | 'set';
+
+/** The titles a new scene gets before the writer names it: a scene with one of these has no title yet. */
+const PLACEHOLDER_TITLES = new Set(['', 'untitled-scene', 'new-scene', 'opening-scene']);
+export const isUntitled = (title: string): boolean => PLACEHOLDER_TITLES.has(slugify(title));
+
 /** Gallery types the agent may file a new page under; one is installed the first time it is used. */
 export const GALLERY_TYPES = TYPE_PRESETS.filter((p) => !['template', 'inbox', 'query'].includes(p.key));
 
@@ -152,7 +161,7 @@ export function namedEntities(vault: Vault, sceneId: Id): Id[] {
 }
 
 /** The user message: the scene, who exists, and what the wiki says about everyone linked in it. */
-export function buildContext(vault: Vault, sceneId: Id, opts: { linkNames?: boolean } = {}): string {
+export function buildContext(vault: Vault, sceneId: Id, opts: { linkNames?: boolean; sceneTitles?: SceneTitles } = {}): string {
   const scene = vault.scenes[sceneId];
   const r = new Resolver(vault);
   const moment = vault.moments[scene.momentId];
@@ -179,6 +188,9 @@ export function buildContext(vault: Vault, sceneId: Id, opts: { linkNames?: bool
 
   return [
     `Scene: ${scene.title || 'Untitled'}`,
+    opts.sceneTitles && opts.sceneTitles !== 'leave' && isUntitled(scene.title)
+      ? 'This scene has no title yet: give one in "title", two to six words naming what happens in it, in the scene’s language.'
+      : '',
     `Time: ${time}`,
     before ? `Latest dated scene before this one: "${before.title}", ${before.parsed.raw}` : '',
     chapter?.note ? `Chapter notes from the writer (they hold for every scene in "${chapter.title}"):\n${chapter.note}` : '',

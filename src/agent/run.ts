@@ -6,7 +6,7 @@ import { create } from 'zustand';
 import { BACKEND } from '../store/server';
 import { flushEditors, useStore } from '../store/store';
 import { applyAgentOutput, parseAgentOutput, type AgentReport } from './apply';
-import { SYSTEM_PROMPT, TOOLS, buildContext, runTool } from './context';
+import { SYSTEM_PROMPT, TOOLS, buildContext, runTool, type SceneTitles } from './context';
 import type { Id } from '../core/types';
 
 /** When the agent reads scenes on its own. Reading the open scene by hand is always possible. */
@@ -26,6 +26,7 @@ const TRIGGER_KEY = 'lw-agent-trigger';
 const MODEL_KEY = 'lw-agent-model';
 const EFFORT_KEY = 'lw-agent-effort';
 const LINK_NAMES_KEY = 'lw-agent-link-names';
+const TITLES_KEY = 'lw-agent-titles';
 const OVERWRITE_KEY = 'lw-agent-overwrite';
 const REPORTS_KEY = 'lw-agent-reports-v2';
 const IDLE_MS = 20_000;
@@ -53,6 +54,7 @@ interface AgentStore {
   /** Null until the server has said which service it is: the default depends on it. */
   effort: Effort | null;
   linkNames: LinkNames;
+  sceneTitles: SceneTitles;
   running: Id | null;
   /** What the reading under way is doing, in words. */
   progress: string | null;
@@ -64,6 +66,7 @@ interface AgentStore {
   setAllowOverwrite: (on: boolean) => void;
   setEffort: (e: Effort) => void;
   setLinkNames: (l: LinkNames) => void;
+  setSceneTitles: (t: SceneTitles) => void;
   /** Replace (or with null, forget) what the panel shows for a scene's last reading. */
   setReport: (sceneId: Id, report: AgentReport | null) => void;
 }
@@ -110,6 +113,7 @@ export const useAgent = create<AgentStore>((set) => ({
   allowOverwrite: recall(OVERWRITE_KEY) === 'true',
   effort: null,
   linkNames: recall(LINK_NAMES_KEY) === 'link' ? 'link' : 'list',
+  sceneTitles: ((t) => (t === 'leave' || t === 'set' ? t : 'suggest'))(recall(TITLES_KEY)),
   running: null,
   progress: null,
   error: null,
@@ -133,6 +137,10 @@ export const useAgent = create<AgentStore>((set) => ({
   setLinkNames: (linkNames) => {
     remember(LINK_NAMES_KEY, linkNames);
     set({ linkNames });
+  },
+  setSceneTitles: (sceneTitles) => {
+    remember(TITLES_KEY, sceneTitles);
+    set({ sceneTitles });
   },
   setReport: (sceneId, report) =>
     set((a) => {
@@ -159,7 +167,7 @@ async function askModel(sceneId: Id, signal: AbortSignal): Promise<{ text: strin
   const vault = useStore.getState().vault;
   const messages: ChatMessage[] = [
     { role: 'system', content: SYSTEM_PROMPT },
-    { role: 'user', content: buildContext(vault, sceneId, { linkNames: useAgent.getState().linkNames === 'link' }) },
+    { role: 'user', content: buildContext(vault, sceneId, { linkNames: useAgent.getState().linkNames === 'link', sceneTitles: useAgent.getState().sceneTitles }) },
   ];
   const { model: picked, effort } = useAgent.getState();
   // With an empty wiki there is nothing to look up, and every lookup costs a whole round with the model.
@@ -209,8 +217,8 @@ async function readScene(sceneId: Id): Promise<void> {
     const s = useStore.getState();
     // The writer kept typing while the model read: its answer is about text that no longer exists.
     if (s.vault.scenes[sceneId]?.prose !== start.prose) throw new Error('The scene changed while the agent was reading it.');
-    const { allowOverwrite, linkNames } = useAgent.getState();
-    const { vault, report } = applyAgentOutput(s.vault, sceneId, parseAgentOutput(text), { model, allowOverwrite, linkNames: linkNames === 'link' });
+    const { allowOverwrite, linkNames, sceneTitles } = useAgent.getState();
+    const { vault, report } = applyAgentOutput(s.vault, sceneId, parseAgentOutput(text), { model, allowOverwrite, linkNames: linkNames === 'link', sceneTitles });
     s.commit(vault, undefined, `Agent: ${start.title || 'scene'}`);
     // Linking names changes the prose: that is not the writer editing it again.
     read.set(sceneId, vault.scenes[sceneId].prose);

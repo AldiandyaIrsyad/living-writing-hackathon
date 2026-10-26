@@ -261,6 +261,20 @@ describe('properties and time', () => {
     expect([label(kept.vault), kept.report.timeLabel, kept.report.timeLabelSet]).toEqual(['Winter, 2026', 'Early Winter, 2026', undefined]);
   });
 
+  it('titles an untitled scene only as the writer chose (set or suggest), never over a title they gave', () => {
+    const v = world('Snow fell on the pass.');
+    v.scenes.s2.title = 'Untitled scene';
+    const out = answer({ title: '“Snow on the Pass.”' });
+    const set = applyAgentOutput(v, 's2', out, { ...agent, sceneTitles: 'set' });
+    expect([set.vault.scenes.s2.title, set.report.titleSet]).toEqual(['Snow on the Pass', true]);
+    const offered = applyAgentOutput(v, 's2', out, { ...agent, sceneTitles: 'suggest' });
+    expect([offered.vault.scenes.s2.title, offered.report.title, offered.report.titleSet]).toEqual(['Untitled scene', 'Snow on the Pass', undefined]);
+
+    v.scenes.s2.title = 'The Pass';
+    expect(applyAgentOutput(v, 's2', out, { ...agent, sceneTitles: 'set' }).vault.scenes.s2.title).toBe('The Pass');
+    expect(buildContext(v, 's2', { sceneTitles: 'set' })).not.toContain('no title yet');
+  });
+
   it.each([
     ['repeats the time label', 'Late autumn, 2026', undefined],
     ['is a span of time, not a date', '3 weeks', undefined],

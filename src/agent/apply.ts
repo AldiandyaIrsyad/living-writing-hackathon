@@ -9,7 +9,7 @@ import { Resolver, valueEquals } from '../core/resolve';
 import type { Id, PropValue, StateChange, Vault } from '../core/types';
 import { slugify } from '../core/types';
 import { addChange, addEntity, addEntityType, commitRevision, setMomentLabel, sortedTypes, updateChange } from '../store/actions';
-import { datedNeighbours, GALLERY_TYPES, sceneText, unresolvedLinks } from './context';
+import { datedNeighbours, GALLERY_TYPES, isUntitled, sceneText, unresolvedLinks, type SceneTitles } from './context';
 import { agentLines, applyEdits, findLine, inverseEdits, isAgentLine, pageLines, squash, type PageEdit } from './page';
 
 export type Certainty = 'stated' | 'implied' | 'claimed';
@@ -30,6 +30,8 @@ export interface AgentOutput {
   timeSkip?: string;
   concrete?: string;
   timeLabel?: string;
+  /** A title for a scene that has none yet (asked for only then). */
+  title?: string;
   unlinkedNames: { name: string; reason: string }[];
 }
 
@@ -44,6 +46,8 @@ export interface AgentOptions {
   allowOverwrite: boolean;
   /** Names the writer did not link get linked (their first mention in the scene) and a page, like a link would. */
   linkNames?: boolean;
+  /** An untitled scene's title: written ("set"), or only offered (otherwise). */
+  sceneTitles?: SceneTitles;
 }
 
 /** What a run did, for the panel. `created`, `pages`, `properties`, `states` and a set time label were written. */
@@ -66,6 +70,9 @@ export interface AgentReport {
   timeLabel?: string;
   /** The time label was written (the scene's moment had none); otherwise `timeLabel` is only a suggestion. */
   timeLabelSet?: boolean;
+  /** A title for the untitled scene; `titleSet` when it was given, else it is only offered. */
+  title?: string;
+  titleSet?: boolean;
   unlinkedNames: { name: string; reason: string }[];
   /**
    * Links with no page whose name is a letter or two off a page that exists ([[Mria]], with Mira in the wiki): no page
@@ -113,6 +120,7 @@ export function parseAgentOutput(reply: string): AgentOutput {
     timeSkip: str(raw.timeSkip) || undefined,
     concrete: str(raw.concrete) || undefined,
     timeLabel: str(raw.timeLabel) || undefined,
+    title: str(raw.title) || undefined,
     unlinkedNames: list(raw.unlinkedNames).map(rec).map((n) => ({ name: str(n.name), reason: str(n.reason) })).filter((n) => n.name),
   };
 }
@@ -415,6 +423,16 @@ export function applyAgentOutput(vault: Vault, sceneId: Id, out: AgentOutput, op
         report.timeLabel = out.timeLabel;
         report.timeLabelSet = true;
       } else if (!shownLabel || squash(shownLabel) !== squash(out.timeLabel)) report.timeLabel = out.timeLabel;
+    }
+  }
+
+  // 6. A title, only for a scene the writer has not named, and only with their leave; never over a title they gave.
+  const title = out.title?.replace(/^["“”']+|["“”'.]+$/g, '').trim().slice(0, 80);
+  if (title && opts.sceneTitles && opts.sceneTitles !== 'leave' && isUntitled(v.scenes[sceneId].title)) {
+    report.title = title;
+    if (opts.sceneTitles === 'set') {
+      v = { ...v, scenes: { ...v.scenes, [sceneId]: { ...v.scenes[sceneId], title } } };
+      report.titleSet = true;
     }
   }
 

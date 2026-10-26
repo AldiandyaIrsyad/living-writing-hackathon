@@ -63,6 +63,8 @@ cheaper, but Meta may train its models on what is sent to it, so the panel warns
   panel lets you change the type in one click. Names you did not link are listed, each with "Link it"; set **Names I
   didn't link → Link and file them** and the agent links a name where it first appears and makes its page, so you can
   write without `[[ ]]` at all. A name a letter or two off an existing page is never linked this way (it asks instead).
+- **Untitled scenes** ("Untitled scene", "New scene"): the agent suggests a title ("Use it"), titles them, or leaves
+  them, as you choose. A title you gave is never changed.
 - **Thinking** sets how long the model thinks before it answers. Longer catches more but is slower: on Gemini, "High"
   takes about half a minute for a short scene, "Low" (its default here) a few seconds. "Model default" sends no
   setting, for a model that does not take one. A reading can be stopped (**Stop**), and the server gives up on a model
