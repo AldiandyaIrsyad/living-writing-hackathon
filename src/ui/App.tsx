@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { getSavedAt } from '../store/db';
 import { BACKEND, accountEmail, logOut } from '../store/server';
+import { forgetReports } from '../agent/run';
 import { getSyncState, subscribeSync } from '../store/fsSync';
 import { checkStorage, safetySummary, type StorageHealth } from '../store/health';
 import { flushPendingSave, getGraph, useStore, useVault, viewKey, type Tab } from '../store/store';
@@ -457,7 +458,7 @@ function TopBar({ zen, toggleZen }: { zen: boolean; toggleZen: () => void }) {
             </label>
             <div className="menu-sep" />
             {BACKEND && (
-              <button className="menu-item" onClick={() => (setMenu(false), void flushPendingSave().then(logOut))} data-testid="log-out">
+              <button className="menu-item" onClick={() => (setMenu(false), void flushPendingSave().then(() => (forgetReports(), logOut())))} data-testid="log-out">
                 Log out ({accountEmail()})
               </button>
             )}

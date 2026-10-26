@@ -43,3 +43,23 @@ test('the agent makes a page for a new [[link]], shows a contradiction with its 
   await page.getByRole('button', { name: /Take back \d+ changes?/ }).click();
   await expect(nora).toHaveClass(/unresolved/);
 });
+
+test('logging out forgets the agent’s reports, which quote the manuscript, from this browser', async ({ page }) => {
+  await page.goto('/');
+  await page.getByTestId('login-switch').click();
+  await page.getByTestId('login-email').fill(`forget-${Date.now()}@example.com`);
+  await page.getByTestId('login-password').fill('correct horse');
+  await page.getByTestId('login-submit').click();
+  await page.getByTestId('vault-menu').click();
+  await page.getByTestId('load-demo').click();
+  await openScene(page, 'The Stranger');
+  await page.getByTestId('agent-read').click();
+  await expect(page.getByTestId('agent-report')).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('lw-agent-reports-v2'))).toContain('Norman');
+
+  await waitSaved(page);
+  await page.getByTestId('vault-menu').click();
+  await page.getByTestId('log-out').click();
+  await expect(page.getByTestId('login-form')).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('lw-agent-reports-v2'))).toBeNull();
+});

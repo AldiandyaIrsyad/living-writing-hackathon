@@ -172,6 +172,18 @@ const without = (errors: Record<Id, string>, sceneId: Id): Record<Id, string> =>
   return rest;
 };
 
+/**
+ * Logging out forgets the reports: they quote the manuscript and the wiki, and this browser may be shared. (A report
+ * is only what the panel shows about a reading; what the agent wrote stays in the vault, with Take back.)
+ */
+export function forgetReports(): void {
+  try {
+    localStorage.removeItem(REPORTS_KEY);
+  } catch {
+    // Nothing was kept.
+  }
+}
+
 /** The reading under way, so the writer can stop it. */
 let stopper: AbortController | null = null;
 
