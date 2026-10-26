@@ -1,11 +1,13 @@
-// The story agent's corner of the Inspector: when it reads, what it did to the open scene, and what it wants the
-// writer to decide. Everything it wrote can be taken back for this scene in one click.
+// The story agent's corner of the Inspector: when it reads, what it did to the open scene, and what it left for the
+// writer to decide. Everything it wrote can be taken back for this scene in one click; everything it only offered can
+// be accepted one line at a time.
 
-import { revertAgentOutput } from '../../agent/apply';
-import { enqueueScene, forgetReport, isContributor, readSceneNow, useAgent, type Trigger } from '../../agent/run';
-import type { Scene } from '../../core/types';
+import { editPage, revertAgentOutput, type AgentReport } from '../../agent/apply';
+import type { PageEdit } from '../../agent/page';
+import { enqueueScene, isContributor, readSceneNow, useAgent, type Trigger } from '../../agent/run';
+import type { Id, Scene, Vault } from '../../core/types';
 import { slugify } from '../../core/types';
-import { setMomentConcrete, setMomentTimeSkip } from '../../store/actions';
+import { setMomentConcrete, setMomentLabel, setMomentTimeSkip, sortedTypes, updateEntity } from '../../store/actions';
 import { BACKEND } from '../../store/server';
 import { useStore, useVault } from '../../store/store';
 import { setDismissed, useDismissed } from '../dismissed';
@@ -16,16 +18,37 @@ const TRIGGERS: { value: Trigger; label: string }[] = [
   { value: 'idle', label: 'After I stop typing' },
 ];
 
+function EditLine({ edit }: { edit: PageEdit }) {
+  if (edit.kind === 'add')
+    return (
+      <li>
+        + {edit.text}
+        {edit.under ? <span className="faint"> (under {edit.under})</span> : null}
+      </li>
+    );
+  if (edit.kind === 'remove') return <li className="agent-del">{edit.old}</li>;
+  return (
+    <li>
+      <span className="agent-del">{edit.old}</span> → {edit.text}
+    </li>
+  );
+}
+
+const commit = (next: Vault, label: string) => useStore.getState().commit(next, undefined, label);
+
 export function AgentSection({ scene, writing }: { scene: Scene; writing: boolean }) {
   const vault = useVault();
-  const { trigger, setTrigger, enabled, models, model, setModel, running, error, reports } = useAgent();
+  const { trigger, setTrigger, enabled, models, model, setModel, allowOverwrite, setAllowOverwrite, running, error, reports, setReport } = useAgent();
   const dismissed = useDismissed();
   if (!BACKEND) return null;
 
   const report = reports[scene.id];
   const mine = Object.values(vault.changes).filter((c) => c.agent && c.sceneId === scene.id).length;
   const busy = running !== null;
-  const forget = (patch: Partial<NonNullable<typeof report>>) => useAgent.setState((a) => ({ reports: { ...a.reports, [scene.id]: { ...a.reports[scene.id], ...patch } } }));
+  const patch = (p: Partial<AgentReport>) => report && setReport(scene.id, { ...report, ...p });
+  /** The writer accepts edits the agent only offered: they are made as the writer's own. */
+  const accept = (entityId: Id, edits: PageEdit[]) => commit(editPage(useStore.getState().vault, scene.id, entityId, edits, 'writer', 'Accepted from the story agent').vault, 'Accept agent edit');
+  const contradictionKey = (entity: string, claim: string) => `agent:${scene.id}:${slugify(entity)}:${slugify(claim)}`;
 
   return (
     <section className="insp-section agent" data-testid="insp-agent">
@@ -43,7 +66,6 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
           ))}
         </select>
       </label>
-
       {models.length > 0 && (
         <label className="agent-row small">
           <span className="faint">Model</span>
@@ -61,6 +83,10 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
           Contributor mode: Meta may use what the agent sends (your scenes and wiki pages) to train its models.
         </div>
       )}
+      <label className="agent-row small" title="Off: the agent rewrites only lines it wrote itself, and offers changes to yours instead.">
+        <input type="checkbox" checked={allowOverwrite} onChange={(e) => setAllowOverwrite(e.target.checked)} data-testid="agent-overwrite" />
+        <span>Allow overwriting what I wrote in the wiki</span>
+      </label>
 
       {enabled === false ? (
         <div className="small faint">The server has no model key. Set MODEL_API_KEY and restart it.</div>
@@ -73,11 +99,10 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
             <button
               type="button"
               className="btn btn-sm btn-ghost"
-              title="Remove everything the agent wrote for this scene. Your own edits stay."
+              title="Remove everything the agent wrote for this scene, also where it reached later versions of a page. Your own edits stay."
               onClick={() => {
-                const s = useStore.getState();
-                s.commit(revertAgentOutput(s.vault, scene.id), undefined, 'Agent output for a scene');
-                forgetReport(scene.id);
+                commit(revertAgentOutput(useStore.getState().vault, scene.id), 'Agent output for a scene');
+                setReport(scene.id, null);
               }}
             >
               Take back {mine} change{mine === 1 ? '' : 's'}
@@ -85,19 +110,53 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
           )}
         </div>
       )}
-      {error && <div className="small agent-error" data-testid="agent-error">{error} <button type="button" className="btn btn-sm btn-ghost" onClick={() => enqueueScene(scene.id)}>Try again</button></div>}
+      {scene.status === 'idea' && <div className="small faint">Marked as an idea: the agent reads it only when you ask.</div>}
+      {error && (
+        <div className="small agent-error" data-testid="agent-error">
+          {error}{' '}
+          <button type="button" className="btn btn-sm btn-ghost" onClick={() => enqueueScene(scene.id)}>
+            Try again
+          </button>
+        </div>
+      )}
 
       {report && (
         <div className="agent-report small" data-testid="agent-report">
-          {report.created.length > 0 && <div>New pages: {report.created.join(', ')}</div>}
+          {report.created.map((c) =>
+            vault.entities[c.id] ? (
+              <div key={c.id} className="agent-row">
+                <span>
+                  New page: <b>{vault.entities[c.id].name}</b>
+                </span>
+                <select
+                  aria-label={`Type of ${c.name}`}
+                  data-testid="agent-created-type"
+                  value={vault.entities[c.id].typeId}
+                  onChange={(e) => commit(updateEntity(useStore.getState().vault, c.id, { typeId: e.target.value }), 'Change type')}
+                >
+                  {sortedTypes(vault).map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null,
+          )}
+
           {report.pages.map((p) => (
             <div key={p.entity}>
               <b>{p.entity}</b>
               <ul>
-                {p.lines.map((l) => (
-                  <li key={l}>{l}</li>
+                {p.edits.map((e, i) => (
+                  <EditLine key={i} edit={e} />
                 ))}
               </ul>
+            </div>
+          ))}
+          {report.properties.map((p) => (
+            <div key={`${p.entity}:${p.property}`}>
+              <b>{p.entity}</b> {p.property} → {p.value}
             </div>
           ))}
           {report.states.map((s) => (
@@ -105,14 +164,56 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
               <b>{s.entity}</b> <span className="faint">now:</span> {s.state}
             </div>
           ))}
-          {report.claimed.map((c) => (
-            <div key={c.entity} className="faint">
-              Only claimed, not written — <b>{c.entity}</b>: {c.lines.join('; ')}
+
+          {report.suggestions.map((s, i) => (
+            <div key={i} className="agent-flag" data-testid="agent-suggestion">
+              <div>
+                <b>{s.entity}</b>, a line you wrote:
+              </div>
+              <ul>
+                <EditLine edit={s.edit} />
+              </ul>
+              <div className="agent-row">
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => {
+                    accept(s.entityId, [s.edit]);
+                    patch({ suggestions: report.suggestions.filter((_, k) => k !== i) });
+                  }}
+                >
+                  Apply
+                </button>
+                <button type="button" className="btn btn-sm btn-ghost" onClick={() => patch({ suggestions: report.suggestions.filter((_, k) => k !== i) })}>
+                  Keep mine
+                </button>
+              </div>
+            </div>
+          ))}
+          {report.claimed.map((c, i) => (
+            <div key={i} className="faint">
+              Only claimed, not written — <b>{c.entity}</b>
+              <ul>
+                {c.edits.map((e, k) => (
+                  <EditLine key={k} edit={e} />
+                ))}
+              </ul>
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost"
+                onClick={() => {
+                  const id = Object.values(vault.entities).find((e) => e.name === c.entity)?.id;
+                  if (id) accept(id, c.edits);
+                  patch({ claimed: report.claimed.filter((_, k) => k !== i) });
+                }}
+              >
+                It’s true, write it
+              </button>
             </div>
           ))}
 
           {report.contradictions
-            .filter((c) => !dismissed.has(`agent:${scene.id}:${slugify(c.entity)}:${slugify(c.claim)}`))
+            .filter((c) => !dismissed.has(contradictionKey(c.entity, c.claim)))
             .map((c) => (
               <div key={c.claim} className="agent-flag" data-testid="agent-contradiction">
                 <div>
@@ -120,12 +221,42 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
                 </div>
                 <div className="faint">Scene: “{c.sceneQuote}”</div>
                 <div className="faint">Wiki: “{c.wikiQuote}”</div>
-                <button type="button" className="btn btn-sm btn-ghost" onClick={() => setDismissed(`agent:${scene.id}:${slugify(c.entity)}:${slugify(c.claim)}`, true)}>
+                <button type="button" className="btn btn-sm btn-ghost" onClick={() => setDismissed(contradictionKey(c.entity, c.claim), true)}>
                   Intentional
                 </button>
               </div>
             ))}
 
+          {report.timeLabel &&
+            (report.timeLabelSet ? (
+              <div className="agent-row" data-testid="agent-time-label">
+                <span>Time label: “{report.timeLabel}”</span>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-ghost"
+                  onClick={() => {
+                    commit(setMomentLabel(useStore.getState().vault, scene.momentId, ''), 'Clear time label');
+                    patch({ timeLabel: undefined, timeLabelSet: undefined });
+                  }}
+                >
+                  Clear
+                </button>
+              </div>
+            ) : (
+              <div className="agent-flag" data-testid="agent-time-label">
+                Time label: “{report.timeLabel}”
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => {
+                    commit(setMomentLabel(useStore.getState().vault, scene.momentId, report.timeLabel!), 'Agent time label');
+                    patch({ timeLabel: undefined });
+                  }}
+                >
+                  Use it
+                </button>
+              </div>
+            ))}
           {report.timeSkip && (
             <div className="agent-flag">
               Time skip before this scene: “{report.timeSkip}”
@@ -133,9 +264,8 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
                 type="button"
                 className="btn btn-sm"
                 onClick={() => {
-                  const s = useStore.getState();
-                  s.commit(setMomentTimeSkip(s.vault, scene.momentId, report.timeSkip!), undefined, 'Agent time skip');
-                  forget({ timeSkip: undefined });
+                  commit(setMomentTimeSkip(useStore.getState().vault, scene.momentId, report.timeSkip!), 'Agent time skip');
+                  patch({ timeSkip: undefined });
                 }}
               >
                 Apply
@@ -151,9 +281,9 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
                 onClick={() => {
                   const s = useStore.getState();
                   const r = setMomentConcrete(s.vault, scene.momentId, report.concrete!);
-                  if (r.ok) s.commit(r.vault, undefined, 'Agent date');
+                  if (r.ok) commit(r.vault, 'Agent date');
                   else s.toast('error', r.error);
-                  forget({ concrete: undefined });
+                  patch({ concrete: undefined });
                 }}
               >
                 Apply

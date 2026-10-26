@@ -55,17 +55,30 @@ the default), then `npm run dev:full`. The default list is Meta's chat models, S
 cheaper, but Meta may train its models on what is sent to it, so the panel warns when one is picked.
 
 - **When it reads:** only when you press "Read this scene" (default), when you leave a scene you edited, or 20 seconds
-  after you stop typing. A scene whose text has not changed since the last reading is not read again.
-- **A `[[link]]` with no page** gets a page. Names you did not link are only suggested.
-- **Lasting facts** are added to the entity's wiki page as new lines after that scene (the page before it is untouched, so
-  nothing spoils earlier scenes). **Short-lived condition** (where they are, mood, what they know) is kept as one `state`
-  property per scene, shown in the Cast, so the history is not full of "he's hungry" commits.
-- **Facts a character only claims** (lies, rumours, dreams) are listed, never written.
+  after you stop typing. A scene whose text has not changed since the last reading is not read again, and a scene marked
+  as an idea is only read when you ask (it is not canon yet).
+- **A `[[link]]` with no page** gets a page, of the entity type the scene suggests (a person, a place, an object…); the
+  panel lets you change the type in one click. Names you did not link are only suggested.
+- **Pages are kept true, not only added to.** The agent adds a fact under the heading it belongs to, and rewrites or
+  removes a line the story has made untrue. The edit is a page version from that scene on (earlier scenes keep the old
+  page, so nothing is spoiled) and is carried into the page's later versions. Re-reading an earlier scene, or taking it
+  back, updates those later versions too.
+- **Your lines are yours.** Who wrote each line is read from the page's history. The agent may always rewrite its own
+  lines; yours only with "Allow overwriting what I wrote in the wiki" on. Off (the default), its changes to your lines
+  are offered with Apply / Keep mine. A page version you edit, or an agent edit you accept, becomes yours, and "Take
+  back" leaves it alone.
+- **Properties** the entity already has (status, owner…) are changed from the scene on when the story changes them.
+  **Short-lived condition** (where they are, mood, what they know) is kept as one `state` property per scene, shown in
+  the Cast, so the history is not full of "he's hungry" commits.
+- **Facts a character only claims** (lies, rumours, dreams) are listed, never written, with "It's true, write it".
 - **Possible inconsistencies** come with a quote from the scene and one from the wiki; one the agent cannot back with
   both quotes is dropped. A flashback is checked against the story as it was at its own place on the timeline.
-- **Timeline** suggestions (time skip, date) are offered with an Apply button; the agent never moves a scene.
-- **Take back** removes everything the agent wrote for a scene and leaves your own edits. Agent changes carry an `agent`
-  field (the model that wrote them) in the vault and in exports. Author notes (`%% %%`) are never sent to the model.
+- **Time:** the agent fills in a moment's time label ("late autumn") when it has none, and only suggests one over yours;
+  time skips and dates are suggestions with Apply. It never moves a scene.
+- **Talking to the agent:** an author note starting with `agent:` (`%% agent: this scene is a dream %%`) is passed to it
+  as an instruction. Every other author note stays private.
+- **Take back** removes everything the agent wrote for a scene. Agent changes carry an `agent` field (the model that
+  wrote them) in the vault and in exports.
 
 The browser builds the prompt and applies the answer; the server only relays one chat call (with the key) and is limited
 to 120 calls per account per 10 minutes.

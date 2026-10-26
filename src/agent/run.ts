@@ -14,6 +14,8 @@ export type Trigger = 'off' | 'leave' | 'idle';
 
 const TRIGGER_KEY = 'lw-agent-trigger';
 const MODEL_KEY = 'lw-agent-model';
+const OVERWRITE_KEY = 'lw-agent-overwrite';
+const REPORTS_KEY = 'lw-agent-reports-v2';
 const IDLE_MS = 20_000;
 const MAX_STEPS = 5;
 
@@ -32,12 +34,17 @@ interface AgentStore {
   models: string[];
   /** The writer's pick among `models`. */
   model: string | null;
+  /** May the agent rewrite or remove lines the writer wrote on a wiki page? Off: it only offers those edits. */
+  allowOverwrite: boolean;
   running: Id | null;
   error: string | null;
-  /** What the last run of each scene did. Kept for this session only. */
+  /** What the last run of each scene did, kept in this browser. */
   reports: Record<Id, AgentReport>;
   setTrigger: (t: Trigger) => void;
   setModel: (m: string) => void;
+  setAllowOverwrite: (on: boolean) => void;
+  /** Replace (or with null, forget) what the panel shows for a scene's last reading. */
+  setReport: (sceneId: Id, report: AgentReport | null) => void;
 }
 
 /** A "-contributor" model is cheaper, but Meta may train its models on what is sent to it: here, the manuscript. */
@@ -64,14 +71,24 @@ function loadTrigger(): Trigger {
   return t === 'leave' || t === 'idle' ? t : 'off';
 }
 
+function loadReports(): Record<Id, AgentReport> {
+  try {
+    const raw: unknown = JSON.parse(recall(REPORTS_KEY) ?? '{}');
+    return typeof raw === 'object' && raw !== null ? (raw as Record<Id, AgentReport>) : {};
+  } catch {
+    return {};
+  }
+}
+
 export const useAgent = create<AgentStore>((set) => ({
   trigger: loadTrigger(),
   enabled: null,
   models: [],
   model: null,
+  allowOverwrite: recall(OVERWRITE_KEY) === 'true',
   running: null,
   error: null,
-  reports: {},
+  reports: loadReports(),
   setTrigger: (trigger) => {
     remember(TRIGGER_KEY, trigger);
     set({ trigger });
@@ -80,6 +97,18 @@ export const useAgent = create<AgentStore>((set) => ({
     remember(MODEL_KEY, model);
     set({ model });
   },
+  setAllowOverwrite: (allowOverwrite) => {
+    remember(OVERWRITE_KEY, String(allowOverwrite));
+    set({ allowOverwrite });
+  },
+  setReport: (sceneId, report) =>
+    set((a) => {
+      const reports = { ...a.reports };
+      if (report) reports[sceneId] = report;
+      else delete reports[sceneId];
+      remember(REPORTS_KEY, JSON.stringify(reports));
+      return { reports };
+    }),
 }));
 
 async function post<T>(path: string, body: object): Promise<T> {
@@ -131,21 +160,16 @@ async function readScene(sceneId: Id): Promise<void> {
     const s = useStore.getState();
     // The writer kept typing while the model read: its answer is about text that no longer exists.
     if (s.vault.scenes[sceneId]?.prose !== start.prose) throw new Error('The scene changed while the agent was reading it.');
-    const { vault, report } = applyAgentOutput(s.vault, sceneId, parseAgentOutput(text), model);
+    const { vault, report } = applyAgentOutput(s.vault, sceneId, parseAgentOutput(text), { model, allowOverwrite: useAgent.getState().allowOverwrite });
     s.commit(vault, undefined, `Agent: ${start.title || 'scene'}`);
     read.set(sceneId, start.prose);
     edited.delete(sceneId);
-    useAgent.setState((a) => ({ reports: { ...a.reports, [sceneId]: report } }));
+    useAgent.getState().setReport(sceneId, report);
   } catch (e) {
     useAgent.setState({ error: e instanceof Error ? e.message : String(e) });
   } finally {
     useAgent.setState({ running: null });
   }
-}
-
-/** Drops what the panel remembers about a scene's last reading. */
-export function forgetReport(sceneId: Id): void {
-  useAgent.setState((a) => ({ reports: Object.fromEntries(Object.entries(a.reports).filter(([id]) => id !== sceneId)) }));
 }
 
 /** Reads a scene after any reading already under way. A scene already waiting is not queued twice. */
@@ -155,8 +179,14 @@ export function enqueueScene(sceneId: Id): void {
   queue = queue.then(() => readScene(sceneId)).finally(() => queued.delete(sceneId));
 }
 
+/** Reading on its own, the agent skips a scene marked as an idea: it is not canon yet. */
+function readOnItsOwn(sceneId: Id): void {
+  const scene = useStore.getState().vault.scenes[sceneId];
+  if (scene && scene.status !== 'idea' && scene.prose !== read.get(sceneId)) enqueueScene(sceneId);
+}
+
 function readEdited(): void {
-  for (const id of edited) if (useStore.getState().vault.scenes[id]?.prose !== read.get(id)) enqueueScene(id);
+  for (const id of edited) readOnItsOwn(id);
 }
 
 /** Starts watching the writing. Called once the vault has loaded; does nothing outside server mode. */
@@ -181,7 +211,7 @@ export function startAgent(): void {
     // Leaving a scene (to another scene, or to anything that is not a scene) is the writer handing it in.
     const was = prev.view.kind === 'scene' ? prev.view.id : null;
     const now = s.view.kind === 'scene' ? s.view.id : null;
-    if (was && was !== now && useAgent.getState().trigger === 'leave' && edited.has(was)) enqueueScene(was);
+    if (was && was !== now && useAgent.getState().trigger === 'leave' && edited.has(was)) readOnItsOwn(was);
   });
 }
 

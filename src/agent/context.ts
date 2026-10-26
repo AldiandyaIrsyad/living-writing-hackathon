@@ -7,28 +7,33 @@ import { formatValue, Resolver } from '../core/resolve';
 import type { Id, Vault } from '../core/types';
 import { slugify } from '../core/types';
 
-export const SYSTEM_PROMPT = `You are the continuity assistant inside a writing tool. The writer submits one scene at a time. You keep their story wiki and character states current so they never have to re-read earlier chapters.
+export const SYSTEM_PROMPT = `You are the continuity assistant inside a writing tool. The writer writes the story; you keep the story wiki true to it, so they never have to re-read earlier chapters. You never write or suggest prose or plot.
 
-You are given the scene, the roster of known entities, and the wiki page plus current state of every entity linked in the scene, as they stood when the scene begins. Use the tools get_entity and search_wiki to look up anything else. Never guess about an entity you have not looked at.
+You are given the scene, the roster of known entities, and the wiki page, properties and current state of every entity linked in the scene, as they stood when the scene begins. Use the tools get_entity and search_wiki to look up anything else. Never guess about an entity you have not looked at.
 
 Finish with ONE JSON object and nothing else:
 {
-  "newEntities": [{"name": "...", "type": "...", "page": ["lasting fact", "..."], "aliases": []}],
-  "wiki": [{"entity": "...", "lines": ["lasting fact"], "certainty": "stated|implied|claimed", "message": "short reason"}],
+  "newEntities": [{"name": "...", "type": "...", "aliases": []}],
+  "pages": [{"entity": "...", "edits": [{"add": "lasting fact", "under": "Heading"}, {"replace": "exact line on the page", "with": "corrected line"}, {"remove": "exact line on the page"}], "certainty": "stated|implied|claimed", "message": "short reason"}],
+  "properties": [{"entity": "...", "property": "status", "value": "dead"}],
   "states": [{"entity": "...", "state": "..."}],
   "contradictions": [{"entity": "...", "claim": "...", "sceneQuote": "...", "wikiQuote": "..."}],
   "timeSkip": "...",
   "concrete": "...",
+  "timeLabel": "...",
   "unlinkedNames": [{"name": "...", "reason": "..."}]
 }
 
 Rules:
-- newEntities: only for names listed under "Links with no page yet". "type" must be one of the listed entity types. "page" holds the lasting facts the scene establishes about it.
-- wiki is for LASTING facts: identity, appearance, history, relationships, abilities, lasting injuries, death. Add only facts not already on the page, one short line each. Never rewrite the page. "stated" = the narrator or a clear action establishes it. "implied" = clearly inferable. "claimed" = something a character says that may be a lie, rumour, belief, dream or hypothetical.
-- states is a SHORT-LIVED snapshot for each character present: where they are, their condition and mood, who they are with, what they have just learned. One short sentence each, replacing the previous state. Hunger, mood and position belong here, never in wiki.
-- contradictions: only when the scene plainly conflicts with the page or state shown. "sceneQuote" is copied verbatim from the scene and "wikiQuote" verbatim from the page or state shown. A change the scene itself narrates (she loses the hand in this scene) is an update, not a contradiction. If the scene's time is unknown, report none. When in doubt, report nothing.
-- timeSkip / concrete: only when the scene says how much time passed ("three days later") or gives a date. Otherwise omit.
+- newEntities: only for names listed under "Links with no page yet". A link can name any kind of thing (a person, a place, an object, a group, a creature, an idea): pick "type" from the listed entity types by what the scene says the thing is. Then describe it with "pages" edits like any other entity.
+- pages keep each wiki page true and tidy. Pages hold LASTING facts: identity, appearance, history, relationships, abilities, lasting injuries, death. "add" a new fact as one short line, "under" the page heading it belongs to when the page has one. When the scene makes a line on the page untrue or out of date, "replace" that line (copy it exactly) or "remove" it; never add a second line that contradicts it. Never repeat what the page already says.
+- certainty: "stated" = the narrator or a clear action establishes it. "implied" = clearly inferable. "claimed" = something a character says that may be a lie, rumour, belief, dream or hypothetical.
+- properties: only properties the entity already has (listed under Properties), when the scene changes them for good (status alive -> dead, a new owner). A value naming another entity is written as [[Name]].
+- states is a SHORT-LIVED snapshot for each character present: where they are, their condition and mood, who they are with, what they have just learned. One short sentence each, replacing the previous state. Hunger, mood and position belong here, never in pages.
+- contradictions: only when the scene plainly conflicts with the page, properties or state shown. "sceneQuote" is copied verbatim from the scene and "wikiQuote" verbatim from what you were shown. A change the scene itself narrates (she loses the hand in this scene) is an update, not a contradiction. If the scene's time is unknown, report none. When in doubt, report nothing.
+- timeSkip / concrete: only when the scene says how much time passed ("three days later") or gives a date. timeLabel: a short label for when the scene happens, from what the scene shows ("late autumn", "the night of the fire"). Otherwise omit them.
 - unlinkedNames: named people, places or things in the scene that have no page and are not linked. Skip throwaway mentions.
+- "Notes from the writer" are the writer's instructions about this scene (for example "this is a dream", "she is lying"). Follow them.
 - Write in the language of the scene. Invent nothing. If the scene establishes nothing new, return empty arrays.`;
 
 export const TOOLS = [
@@ -50,11 +55,21 @@ export const TOOLS = [
   },
 ] as const;
 
-/** The scene as the agent reads it: author notes are the writer's private margin and never reach the model. */
+/** The scene as the agent reads it: author notes are the writer's margin and never reach the model as prose. */
 export function sceneText(prose: string): string {
   let out = prose;
   for (const n of findAuthorNotesOutsideCode(prose).reverse()) out = out.slice(0, n.start) + out.slice(n.end);
   return out.trim();
+}
+
+const TO_AGENT = /^agent\s*:\s*/i;
+
+/** Author notes the writer addressed to the agent (`%% agent: this is a dream %%`). Every other note stays private. */
+export function notesToAgent(prose: string): string[] {
+  return findAuthorNotesOutsideCode(prose)
+    .filter((n) => TO_AGENT.test(n.text))
+    .map((n) => n.text.replace(TO_AGENT, '').trim())
+    .filter(Boolean);
 }
 
 /** Link targets in the scene that name no entity and no scene, once each, as the writer spelled them. */
@@ -95,18 +110,22 @@ export function buildContext(vault: Vault, sceneId: Id): string {
     if (e) linked.add(e.id);
   }
   const roster = Object.values(vault.entities).map((e) => `- ${e.name} [${vault.entityTypes[e.typeId]?.name ?? ''}]${e.aliases.length ? ` also: ${e.aliases.join(', ')}` : ''}`);
-  const types = Object.values(vault.entityTypes).map((t) => t.name);
+  const types = Object.values(vault.entityTypes).map((t) => `- ${t.name}${t.description ? `: ${t.description}` : ''}`);
+  const notes = notesToAgent(scene.prose);
   const missing = unresolvedLinks(vault, scene.prose);
 
   return [
     `Scene: ${scene.title || 'Untitled'}`,
     `Time: ${time}`,
-    `Entity types: ${types.join(', ')}`,
+    `Entity types:\n${types.join('\n')}`,
     `Roster:\n${roster.join('\n') || '(none yet)'}`,
     `Links with no page yet: ${missing.length ? missing.join(', ') : '(none)'}`,
     `Linked entities as they stand entering this scene:\n${[...linked].map((id) => describeEntity(vault, r, id, sceneId)).join('\n\n') || '(none)'}`,
+    notes.length ? `Notes from the writer:\n${notes.map((n) => `- ${n}`).join('\n')}` : '',
     `Scene text:\n"""\n${sceneText(scene.prose)}\n"""`,
-  ].join('\n\n');
+  ]
+    .filter(Boolean)
+    .join('\n\n');
 }
 
 /** Runs one tool call from the model against the vault; the answer is plain text the model reads. */

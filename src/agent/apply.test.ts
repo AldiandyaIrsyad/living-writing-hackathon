@@ -4,15 +4,19 @@ import { Resolver } from '../core/resolve';
 import { VaultBuilder } from '../core/testkit';
 import type { Vault } from '../core/types';
 import { commitRevision } from '../store/actions';
-import { applyAgentOutput, parseAgentOutput, revertAgentOutput, type AgentOutput } from './apply';
+import { applyAgentOutput, editPage, parseAgentOutput, revertAgentOutput, type AgentOptions, type AgentOutput } from './apply';
 import { buildContext } from './context';
+import { applyEdits, pageLines, type PageEdit } from './page';
 
-const answer = (part: Partial<AgentOutput> = {}): AgentOutput => ({ newEntities: [], wiki: [], states: [], contradictions: [], unlinkedNames: [], ...part });
+const answer = (part: Partial<AgentOutput> = {}): AgentOutput => ({ newEntities: [], pages: [], properties: [], states: [], contradictions: [], unlinkedNames: [], ...part });
+const agent: AgentOptions = { model: 'm1', allowOverwrite: false };
+const adds = (entity: string, ...lines: string[]) => ({ entity, edits: lines.map((text): PageEdit => ({ kind: 'add', text })), certainty: 'stated' as const });
 
 /** Nora and Mira, two scenes in order. Scene two's prose is whatever the test needs. */
 function world(prose2: string): Vault {
   const v = new VaultBuilder().entity('nora', {}, 'Nora').entity('mira', {}, 'Mira').scene('s1').scene('s2').chain('s1', 's2').build();
   v.entities.nora.note = 'Nora is a courier.';
+  v.scenes.s1.prose = 'Nora rode north.';
   v.scenes.s2.prose = prose2;
   return v;
 }
@@ -21,11 +25,15 @@ const noteAfter = (v: Vault, entity: string, scene: string) => {
   const r = new Resolver(v);
   return r.entityAt(findEntity(v, entity)!.id, r.atScene(scene, true)).note;
 };
+const latestLines = (v: Vault, entity: string) =>
+  pageLines(new Resolver(v).entityAt(findEntity(v, entity)!.id, { kind: 'latest' }).note)
+    .filter((l) => l.trim())
+    .sort();
 
 describe('reading the model’s reply', () => {
   it('finds the JSON inside a fenced reply and drops items that are not usable', () => {
-    const out = parseAgentOutput('Here you go:\n```json\n{"wiki":[{"entity":"Nora","lines":["Left-handed"],"certainty":"maybe"},{"entity":"","lines":["x"]},{"entity":"Mira","lines":[]}],"states":[{"entity":"Nora","state":"tired"},{"state":"orphan"}]}\n```');
-    expect(out.wiki).toEqual([{ entity: 'Nora', lines: ['Left-handed'], certainty: 'stated', message: undefined }]);
+    const out = parseAgentOutput('Here you go:\n```json\n{"pages":[{"entity":"Nora","edits":[{"add":"Left-handed"},{"bogus":1},{"replace":"Nora is a courier"}],"certainty":"maybe"},{"entity":"","edits":[{"add":"x"}]}],"states":[{"entity":"Nora","state":"tired"},{"state":"orphan"}]}\n```');
+    expect(out.pages).toEqual([{ entity: 'Nora', edits: [{ kind: 'add', text: 'Left-handed' }], certainty: 'stated', message: undefined }]);
     expect(out.states).toEqual([{ entity: 'Nora', state: 'tired' }]);
   });
 
@@ -40,15 +48,10 @@ describe('a [[link]] with no page', () => {
     const { vault, report } = applyAgentOutput(
       v,
       's2',
-      answer({
-        newEntities: [
-          { name: 'Tam', type: 'Thing', page: ['A courier from the north'], aliases: ['the courier'] },
-          { name: 'Zed', type: 'Thing', page: ['A stranger'], aliases: [] },
-        ],
-      }),
-      'm1',
+      answer({ newEntities: [{ name: 'Tam', type: 'Thing', aliases: ['the courier'] }, { name: 'Zed', type: 'Thing', aliases: [] }], pages: [adds('Tam', 'A courier from the north')] }),
+      agent,
     );
-    expect(report.created).toEqual(['Tam']);
+    expect(report.created.map((c) => c.name)).toEqual(['Tam']);
     expect(findEntity(vault, 'Zed')).toBeUndefined();
     expect(report.unlinkedNames.map((n) => n.name)).toEqual(['Zed']);
     expect(findEntity(vault, 'the courier')?.name).toBe('Tam');
@@ -60,40 +63,98 @@ describe('a [[link]] with no page', () => {
   });
 });
 
-describe('writing to existing pages', () => {
+describe('editing pages', () => {
   it('adds only lines the page does not already say, and keeps a claim out of the wiki', () => {
     const v = world('Nora lied: she said she was an orphan.');
-    const { vault, report } = applyAgentOutput(
-      v,
-      's2',
-      answer({
-        wiki: [
-          { entity: 'Nora', lines: ['Nora is a courier', 'Left-handed'], certainty: 'stated' },
-          { entity: 'Nora', lines: ['Orphaned at six'], certainty: 'claimed' },
-        ],
-      }),
-      'm1',
-    );
+    const { vault, report } = applyAgentOutput(v, 's2', answer({ pages: [adds('Nora', 'Nora is a courier', 'Left-handed'), { ...adds('Nora', 'Orphaned at six'), certainty: 'claimed' }] }), agent);
     expect(noteAfter(vault, 'Nora', 's2')).toBe('Nora is a courier.\n\n- Left-handed\n');
-    expect(report.claimed).toEqual([{ entity: 'Nora', lines: ['Orphaned at six'] }]);
+    expect(report.claimed).toEqual([{ entity: 'Nora', edits: [{ kind: 'add', text: 'Orphaned at six' }] }]);
   });
 
-  it('never amends a revision the writer made after the same scene', () => {
+  it('rewrites its own lines whatever the setting, but the writer’s only when overwriting is allowed, else offers the edit', () => {
+    let v = world('Nora buried her dog. The courier guild threw her out.');
+    v = applyAgentOutput(v, 's1', answer({ pages: [adds('Nora', 'Keeps a dog')] }), agent).vault;
+    const edits = answer({
+      pages: [
+        {
+          entity: 'Nora',
+          edits: [
+            { kind: 'replace', old: 'Keeps a dog', text: 'Her dog died' },
+            { kind: 'replace', old: 'Nora is a courier.', text: 'Nora was a courier until the guild threw her out.' },
+          ],
+          certainty: 'stated',
+        },
+      ],
+    });
+
+    const careful = applyAgentOutput(v, 's2', edits, agent);
+    expect(noteAfter(careful.vault, 'Nora', 's2')).toBe('Nora is a courier.\n\n- Her dog died\n');
+    expect(careful.report.suggestions.map((s) => s.edit)).toEqual([{ kind: 'replace', old: 'Nora is a courier.', text: 'Nora was a courier until the guild threw her out.' }]);
+
+    const bold = applyAgentOutput(v, 's2', edits, { ...agent, allowOverwrite: true });
+    expect(noteAfter(bold.vault, 'Nora', 's2')).toBe('Nora was a courier until the guild threw her out.\n\n- Her dog died\n');
+    expect(bold.report.suggestions).toEqual([]);
+  });
+
+  it('never amends a revision the writer made after the same scene, and offers its edits instead', () => {
     let v = world('Mira smiled.');
     v = commitRevision(v, { entityId: 'mira', anchor: { sceneId: 's2' }, note: 'Mira, in the writer’s words.', before: { note: '', name: 'Mira' } }).vault;
-    const { vault, report } = applyAgentOutput(v, 's2', answer({ wiki: [{ entity: 'Mira', lines: ['Smiles often'], certainty: 'stated' }] }), 'm1');
+    const { vault, report } = applyAgentOutput(v, 's2', answer({ pages: [adds('Mira', 'Smiles often')] }), { ...agent, allowOverwrite: true });
     expect(noteAfter(vault, 'Mira', 's2')).toBe('Mira, in the writer’s words.');
-    expect(report.skipped).toHaveLength(1);
+    expect(report.suggestions).toHaveLength(1);
   });
 
-  it('replaces its own earlier output when the same scene is read again, instead of stacking', () => {
-    const v = world('Nora ran.');
-    const first = applyAgentOutput(v, 's2', answer({ wiki: [{ entity: 'Nora', lines: ['Fast runner'], certainty: 'stated' }], states: [{ entity: 'Nora', state: 'out of breath' }] }), 'm1').vault;
-    const second = applyAgentOutput(first, 's2', answer({ states: [{ entity: 'Nora', state: 'rested' }] }), 'm1').vault;
-    expect(noteAfter(second, 'Nora', 's2')).toBe('Nora is a courier.');
-    const r = new Resolver(second);
-    expect(r.entityAt('nora', r.atScene('s2', true)).props.state.value).toBe('rested');
-    expect(Object.values(second.changes).filter((c) => c.agent)).toHaveLength(1);
+  it('carries an edit made at an earlier scene into later versions of the page, and takes it back from them too', () => {
+    // A bug report: re-reading chapter one after chapter two left chapter two's page with chapter one's old facts.
+    let v = world('Nora again.');
+    v.entities.nora.note = '';
+    v = applyAgentOutput(v, 's1', answer({ pages: [adds('Nora', 'Fact A')] }), agent).vault;
+    v = applyAgentOutput(v, 's2', answer({ pages: [adds('Nora', 'Fact B')] }), agent).vault;
+
+    const reread = applyAgentOutput(v, 's1', answer({ pages: [adds('Nora', 'Fact C')] }), agent).vault;
+    expect(latestLines(reread, 'Nora')).toEqual(['- Fact B', '- Fact C']);
+    expect(latestLines(revertAgentOutput(v, 's1'), 'Nora')).toEqual(['- Fact B']);
+  });
+
+  it('a page version the writer accepts an edit into becomes theirs: taking back the agent’s output keeps it', () => {
+    // A bug report: accepting a suggestion on a page the agent had revised in the same scene was lost on "Take back".
+    let v = world('Nora quit.');
+    v = applyAgentOutput(v, 's2', answer({ pages: [adds('Nora', 'Quit the guild')], states: [{ entity: 'Nora', state: 'restless' }] }), agent).vault;
+    v = editPage(v, 's2', 'nora', [{ kind: 'replace', old: 'Nora is a courier.', text: 'Nora is a retired courier.' }], 'writer', 'Accepted').vault;
+    const taken = revertAgentOutput(v, 's2');
+    expect(latestLines(taken, 'Nora')).toEqual(['- Quit the guild', 'Nora is a retired courier.']);
+    const r = new Resolver(taken);
+    expect(r.entityAt('nora', { kind: 'latest' }).props.state).toBeUndefined();
+  });
+});
+
+describe('placing a new line on a page', () => {
+  it('goes at the end of its heading’s section, and a heading the page lacks is added', () => {
+    const page = '# Nora\n\n## Looks\n- Tall\n\n## History\n- Born in Ashford\n';
+    expect(applyEdits(page, [{ kind: 'add', text: 'Scar on her cheek', under: 'Looks' }]).note).toBe('# Nora\n\n## Looks\n- Tall\n- Scar on her cheek\n\n## History\n- Born in Ashford\n');
+    expect(applyEdits(page, [{ kind: 'add', text: 'Hates the sea', under: 'Quirks' }]).note).toBe('# Nora\n\n## Looks\n- Tall\n\n## History\n- Born in Ashford\n\n## Quirks\n- Hates the sea\n');
+  });
+});
+
+describe('properties and time', () => {
+  it('changes a property the entity has from the scene on, and ignores one it does not have', () => {
+    const v = new VaultBuilder().entity('norman', { status: 'alive' }, 'Norman').scene('s1').scene('s2').chain('s1', 's2').build();
+    v.scenes.s2.prose = 'Norman fell.';
+    const { vault } = applyAgentOutput(v, 's2', answer({ properties: [{ entity: 'Norman', property: 'status', value: 'dead' }, { entity: 'Norman', property: 'shoeSize', value: '9' }] }), agent);
+    const r = new Resolver(vault);
+    expect(r.entityAt('norman', r.atScene('s2')).props.status.value).toBe('alive');
+    expect(Object.fromEntries(Object.entries(r.entityAt('norman', r.atScene('s2', true)).props).map(([k, p]) => [k, p.value]))).toEqual({ status: 'dead' });
+  });
+
+  it('fills an empty time label, and only suggests one over the writer’s', () => {
+    const v = world('Snow fell.');
+    const filled = applyAgentOutput(v, 's2', answer({ timeLabel: 'Early winter' }), agent);
+    expect(filled.vault.moments[v.scenes.s2.momentId].label).toBe('Early winter');
+
+    v.moments[v.scenes.s2.momentId].label = 'The long night';
+    const kept = applyAgentOutput(v, 's2', answer({ timeLabel: 'Early winter' }), agent);
+    expect(kept.vault.moments[v.scenes.s2.momentId].label).toBe('The long night');
+    expect([kept.report.timeLabel, kept.report.timeLabelSet]).toEqual(['Early winter', undefined]);
   });
 });
 
@@ -108,19 +169,19 @@ describe('contradictions', () => {
 
   it('are shown only when both quotes can be found in the text the agent saw', () => {
     const v = withLostHand('She drew the sword with her right hand.');
-    expect(applyAgentOutput(v, 's2', answer({ contradictions: [claim] }), 'm1').report.contradictions).toEqual([claim]);
-    expect(applyAgentOutput(v, 's2', answer({ contradictions: [{ ...claim, sceneQuote: 'She never held a sword' }] }), 'm1').report.contradictions).toEqual([]);
-    expect(applyAgentOutput(v, 's2', answer({ contradictions: [{ ...claim, wikiQuote: 'Nora has two hands' }] }), 'm1').report.contradictions).toEqual([]);
+    expect(applyAgentOutput(v, 's2', answer({ contradictions: [claim] }), agent).report.contradictions).toEqual([claim]);
+    expect(applyAgentOutput(v, 's2', answer({ contradictions: [{ ...claim, sceneQuote: 'She never held a sword' }] }), agent).report.contradictions).toEqual([]);
+    expect(applyAgentOutput(v, 's2', answer({ contradictions: [{ ...claim, wikiQuote: 'Nora has two hands' }] }), agent).report.contradictions).toEqual([]);
   });
 
   it('are not raised for a scene the writer has not placed in time', () => {
     const v = withLostHand('She drew the sword with her right hand.');
     v.scenes.s2.someday = true;
-    expect(applyAgentOutput(v, 's2', answer({ contradictions: [claim] }), 'm1').report.contradictions).toEqual([]);
+    expect(applyAgentOutput(v, 's2', answer({ contradictions: [claim] }), agent).report.contradictions).toEqual([]);
   });
 });
 
-describe('the scene’s own point in time', () => {
+describe('what the agent is shown', () => {
   it('shows a flashback the story as it was then, not as it is now', () => {
     const v = new VaultBuilder().entity('nora', {}, 'Nora').scene('s1').scene('s2').scene('flash').chain('flash', 's1', 's2').build();
     v.scenes.flash.prose = 'Years ago, [[Nora]] laughed.';
@@ -128,13 +189,20 @@ describe('the scene’s own point in time', () => {
     expect(buildContext(v, 'flash')).toContain('Current state: (none recorded)');
     expect(buildContext(v, 's2')).not.toContain('Current state: (none recorded)');
   });
+
+  it('passes on notes the writer addressed to the agent, and keeps their other notes private', () => {
+    const v = world('[[Nora]] woke screaming. %% agent: this whole scene is a dream %% %% fix the pacing here %%');
+    const context = buildContext(v, 's2');
+    expect(context).toContain('Notes from the writer:\n- this whole scene is a dream');
+    expect(context).not.toContain('pacing');
+  });
 });
 
-describe('reverting a scene’s agent output', () => {
+describe('taking back a scene’s agent output', () => {
   it('removes what the agent wrote and the pages it made, and keeps everything the writer wrote', () => {
     let v = world('The [[Tam]] arrived.');
     v.changes.mine = { id: 'mine', sceneId: 's2', entityId: 'mira', op: 'set', property: 'status', value: 'waiting', order: 0 };
-    v = applyAgentOutput(v, 's2', answer({ newEntities: [{ name: 'Tam', type: 'Thing', page: ['A courier'], aliases: [] }], states: [{ entity: 'Mira', state: 'worried' }] }), 'm1').vault;
+    v = applyAgentOutput(v, 's2', answer({ newEntities: [{ name: 'Tam', type: 'Thing', aliases: [] }], pages: [adds('Tam', 'A courier')], states: [{ entity: 'Mira', state: 'worried' }] }), agent).vault;
     const reverted = revertAgentOutput(v, 's2');
     expect(findEntity(reverted, 'Tam')).toBeUndefined();
     expect(Object.keys(reverted.changes)).toEqual(['mine']);

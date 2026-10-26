@@ -359,12 +359,14 @@ export function addChange(v: Vault, fields: Omit<StateChange, 'id' | 'order'>): 
   return { vault: put(v, 'changes', c), id: c.id };
 }
 
+/** Edits a commit. One the story agent made becomes the writer's once they edit it, unless the patch says who wrote it. */
 export function updateChange(v: Vault, id: Id, patch: Partial<Omit<StateChange, 'id'>>): Vault {
   const c = v.changes[id];
   if (!c) return v;
   const next = { ...c, ...patch };
   if (next.property === undefined) delete next.property;
   if (next.value === undefined) delete next.value;
+  if (!('agent' in patch)) delete next.agent;
   return put(v, 'changes', next);
 }
 
@@ -392,6 +394,8 @@ export function commitRevision(
     const next: StateChange = { ...existing };
     delete next.note;
     delete next.rename;
+    // A page version the story agent wrote becomes the writer's once they amend it: taking back the agent's output keeps it.
+    delete next.agent;
     Object.assign(next, patch);
     if (message) next.message = message;
     return { vault: put(v, 'changes', next), id: existing.id };

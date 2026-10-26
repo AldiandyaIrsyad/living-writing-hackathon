@@ -15,7 +15,8 @@ createServer((req, res) => {
     const prompt = messages.find((m) => m.role === 'user').content;
     const missing = (/Links with no page yet: (.*)/.exec(prompt)?.[1] ?? '').split(', ').filter((name) => name && name !== '(none)');
     const answer = {
-      newEntities: missing.map((name) => ({ name, type: 'Character', page: ['Arrived at the inn in the rain.'], aliases: [] })),
+      newEntities: missing.map((name) => ({ name, type: 'Character', aliases: [] })),
+      pages: missing.map((name) => ({ entity: name, edits: [{ add: 'Arrived at the inn in the rain.' }], certainty: 'stated' })),
       states: [{ entity: 'Norman', state: `surprised by a late guest (read by ${model})` }],
       contradictions: prompt.includes('never set foot in Ashford')
         ? [{ entity: 'Norman', claim: 'Norman has never been to Ashford', sceneQuote: 'Norman had never set foot in Ashford', wikiQuote: 'Norman keeps the inn at' }]

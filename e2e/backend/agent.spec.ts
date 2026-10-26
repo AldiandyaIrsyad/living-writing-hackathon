@@ -29,7 +29,7 @@ test('the agent makes a page for a new [[link]], shows a contradiction with its 
 
   await page.getByTestId('agent-read').click();
   const report = page.getByTestId('agent-report');
-  await expect(report).toContainText('New pages: Nora');
+  await expect(report).toContainText('New page: Nora');
   await expect(report).toContainText('read by muse-spark-1.2');
   await expect(nora).not.toHaveClass(/unresolved/);
   await expect(page.getByTestId('agent-contradiction')).toContainText('Norman keeps the inn at');
