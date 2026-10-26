@@ -67,6 +67,15 @@ test('"After I stop typing" reads the scene once the wait the writer picked has 
   await page.keyboard.press('Escape'); // the timeline hides while the writer types
   await openScene(page, 'Supper at the Inn');
   await expect(page.getByTestId('agent-report')).toHaveCount(0);
+
+  // Switching to "Only when I ask" during the wait cancels the reading it would have started.
+  await editor.click();
+  await page.keyboard.press('Control+End');
+  await page.keyboard.type(' The fire smoked.');
+  await page.waitForTimeout(2_000); // the editor has handed the text in and the wait has begun
+  await page.getByLabel('When the agent reads').selectOption('off');
+  await page.waitForTimeout(7_000);
+  await expect(page.getByTestId('agent-report')).toHaveCount(0);
 });
 
 test('logging out forgets the agent’s reports, which quote the manuscript, from this browser', async ({ page }) => {

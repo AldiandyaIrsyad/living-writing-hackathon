@@ -365,7 +365,8 @@ export function startAgent(): void {
       }
       if (idle) clearTimeout(idle);
       const { trigger, idleSeconds } = useAgent.getState();
-      if (trigger === 'idle') idle = setTimeout(() => readEdited(), idleSeconds * 1000);
+      // The writer may switch the setting during the wait: it is asked again when the wait is over.
+      if (trigger === 'idle') idle = setTimeout(() => useAgent.getState().trigger === 'idle' && readEdited(), idleSeconds * 1000);
     }
     // Leaving a scene (to another scene, or to anything that is not a scene) is the writer handing it in.
     const was = prev.view.kind === 'scene' ? prev.view.id : null;
