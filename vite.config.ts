@@ -18,8 +18,9 @@ function buildHash(): string {
 export default defineConfig({
   plugins: [react()],
   define: { __APP_VERSION__: JSON.stringify(pkg.version), __APP_BUILD__: JSON.stringify(buildHash()) },
-  // /api only exists in server mode (npm run dev:full); the frontend-only app never calls it.
-  server: { port: 5173, strictPort: true, proxy: { '/api': 'http://127.0.0.1:8787' } },
+  // /api only exists in server mode (npm run dev:full); the frontend-only app never calls it. WEB_PORT moves the app
+  // (when 5173 is taken, say by another checkout) and PORT the server it talks to, as `npm run dev:full` passes both on.
+  server: { port: Number(process.env.WEB_PORT ?? 5173), strictPort: true, proxy: { '/api': `http://127.0.0.1:${process.env.PORT ?? 8787}` } },
   // jszip is loaded on demand; listing it keeps the dev server from discovering it late and reloading the page mid-session.
   optimizeDeps: { include: ['jszip'] },
   // CodeMirror markdown (with its HTML/CSS/JS grammars) and the vault exchange code needed at

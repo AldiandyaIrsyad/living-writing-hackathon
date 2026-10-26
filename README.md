@@ -35,7 +35,7 @@ Everything is stored locally in your browser (IndexedDB) and autosaved. Use
 |---|---|---|
 | Where the vault lives | Your browser (IndexedDB), optionally mirrored to a folder | A SQLite file on the server, one private vault per account |
 | Accounts | None | Email and password sign-up and log-in |
-| Develop | `npm run dev` | `npm run dev:full` (API on :8787 and the app on :5173) |
+| Develop | `npm run dev` | `npm run dev:full` (API on :8787 and the app on :5173; `PORT` / `WEB_PORT` move them) |
 | Build | `npm run build` | `npm run build:full`, then `npm start` serves the app and the API from one process |
 | Needs | Node 22+ | Node 24+ (built-in SQLite) |
 

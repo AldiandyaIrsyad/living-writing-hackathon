@@ -1,5 +1,6 @@
 // Server mode for development: the API server (restarts on change) and Vite, with the frontend built for it.
 // `--provider=gemini` points the story agent at Gemini instead of Meta. Keys can sit in .env.local (never committed).
+// PORT (8787) and WEB_PORT (5173) move the server and the app, e.g. when another checkout already uses 5173.
 import { spawn } from 'node:child_process';
 
 const provider = process.argv.find((a) => a.startsWith('--provider='))?.slice('--provider='.length);
