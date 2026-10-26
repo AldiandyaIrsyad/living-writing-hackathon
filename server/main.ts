@@ -39,6 +39,7 @@ const app = await buildApp({
         apiKey: provider.key,
         baseUrl: provider.baseUrl,
         models: process.env.AGENT_MODELS?.split(',').map((m) => m.trim()).filter(Boolean) ?? provider.models,
+        timeoutMs: process.env.AGENT_TIMEOUT_SECONDS ? Number(process.env.AGENT_TIMEOUT_SECONDS) * 1000 : undefined,
       }
     : undefined,
   // Without a build (npm run dev:server) only the API is served; Vite serves the app.

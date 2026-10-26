@@ -96,6 +96,17 @@ describe('a [[link]] with no page', () => {
     expect(report.created.map((c) => c.name)).toEqual(['the Hollow Cairn']);
   });
 
+  it('with "link names" on, a name the writer did not link is linked where first mentioned and gets a page; a near-miss of a page is not', () => {
+    const v = world('Zed waved. `Zed` in code. Later zed left, and Mria watched.');
+    const out = answer({ newEntities: [{ name: 'Zed', type: 'Person', aliases: [] }, { name: 'Mria', type: 'Person', aliases: [] }], pages: [adds('Zed', 'Waves a lot')] });
+    const { vault, report } = applyAgentOutput(v, 's2', out, { ...agent, linkNames: true });
+    expect(vault.scenes.s2.prose).toBe('[[Zed]] waved. `Zed` in code. Later zed left, and Mria watched.');
+    expect(report.created.map((c) => c.name)).toEqual(['Zed']);
+    expect(noteAfter(vault, 'Zed', 's2')).toContain('- Waves a lot');
+    // Mria is a letter off Mira: linking it would make a typo into a character.
+    expect(report.unlinkedNames.map((n) => n.name)).toEqual(['Mria']);
+  });
+
   it('filed under a gallery type the writer has not used yet, installs that type', () => {
     const v = world('Mira hid the [[split tally]].');
     const context = buildContext(v, 's2');
@@ -248,6 +259,12 @@ describe('properties and time', () => {
     v.moments[v.scenes.s2.momentId].label = 'Winter, 2026';
     const kept = applyAgentOutput(v, 's2', answer({ timeLabel: 'Early Winter, 2026' }), agent);
     expect([label(kept.vault), kept.report.timeLabel, kept.report.timeLabelSet]).toEqual(['Winter, 2026', 'Early Winter, 2026', undefined]);
+  });
+
+  it('does not also offer a date that only repeats the time label', () => {
+    const v = world('Snow fell.');
+    expect(applyAgentOutput(v, 's2', answer({ timeLabel: 'Late Autumn, 2026', concrete: 'Late autumn, 2026' }), agent).report.concrete).toBeUndefined();
+    expect(applyAgentOutput(v, 's2', answer({ timeLabel: 'Late Autumn, 2026', concrete: '2026-11-03' }), agent).report.concrete).toBe('2026-11-03');
   });
 });
 

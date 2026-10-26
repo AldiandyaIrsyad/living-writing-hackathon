@@ -14,7 +14,8 @@ async function newApp(allowSignup = true, agent?: ServerOptions['agent']): Promi
 
 afterEach(async () => {
   await Promise.all(apps.splice(0).map((a) => a.close()));
-  await Promise.all(upstreams.splice(0).map((s) => new Promise((done) => s.close(done))));
+  // A model that never answered still holds its connection open.
+  await Promise.all(upstreams.splice(0).map((s) => new Promise((done) => (s.close(done), s.closeAllConnections()))));
 });
 
 /** One browser: keeps the session cookie between requests. */
@@ -111,14 +112,15 @@ describe('accounts', () => {
 
 describe('the story agent relay', () => {
   /** A stand-in for the model service: records what it was sent and answers with `status`. */
-  async function fakeModel(status = 200) {
-    const seen: { auth?: string; body?: { model: string; messages: unknown[] } } = {};
+  async function fakeModel(status: number | 'silent' = 200) {
+    const seen: { auth?: string; body?: { model: string; messages: unknown[]; reasoning_effort?: string } } = {};
     const server = createServer((req, res) => {
       let raw = '';
       req.on('data', (c) => (raw += c));
       req.on('end', () => {
         seen.auth = req.headers.authorization;
         seen.body = JSON.parse(raw);
+        if (status === 'silent') return;
         res.writeHead(status, { 'content-type': 'application/json' }).end(JSON.stringify(status === 200 ? { choices: [{ message: { role: 'assistant', content: '{}' } }] } : { error: 'nope' }));
       });
     });
@@ -164,5 +166,25 @@ describe('the story agent relay', () => {
     const refused = await on.call('POST', '/api/agent/chat', ask);
     expect(refused.status).toBe(502);
     expect(refused.body.error).toContain('500');
+  });
+
+  it('passes on how long the model may think, and refuses an effort it does not know', async () => {
+    const model = await fakeModel();
+    const b = browser(await newApp(true, { provider: 'Test', apiKey: 'k', baseUrl: model.baseUrl, models: ['m'] }));
+    await b.call('POST', '/api/signup', credentials('a@example.com'));
+    await b.call('POST', '/api/agent/chat', { ...ask, effort: 'low' });
+    expect(model.seen.body?.reasoning_effort).toBe('low');
+    await b.call('POST', '/api/agent/chat', ask);
+    expect(model.seen.body).not.toHaveProperty('reasoning_effort');
+    expect((await b.call('POST', '/api/agent/chat', { ...ask, effort: 'extreme' })).status).toBe(400);
+  });
+
+  it('gives up on a model that does not answer in time, rather than leaving the writer waiting', async () => {
+    const model = await fakeModel('silent');
+    const b = browser(await newApp(true, { provider: 'Test', apiKey: 'k', baseUrl: model.baseUrl, models: ['m'], timeoutMs: 200 }));
+    await b.call('POST', '/api/signup', credentials('a@example.com'));
+    const res = await b.call('POST', '/api/agent/chat', ask);
+    expect(res.status).toBe(504);
+    expect(res.body.error).toContain('did not answer');
   });
 });

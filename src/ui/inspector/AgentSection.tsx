@@ -4,7 +4,8 @@
 
 import { createHeldPage, editPage, fixNearMiss, propValue, revertAgentOutput, type AgentReport } from '../../agent/apply';
 import type { PageEdit } from '../../agent/page';
-import { enqueueScene, isContributor, readSceneNow, useAgent, type Trigger } from '../../agent/run';
+import { enqueueScene, isContributor, readSceneNow, stopReading, useAgent, type Effort, type LinkNames, type Trigger } from '../../agent/run';
+import { linkFirstMention } from '../../core/links';
 import type { Id, Scene, Vault } from '../../core/types';
 import { slugify } from '../../core/types';
 import { addChange, setMomentConcrete, setMomentLabel, setMomentTimeSkip, sortedTypes, updateEntity } from '../../store/actions';
@@ -16,6 +17,13 @@ const TRIGGERS: { value: Trigger; label: string }[] = [
   { value: 'off', label: 'Only when I ask' },
   { value: 'leave', label: 'When I leave a scene' },
   { value: 'idle', label: 'After I stop typing' },
+];
+
+const EFFORT_LABELS: { value: Effort; label: string }[] = [
+  { value: 'low', label: 'Low (fastest)' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High (slowest)' },
+  { value: 'default', label: 'Model default' },
 ];
 
 function EditLine({ edit }: { edit: PageEdit }) {
@@ -38,7 +46,7 @@ const commit = (next: Vault, label: string) => useStore.getState().commit(next, 
 
 export function AgentSection({ scene, writing }: { scene: Scene; writing: boolean }) {
   const vault = useVault();
-  const { trigger, setTrigger, enabled, provider, models, model, setModel, allowOverwrite, setAllowOverwrite, running, error, reports, setReport } = useAgent();
+  const { trigger, setTrigger, enabled, provider, models, model, setModel, allowOverwrite, setAllowOverwrite, effort, setEffort, linkNames, setLinkNames, running, progress, error, reports, setReport } = useAgent();
   const dismissed = useDismissed();
   if (!BACKEND) return null;
 
@@ -89,6 +97,25 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
           Contributor mode: Meta may use what the agent sends (your scenes and wiki pages) to train its models.
         </div>
       )}
+      {effort && (
+        <label className="agent-row small" title="Longer thinking catches more, but a reading takes longer. Not every model takes this setting: if yours complains, pick “Model default”.">
+          <span className="faint">Thinking</span>
+          <select value={effort} onChange={(e) => setEffort(e.target.value as Effort)} aria-label="How long the model thinks" data-testid="agent-effort">
+            {EFFORT_LABELS.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      <label className="agent-row small" title="Names you wrote without [[ ]]: listed for you to link, or linked where they first appear and given a page.">
+        <span className="faint">Names I didn’t link</span>
+        <select value={linkNames} onChange={(e) => setLinkNames(e.target.value as LinkNames)} aria-label="What happens to names you did not link" data-testid="agent-link-names">
+          <option value="list">List them</option>
+          <option value="link">Link and file them</option>
+        </select>
+      </label>
       <label className="agent-row small" title="Off: the agent changes only what it wrote itself (page lines, property values), and offers changes to yours instead.">
         <input type="checkbox" checked={allowOverwrite} onChange={(e) => setAllowOverwrite(e.target.checked)} data-testid="agent-overwrite" />
         <span>Allow overwriting what I wrote in the wiki</span>
@@ -101,6 +128,11 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
           <button type="button" className="btn btn-sm" data-testid="agent-read" disabled={busy || !writing || scene.prose.trim() === ''} onClick={() => readSceneNow(scene.id)}>
             {running === scene.id ? 'Reading…' : 'Read this scene'}
           </button>
+          {running === scene.id && (
+            <button type="button" className="btn btn-sm btn-ghost" data-testid="agent-stop" onClick={stopReading}>
+              Stop
+            </button>
+          )}
           {mine > 0 && (
             <button
               type="button"
@@ -116,7 +148,12 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
           )}
         </div>
       )}
-      {scene.status === 'idea' && <div className="small faint">Marked as an idea: the agent reads it only when you ask.</div>}
+      {running === scene.id && progress && (
+        <div className="small faint" data-testid="agent-progress">
+          {progress}
+        </div>
+      )}
+      {scene.status === 'idea' &&<div className="small faint">Marked as an idea: the agent reads it only when you ask.</div>}
       {error && (
         <div className="small agent-error" data-testid="agent-error">
           {error}{' '}
@@ -356,11 +393,30 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
               </button>
             </div>
           )}
-          {report.unlinkedNames.map((n) => (
-            <div key={n.name} className="faint">
-              Not linked: <b>{n.name}</b> — {n.reason}
-            </div>
-          ))}
+          {report.unlinkedNames.map((n) => {
+            const linked = linkFirstMention(scene.prose, n.name);
+            return (
+              <div key={n.name} className="faint" data-testid="agent-unlinked">
+                Not linked: <b>{n.name}</b> — {n.reason}{' '}
+                {linked && (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-ghost"
+                    title="Link its first mention in the scene; the next reading gives it a page."
+                    onClick={() => {
+                      flushEditors();
+                      const now = useStore.getState().vault;
+                      const prose = linkFirstMention(now.scenes[scene.id].prose, n.name);
+                      if (prose) commit({ ...now, scenes: { ...now.scenes, [scene.id]: { ...now.scenes[scene.id], prose } } }, 'Link a name');
+                      patch({ unlinkedNames: report.unlinkedNames.filter((u) => u.name !== n.name) });
+                    }}
+                  >
+                    Link it
+                  </button>
+                )}
+              </div>
+            );
+          })}
           {report.skipped.map((s) => (
             <div key={s} className="faint">
               {s}

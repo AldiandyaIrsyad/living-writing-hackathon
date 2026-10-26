@@ -3,7 +3,7 @@
 // up is dropped rather than written. The result is one vault; the caller commits it as a single step.
 
 import { compareConcretes, momentConcrete, parseConcrete } from '../core/concrete';
-import { findEntity, parseLinks, retargetLinks } from '../core/links';
+import { findEntity, linkFirstMention, parseLinks, retargetLinks } from '../core/links';
 import { installPreset } from '../core/presets';
 import { Resolver, valueEquals } from '../core/resolve';
 import type { Id, PropValue, StateChange, Vault } from '../core/types';
@@ -42,6 +42,8 @@ export interface AgentOptions {
    * they set? Off: those changes are only offered. What the agent wrote itself it may always change.
    */
   allowOverwrite: boolean;
+  /** Names the writer did not link get linked (their first mention in the scene) and a page, like a link would. */
+  linkNames?: boolean;
 }
 
 /** What a run did, for the panel. `created`, `pages`, `properties`, `states` and a set time label were written. */
@@ -300,7 +302,14 @@ export function applyAgentOutput(vault: Vault, sceneId: Id, out: AgentOutput, op
   const held = new Set<string>();
   for (const n of out.newEntities) {
     if (findEntity(v, n.name)) continue;
-    const target = wanted.get(slugify(n.name));
+    let target = wanted.get(slugify(n.name));
+    // A name the writer did not link is linked for them where it is first mentioned, if they asked for that, unless it
+    // looks like a misspelling of a page that exists.
+    const linked = !target && opts.linkNames && !nearMiss(v, n.name) ? linkFirstMention(v.scenes[sceneId].prose, n.name) : null;
+    if (linked) {
+      v = { ...v, scenes: { ...v.scenes, [sceneId]: { ...v.scenes[sceneId], prose: linked } } };
+      target = unresolvedLinks(v, sceneId).find((t) => slugify(t) === slugify(n.name));
+    }
     if (!target) {
       report.unlinkedNames.push({ name: n.name, reason: 'Not linked in the scene, so no page was made.' });
       continue;
@@ -389,7 +398,9 @@ export function applyAgentOutput(vault: Vault, sceneId: Id, out: AgentOutput, op
     }
     const moment = v.moments[scene.momentId];
     if (out.timeSkip && out.timeSkip !== moment?.timeSkip) report.timeSkip = out.timeSkip;
-    if (out.concrete && out.concrete !== moment?.concrete) report.concrete = out.concrete;
+    // A date that only repeats the scene's time label adds nothing ("Late autumn, 2026" twice).
+    const label = moment && momentConcrete(moment);
+    if (out.concrete && out.concrete !== moment?.concrete && squash(out.concrete) !== squash(label || out.timeLabel || '')) report.concrete = out.concrete;
     // A time label is a date the timeline orders by ("Late Autumn, 2026"); "morning" orders nothing and is dropped. The
     // agent fills an empty one only where it fits between the dated scenes around it, else it only suggests, as it
     // does over the writer's.

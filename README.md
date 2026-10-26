@@ -60,7 +60,13 @@ cheaper, but Meta may train its models on what is sent to it, so the panel warns
   after you stop typing. A scene whose text has not changed since the last reading is not read again, and a scene marked
   as an idea is only read when you ask (it is not canon yet).
 - **A `[[link]]` with no page** gets a page, of the entity type the scene suggests (a person, a place, an object…); the
-  panel lets you change the type in one click. Names you did not link are only suggested.
+  panel lets you change the type in one click. Names you did not link are listed, each with "Link it"; set **Names I
+  didn't link → Link and file them** and the agent links a name where it first appears and makes its page, so you can
+  write without `[[ ]]` at all. A name a letter or two off an existing page is never linked this way (it asks instead).
+- **Thinking** sets how long the model thinks before it answers. Longer catches more but is slower: on Gemini, "High"
+  takes about half a minute for a short scene, "Medium" (its default here) a few seconds. "Model default" sends no
+  setting, for a model that does not take one. A reading can be stopped (**Stop**), and the server gives up on a model
+  call after 90 seconds (`AGENT_TIMEOUT_SECONDS`). While it reads, the panel says what it is looking up.
 - **Pages are kept true, not only added to.** The agent adds a fact under the heading it belongs to, and rewrites or
   removes a line the story has made untrue. The edit is a page version from that scene on (earlier scenes keep the old
   page, so nothing is spoiled) and is carried into the page's later versions. Re-reading an earlier scene, or taking it

@@ -7,3 +7,4 @@ test-results
 *.db-shm
 *.db-wal
 .env.local
+.env

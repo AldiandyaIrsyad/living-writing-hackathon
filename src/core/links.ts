@@ -233,6 +233,21 @@ export function parseLinks(text: string): ParsedLink[] {
   return result;
 }
 
+/**
+ * Turns the first plain mention of `name` (a whole word, any case, outside code, author notes and links) into a link,
+ * spelled as the text has it. Null when the text never mentions it plainly.
+ */
+export function linkFirstMention(text: string, name: string): string | null {
+  const masked = maskNotes(maskCode(text)).split('');
+  for (const l of parseLinks(text)) for (let k = l.start; k < l.end; k++) masked[k] = ' ';
+  const escaped = name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (!escaped) return null;
+  const m = new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'iu').exec(masked.join(''));
+  if (!m) return null;
+  const end = m.index + m[0].length;
+  return `${text.slice(0, m.index)}[[${text.slice(m.index, end)}]]${text.slice(end)}`;
+}
+
 /** Inverse of parseLinkInner/parseLinks: builds the link text from its parts. */
 export function formatLink(p: {
   target: string;

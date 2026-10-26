@@ -138,7 +138,7 @@ export function describeEntity(vault: Vault, r: Resolver, entityId: Id, sceneId:
 }
 
 /** The user message: the scene, who exists, and what the wiki says about everyone linked in it. */
-export function buildContext(vault: Vault, sceneId: Id): string {
+export function buildContext(vault: Vault, sceneId: Id, opts: { linkNames?: boolean } = {}): string {
   const scene = vault.scenes[sceneId];
   const r = new Resolver(vault);
   const moment = vault.moments[scene.momentId];
@@ -171,6 +171,9 @@ export function buildContext(vault: Vault, sceneId: Id): string {
     more.length ? `Types the writer has not used yet (pick one only when no type above fits):\n${more.join('\n')}` : '',
     `Roster:\n${roster.join('\n') || '(none yet)'}`,
     `Links with no page yet: ${missing.length ? missing.join(', ') : '(none)'}`,
+    opts.linkNames
+      ? 'The writer does not link names by hand: treat every named person, place, group or thing in the scene text that has no page and is worth one as if it were listed above (newEntities, named exactly as the scene spells it). Skip throwaway mentions.'
+      : '',
     `Linked entities as they stand entering this scene:\n${[...linked].map((id) => describeEntity(vault, r, id, sceneId)).join('\n\n') || '(none)'}`,
     `Scene text:\n"""\n${sceneWithNotes(scene.prose)}\n"""`,
   ]

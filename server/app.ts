@@ -21,12 +21,16 @@ export interface ServerOptions {
    * The models behind the story agent (an OpenAI-style chat completions service); the writer picks one of `models`, and
    * the first is the default. Without it the agent is off.
    */
-  agent?: { provider: string; apiKey: string; baseUrl: string; models: string[] };
+  agent?: { provider: string; apiKey: string; baseUrl: string; models: string[]; timeoutMs?: number };
 }
 
 const AGENT_CALLS_PER_WINDOW = 120;
 const AGENT_WINDOW_MS = 10 * 60 * 1000;
 const AGENT_MAX_REQUEST_CHARS = 400_000;
+/** How long one model call may take before the server gives up on it (AGENT_TIMEOUT_SECONDS replaces it). */
+const AGENT_TIMEOUT_MS = 90_000;
+/** How hard a thinking model may think before answering (OpenAI's `reasoning_effort`); left out, the model decides. */
+const REASONING_EFFORTS = ['low', 'medium', 'high'];
 
 const SESSION_COOKIE = 'lw_session';
 const SESSION_MS = 30 * 24 * 3600 * 1000;
@@ -227,8 +231,9 @@ export async function buildApp(opts: ServerOptions) {
     const user = sessionUser(req);
     if (!user) return reply.code(401).send({ error: 'Not signed in.' });
     if (!opts.agent) return reply.code(503).send({ error: 'The story agent is off: the server has no model API key.' });
-    const { messages, tools, model = opts.agent.models[0] } = (req.body ?? {}) as { messages?: unknown; tools?: unknown; model?: unknown };
+    const { messages, tools, model = opts.agent.models[0], effort } = (req.body ?? {}) as { messages?: unknown; tools?: unknown; model?: unknown; effort?: unknown };
     if (!Array.isArray(messages) || messages.length === 0 || (tools !== undefined && !Array.isArray(tools))) return reply.code(400).send({ error: 'Malformed agent request.' });
+    if (effort !== undefined && !REASONING_EFFORTS.includes(effort as string)) return reply.code(400).send({ error: 'Malformed agent request.' });
     if (typeof model !== 'string' || !opts.agent.models.includes(model)) return reply.code(400).send({ error: 'That model is not offered on this server.' });
     if (JSON.stringify(req.body).length > AGENT_MAX_REQUEST_CHARS) return reply.code(413).send({ error: 'That is too much text for one agent call.' });
 
@@ -238,16 +243,20 @@ export async function buildApp(opts: ServerOptions) {
     if (used.count >= AGENT_CALLS_PER_WINDOW) return reply.code(429).send({ error: 'Too many agent calls. Try again in a few minutes.' });
     agentCalls.set(user.id, { count: used.count + 1, since: used.since });
 
-    const { apiKey, baseUrl } = opts.agent;
+    const { apiKey, baseUrl, timeoutMs = AGENT_TIMEOUT_MS } = opts.agent;
     let upstream: Response;
+    const started = Date.now();
     try {
       upstream = await fetch(`${baseUrl.replace(/\/$/, '')}/chat/completions`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({ model, messages, ...(tools ? { tools } : {}) }),
+        body: JSON.stringify({ model, messages, ...(tools ? { tools } : {}), ...(effort ? { reasoning_effort: effort } : {}) }),
+        signal: AbortSignal.timeout(timeoutMs),
       });
-    } catch {
-      return reply.code(502).send({ error: 'The model service could not be reached.' });
+    } catch (e) {
+      const timedOut = e instanceof Error && e.name === 'TimeoutError';
+      console.warn(`agent call failed after ${Date.now() - started} ms (${timedOut ? 'timeout' : String(e)})`);
+      return reply.code(timedOut ? 504 : 502).send({ error: timedOut ? `The model did not answer within ${Math.round(timeoutMs / 1000)} seconds.` : 'The model service could not be reached.' });
     }
     if (!upstream.ok) return reply.code(502).send({ error: `The model service answered ${upstream.status}: ${(await upstream.text()).slice(0, 300)}` });
     const message = ((await upstream.json()) as { choices?: { message?: unknown }[] }).choices?.[0]?.message;

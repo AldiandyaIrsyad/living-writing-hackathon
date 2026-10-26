@@ -12,8 +12,20 @@ import type { Id } from '../core/types';
 /** When the agent reads scenes on its own. Reading the open scene by hand is always possible. */
 export type Trigger = 'off' | 'leave' | 'idle';
 
+/**
+ * How long a thinking model may think before it answers ("default" sends nothing and lets the model decide). Thinking
+ * longer catches more, but slowly: Gemini on its own default takes half a minute for a short scene, on "low" a few seconds.
+ */
+export type Effort = 'default' | 'low' | 'medium' | 'high';
+const EFFORTS: Effort[] = ['default', 'low', 'medium', 'high'];
+
+/** What names the writer did not link become. "list": they are only reported. "link": the agent links and files them. */
+export type LinkNames = 'list' | 'link';
+
 const TRIGGER_KEY = 'lw-agent-trigger';
 const MODEL_KEY = 'lw-agent-model';
+const EFFORT_KEY = 'lw-agent-effort';
+const LINK_NAMES_KEY = 'lw-agent-link-names';
 const OVERWRITE_KEY = 'lw-agent-overwrite';
 const REPORTS_KEY = 'lw-agent-reports-v2';
 const IDLE_MS = 20_000;
@@ -38,13 +50,20 @@ interface AgentStore {
   model: string | null;
   /** May the agent rewrite or remove lines the writer wrote on a wiki page? Off: it only offers those edits. */
   allowOverwrite: boolean;
+  /** Null until the server has said which service it is: the default depends on it. */
+  effort: Effort | null;
+  linkNames: LinkNames;
   running: Id | null;
+  /** What the reading under way is doing, in words. */
+  progress: string | null;
   error: string | null;
   /** What the last run of each scene did, kept in this browser. */
   reports: Record<Id, AgentReport>;
   setTrigger: (t: Trigger) => void;
   setModel: (m: string) => void;
   setAllowOverwrite: (on: boolean) => void;
+  setEffort: (e: Effort) => void;
+  setLinkNames: (l: LinkNames) => void;
   /** Replace (or with null, forget) what the panel shows for a scene's last reading. */
   setReport: (sceneId: Id, report: AgentReport | null) => void;
 }
@@ -89,7 +108,10 @@ export const useAgent = create<AgentStore>((set) => ({
   models: [],
   model: null,
   allowOverwrite: recall(OVERWRITE_KEY) === 'true',
+  effort: null,
+  linkNames: recall(LINK_NAMES_KEY) === 'link' ? 'link' : 'list',
   running: null,
+  progress: null,
   error: null,
   reports: loadReports(),
   setTrigger: (trigger) => {
@@ -104,6 +126,14 @@ export const useAgent = create<AgentStore>((set) => ({
     remember(OVERWRITE_KEY, String(allowOverwrite));
     set({ allowOverwrite });
   },
+  setEffort: (effort) => {
+    remember(EFFORT_KEY, effort);
+    set({ effort });
+  },
+  setLinkNames: (linkNames) => {
+    remember(LINK_NAMES_KEY, linkNames);
+    set({ linkNames });
+  },
   setReport: (sceneId, report) =>
     set((a) => {
       const reports = { ...a.reports };
@@ -114,25 +144,36 @@ export const useAgent = create<AgentStore>((set) => ({
     }),
 }));
 
-async function post<T>(path: string, body: object): Promise<T> {
-  const res = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+/** The reading under way, so the writer can stop it. */
+let stopper: AbortController | null = null;
+
+async function post<T>(path: string, body: object, signal?: AbortSignal): Promise<T> {
+  const res = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal });
   const json = (await res.json()) as T & { error?: string };
   if (!res.ok) throw new Error(json.error ?? `The server answered ${res.status}.`);
   return json;
 }
 
 /** One scene through the model: it may look things up a few times, then answers with the JSON the prompt asks for. */
-async function askModel(sceneId: Id): Promise<{ text: string; model: string }> {
+async function askModel(sceneId: Id, signal: AbortSignal): Promise<{ text: string; model: string }> {
   const vault = useStore.getState().vault;
   const messages: ChatMessage[] = [
     { role: 'system', content: SYSTEM_PROMPT },
-    { role: 'user', content: buildContext(vault, sceneId) },
+    { role: 'user', content: buildContext(vault, sceneId, { linkNames: useAgent.getState().linkNames === 'link' }) },
   ];
-  for (let step = 0; step < MAX_STEPS; step++) {
+  const { model: picked, effort } = useAgent.getState();
+  // With an empty wiki there is nothing to look up, and every lookup costs a whole round with the model.
+  const steps = Object.keys(vault.entities).length ? MAX_STEPS : 1;
+  for (let step = 0; step < steps; step++) {
     // The last step offers no tools, so the model has to answer.
-    const { message, model } = await post<{ message: ChatMessage; model: string }>('/api/agent/chat', { messages, model: useAgent.getState().model, ...(step < MAX_STEPS - 1 ? { tools: TOOLS } : {}) });
+    const { message, model } = await post<{ message: ChatMessage; model: string }>(
+      '/api/agent/chat',
+      { messages, model: picked, ...(effort && effort !== 'default' ? { effort } : {}), ...(step < steps - 1 ? { tools: TOOLS } : {}) },
+      signal,
+    );
     messages.push(message);
     if (!message.tool_calls?.length) return { text: message.content ?? '', model };
+    const looked: string[] = [];
     for (const call of message.tool_calls) {
       let args: unknown = {};
       try {
@@ -140,8 +181,11 @@ async function askModel(sceneId: Id): Promise<{ text: string; model: string }> {
       } catch {
         // A call the model garbled gets the "give some text" answer back.
       }
+      const input = typeof args === 'object' && args !== null ? (args as Record<string, unknown>) : {};
+      looked.push(String(input.name ?? input.query ?? ''));
       messages.push({ role: 'tool', tool_call_id: call.id, content: runTool(vault, sceneId, call.function.name, args) });
     }
+    useAgent.setState({ progress: `Looked up ${looked.filter(Boolean).join(', ') || 'the wiki'}; thinking again…` });
   }
   throw new Error('The model kept looking things up instead of answering.');
 }
@@ -157,22 +201,32 @@ async function readScene(sceneId: Id): Promise<void> {
   flushEditors();
   const start = useStore.getState().vault.scenes[sceneId];
   if (!start || start.prose.trim() === '') return;
-  useAgent.setState({ running: sceneId, error: null });
+  useAgent.setState({ running: sceneId, progress: null, error: null });
+  stopper = new AbortController();
   try {
-    const { text, model } = await askModel(sceneId);
+    const { text, model } = await askModel(sceneId, stopper.signal);
     const s = useStore.getState();
     // The writer kept typing while the model read: its answer is about text that no longer exists.
     if (s.vault.scenes[sceneId]?.prose !== start.prose) throw new Error('The scene changed while the agent was reading it.');
-    const { vault, report } = applyAgentOutput(s.vault, sceneId, parseAgentOutput(text), { model, allowOverwrite: useAgent.getState().allowOverwrite });
+    const { allowOverwrite, linkNames } = useAgent.getState();
+    const { vault, report } = applyAgentOutput(s.vault, sceneId, parseAgentOutput(text), { model, allowOverwrite, linkNames: linkNames === 'link' });
     s.commit(vault, undefined, `Agent: ${start.title || 'scene'}`);
-    read.set(sceneId, start.prose);
+    // Linking names changes the prose: that is not the writer editing it again.
+    read.set(sceneId, vault.scenes[sceneId].prose);
     edited.delete(sceneId);
     useAgent.getState().setReport(sceneId, report);
   } catch (e) {
-    useAgent.setState({ error: e instanceof Error ? e.message : String(e) });
+    // Stopped by the writer: nothing went wrong.
+    if (!stopper?.signal.aborted) useAgent.setState({ error: e instanceof Error ? e.message : String(e) });
   } finally {
-    useAgent.setState({ running: null });
+    stopper = null;
+    useAgent.setState({ running: null, progress: null });
   }
+}
+
+/** The writer stops the reading under way; nothing is applied. */
+export function stopReading(): void {
+  stopper?.abort();
 }
 
 /** Reads a scene after any reading already under way. A scene already waiting is not queued twice. */
@@ -200,7 +254,16 @@ export function startAgent(): void {
     .then((a) => {
       // A model remembered from before is kept only while the server still offers it.
       const saved = recall(MODEL_KEY);
-      useAgent.setState({ enabled: a.enabled, provider: a.provider, models: a.models, model: saved && a.models.includes(saved) ? saved : (a.models[0] ?? null) });
+      // Gemini thinks for half a minute by default; "medium" answers in seconds. Other services decide for themselves
+      // unless the writer says otherwise, as not every one takes the setting.
+      const effort = recall(EFFORT_KEY) as Effort | null;
+      useAgent.setState({
+        enabled: a.enabled,
+        provider: a.provider,
+        models: a.models,
+        model: saved && a.models.includes(saved) ? saved : (a.models[0] ?? null),
+        effort: effort && EFFORTS.includes(effort) ? effort : a.provider === 'Google Gemini' ? 'medium' : 'default',
+      });
     })
     .catch(() => useAgent.setState({ enabled: false }));
 

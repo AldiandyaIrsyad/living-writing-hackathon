@@ -10,6 +10,7 @@ import {
   renameScene,
   parseTags,
   findAuthorNotesOutsideCode,
+  linkFirstMention,
 } from './links';
 import type { LinkTime } from './links';
 import { emptyVault, slugify } from './types';
@@ -795,6 +796,20 @@ describe('findAuthorNotesOutsideCode', () => {
 
   it('does not treat the // of a URL as a note', () => {
     expect(findAuthorNotesOutsideCode('see https://example.com [[a]]')).toEqual([]);
+  });
+});
+
+describe('linkFirstMention', () => {
+  it.each([
+    ['skips a mention inside a link or a note', '[[Old Port|the port]] %% port %% The port slept.', 'port', '[[Old Port|the port]] %% port %% The [[port]] slept.'],
+    ['matches whole words only, keeping the text’s spelling', 'Zedd met ZED.', 'Zed', 'Zedd met [[ZED]].'],
+    ['takes a name with regex characters literally', 'Ask Dr. Vo (retired).', 'Dr. Vo', 'Ask [[Dr. Vo]] (retired).'],
+  ])('%s', (_, text, name, linked) => {
+    expect(linkFirstMention(text, name)).toBe(linked);
+  });
+
+  it('gives null when the name is only mentioned where it cannot be linked', () => {
+    expect(linkFirstMention('[[Nora]] and `Nora`', 'Nora')).toBeNull();
   });
 });
 
