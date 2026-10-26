@@ -27,6 +27,7 @@ const MODEL_KEY = 'lw-agent-model';
 const EFFORT_KEY = 'lw-agent-effort';
 const LINK_NAMES_KEY = 'lw-agent-link-names';
 const TITLES_KEY = 'lw-agent-titles';
+const SETTINGS_OPEN_KEY = 'lw-agent-settings-open';
 const OVERWRITE_KEY = 'lw-agent-overwrite';
 const REPORTS_KEY = 'lw-agent-reports-v2';
 const IDLE_MS = 20_000;
@@ -55,6 +56,9 @@ interface AgentStore {
   effort: Effort | null;
   linkNames: LinkNames;
   sceneTitles: SceneTitles;
+  /** Are the agent's settings unfolded in the panel? */
+  settingsOpen: boolean;
+  setSettingsOpen: (open: boolean) => void;
   running: Id | null;
   /** What the reading under way is doing, in words. */
   progress: string | null;
@@ -114,6 +118,11 @@ export const useAgent = create<AgentStore>((set) => ({
   effort: null,
   linkNames: recall(LINK_NAMES_KEY) === 'link' ? 'link' : 'list',
   sceneTitles: ((t) => (t === 'leave' || t === 'set' ? t : 'suggest'))(recall(TITLES_KEY)),
+  settingsOpen: recall(SETTINGS_OPEN_KEY) !== 'false',
+  setSettingsOpen: (settingsOpen) => {
+    remember(SETTINGS_OPEN_KEY, String(settingsOpen));
+    set({ settingsOpen });
+  },
   running: null,
   progress: null,
   error: null,

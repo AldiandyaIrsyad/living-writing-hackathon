@@ -47,7 +47,7 @@ const commit = (next: Vault, label: string) => useStore.getState().commit(next, 
 
 export function AgentSection({ scene, writing }: { scene: Scene; writing: boolean }) {
   const vault = useVault();
-  const { trigger, setTrigger, enabled, provider, models, model, setModel, allowOverwrite, setAllowOverwrite, effort, setEffort, linkNames, setLinkNames, sceneTitles, setSceneTitles, running, progress, error, reports, setReport } = useAgent();
+  const { trigger, setTrigger, enabled, provider, models, model, setModel, allowOverwrite, setAllowOverwrite, effort, setEffort, linkNames, setLinkNames, sceneTitles, setSceneTitles, settingsOpen, setSettingsOpen, running, progress, error, reports, setReport } = useAgent();
   const dismissed = useDismissed();
   if (!BACKEND) return null;
 
@@ -68,69 +68,11 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
         {provider && <span className="agent-provider">via {provider}</span>}
       </div>
 
-      <label className="agent-row small">
-        <span className="faint">Reads</span>
-        <select value={trigger} onChange={(e) => setTrigger(e.target.value as Trigger)} aria-label="When the agent reads">
-          {TRIGGERS.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
-            </option>
-          ))}
-        </select>
-      </label>
-      {models.length > 0 && (
-        <label className="agent-row small">
-          <span className="faint">Model</span>
-          <select value={model ?? ''} onChange={(e) => setModel(e.target.value)} aria-label="Model the agent uses" data-testid="agent-model">
-            {models.map((m) => (
-              <option key={m} value={m}>
-                {isContributor(m) ? `${m} (cheaper, may train Meta models)` : m}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-      {provider === 'Google Gemini' && (
-        <div className="small faint" data-testid="agent-gemini-note">
-          Gemini is a stand-in for Meta’s models. On Google’s free tier, what is sent may be used to improve Google’s products.
-        </div>
-      )}
       {model && isContributor(model) && (
         <div className="small agent-error" data-testid="agent-contributor-warning">
           Contributor mode: Meta may use what the agent sends (your scenes and wiki pages) to train its models.
         </div>
       )}
-      {effort && (
-        <label className="agent-row small" title="Longer thinking catches more, but a reading takes longer. Not every model takes this setting: if yours complains, pick “Model default”.">
-          <span className="faint">Thinking</span>
-          <select value={effort} onChange={(e) => setEffort(e.target.value as Effort)} aria-label="How long the model thinks" data-testid="agent-effort">
-            {EFFORT_LABELS.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-      <label className="agent-row small" title="Names you wrote without [[ ]]: listed for you to link, or linked where they first appear and given a page.">
-        <span className="faint">Names I didn’t link</span>
-        <select value={linkNames} onChange={(e) => setLinkNames(e.target.value as LinkNames)} aria-label="What happens to names you did not link" data-testid="agent-link-names">
-          <option value="list">List them</option>
-          <option value="link">Link and file them</option>
-        </select>
-      </label>
-      <label className="agent-row small" title="A scene still called “Untitled scene” or “New scene”. A title you gave is never changed.">
-        <span className="faint">Untitled scenes</span>
-        <select value={sceneTitles} onChange={(e) => setSceneTitles(e.target.value as SceneTitles)} aria-label="What the agent does about untitled scenes" data-testid="agent-titles">
-          <option value="leave">Leave them</option>
-          <option value="suggest">Suggest a title</option>
-          <option value="set">Title them</option>
-        </select>
-      </label>
-      <label className="agent-row small" title="Off: the agent changes only what it wrote itself (page lines, property values), and offers changes to yours instead.">
-        <input type="checkbox" checked={allowOverwrite} onChange={(e) => setAllowOverwrite(e.target.checked)} data-testid="agent-overwrite" />
-        <span>Allow overwriting what I wrote in the wiki</span>
-      </label>
 
       {enabled === false ? (
         <div className="small faint">The server has no model key. Put MODEL_API_KEY (Meta) or GEMINI_API_KEY in .env.local and restart it (`npm run dev:gemini` for Gemini).</div>
@@ -169,7 +111,7 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
           {progress}
         </div>
       )}
-      {scene.status === 'idea' &&<div className="small faint">Marked as an idea: the agent reads it only when you ask.</div>}
+      {scene.status === 'idea' && <div className="small faint">Marked as an idea: the agent reads it only when you ask.</div>}
       {error && (
         <div className="small agent-error" data-testid="agent-error">
           {error}{' '}
@@ -463,6 +405,67 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
           ))}
         </div>
       )}
+      <details className="agent-settings small" open={settingsOpen} onToggle={(e) => setSettingsOpen(e.currentTarget.open)} data-testid="agent-settings">
+        <summary className="faint">Settings</summary>
+        <label className="agent-row small">
+          <span className="faint">Reads</span>
+          <select value={trigger} onChange={(e) => setTrigger(e.target.value as Trigger)} aria-label="When the agent reads">
+            {TRIGGERS.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        {models.length > 0 && (
+          <label className="agent-row small">
+            <span className="faint">Model</span>
+            <select value={model ?? ''} onChange={(e) => setModel(e.target.value)} aria-label="Model the agent uses" data-testid="agent-model">
+              {models.map((m) => (
+                <option key={m} value={m}>
+                  {isContributor(m) ? `${m} (cheaper, may train Meta models)` : m}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {provider === 'Google Gemini' && (
+          <div className="small faint" data-testid="agent-gemini-note">
+            Gemini is a stand-in for Meta’s models. On Google’s free tier, what is sent may be used to improve Google’s products.
+          </div>
+        )}
+        {effort && (
+          <label className="agent-row small" title="Longer thinking catches more, but a reading takes longer. Not every model takes this setting: if yours complains, pick “Model default”.">
+            <span className="faint">Thinking</span>
+            <select value={effort} onChange={(e) => setEffort(e.target.value as Effort)} aria-label="How long the model thinks" data-testid="agent-effort">
+              {EFFORT_LABELS.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <label className="agent-row small" title="Names you wrote without [[ ]]: listed for you to link, or linked where they first appear and given a page.">
+          <span className="faint">Names I didn’t link</span>
+          <select value={linkNames} onChange={(e) => setLinkNames(e.target.value as LinkNames)} aria-label="What happens to names you did not link" data-testid="agent-link-names">
+            <option value="list">List them</option>
+            <option value="link">Link and file them</option>
+          </select>
+        </label>
+        <label className="agent-row small" title="A scene still called “Untitled scene” or “New scene”. A title you gave is never changed.">
+          <span className="faint">Untitled scenes</span>
+          <select value={sceneTitles} onChange={(e) => setSceneTitles(e.target.value as SceneTitles)} aria-label="What the agent does about untitled scenes" data-testid="agent-titles">
+            <option value="leave">Leave them</option>
+            <option value="suggest">Suggest a title</option>
+            <option value="set">Title them</option>
+          </select>
+        </label>
+        <label className="agent-row small" title="Off: the agent changes only what it wrote itself (page lines, property values), and offers changes to yours instead.">
+          <input type="checkbox" checked={allowOverwrite} onChange={(e) => setAllowOverwrite(e.target.checked)} data-testid="agent-overwrite" />
+          <span>Allow overwriting what I wrote in the wiki</span>
+        </label>
+      </details>
     </section>
   );
 }
