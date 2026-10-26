@@ -2,7 +2,7 @@
 // Everything is read as the story stood when the scene begins (the Resolver at the scene's own moment), so a flashback
 // is checked against its own past and not against the latest state. Pure data in, text out.
 
-import { findAuthorNotesOutsideCode, findEntity, findScene, parseLinks } from '../core/links';
+import { findAuthorNotesOutsideCode, findEntity, findScene, linkFirstMention, parseLinks } from '../core/links';
 import { momentConcrete, parseConcrete, type ParsedConcrete } from '../core/concrete';
 import { buildGraph } from '../core/graph';
 import { TYPE_PRESETS } from '../core/presets';
@@ -160,6 +160,17 @@ export function namedEntities(vault: Vault, sceneId: Id): Id[] {
     if (names.some((n) => new RegExp(`(?<![\\p{L}\\p{N}])${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`, 'u').test(text))) out.push(e.id);
   }
   return out;
+}
+
+/**
+ * The scene text with the first mention of `name` linked, or null if it is not there unlinked. A name that is one
+ * word of a single page's name links to that page ("Mara" → [[Mara Voss|Mara]]), so linking it makes no second page;
+ * when Mara Voss and Mara Lind both exist it stays [[Mara]] for the writer to settle.
+ */
+export function linkName(vault: Vault, prose: string, name: string): string | null {
+  const word = name.trim();
+  const hits = findEntity(vault, word) || word.length < 3 || /\s/.test(word) || TITLES.has(word.toLowerCase()) ? [] : Object.values(vault.entities).filter((e) => e.name.split(/\s+/).includes(word));
+  return linkFirstMention(prose, name, hits.length === 1 ? hits[0].name : undefined);
 }
 
 /** Words in a name that say what someone is, not who: "Captain" alone names no one. */

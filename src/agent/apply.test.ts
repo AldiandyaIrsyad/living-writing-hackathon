@@ -5,7 +5,7 @@ import { VaultBuilder } from '../core/testkit';
 import type { Vault } from '../core/types';
 import { commitRevision } from '../store/actions';
 import { applyAgentOutput, createHeldPage, editPage, fixNearMiss, parseAgentOutput, revertAgentOutput, type AgentOptions, type AgentOutput } from './apply';
-import { buildContext, runTool } from './context';
+import { buildContext, linkName, runTool } from './context';
 import { applyEdits, pageLines, type PageEdit } from './page';
 
 const answer = (part: Partial<AgentOutput> = {}): AgentOutput => ({ newEntities: [], pages: [], properties: [], states: [], contradictions: [], unlinkedNames: [], ...part });
@@ -350,6 +350,16 @@ describe('what the agent is shown', () => {
     expect(named('Orrin ran out.')).toContain('A grey-eyed captain.'); // a word of the name is enough
     expect(named('The pike swam.')).toBe('');
     expect(named('[[Orrin Pike]] sat by the fire.')).toBe(''); // linked: already shown with the linked entities
+  });
+
+  it('links a short name to the one page it is part of, so "Link it" makes no second page', () => {
+    const v = world('');
+    v.entities.mara = { ...v.entities.nora, id: 'mara', name: 'Mara Voss', aliases: [] };
+    expect(linkName(v, 'Mara left. Mara came back.', 'Mara')).toBe('[[Mara Voss|Mara]] left. Mara came back.');
+    expect(linkName(v, 'Nora left.', 'Nora')).toBe('[[Nora]] left.');
+    expect(linkName(v, 'Ines left.', 'Ines')).toBe('[[Ines]] left.'); // no page: the next reading makes one
+    v.entities.lind = { ...v.entities.nora, id: 'lind', name: 'Mara Lind', aliases: [] };
+    expect(linkName(v, 'Mara left.', 'Mara')).toBe('[[Mara]] left.'); // two Maras: the writer settles it
   });
 
   it('answers a lookup for a name it does not know with the pages that share a word of it', () => {

@@ -5,7 +5,7 @@
 import { createHeldPage, editPage, fixNearMiss, propValue, revertAgentOutput, type AgentReport, type Contradiction } from '../../agent/apply';
 import type { PageEdit } from '../../agent/page';
 import { enqueueScene, isContributor, readChapter, readSceneNow, stopReading, useAgent, type Effort, type LinkNames, type Trigger } from '../../agent/run';
-import { isUntitled, type SceneTitles } from '../../agent/context';
+import { isUntitled, linkName, type SceneTitles } from '../../agent/context';
 import { linkFirstMention } from '../../core/links';
 import type { Id, Scene, Vault } from '../../core/types';
 import { slugify } from '../../core/types';
@@ -412,7 +412,7 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
               onClick={() => {
                 flushEditors();
                 const now = useStore.getState().vault;
-                const prose = report.unlinkedNames.reduce((p, n) => linkFirstMention(p, n.name) ?? p, now.scenes[scene.id].prose);
+                const prose = report.unlinkedNames.reduce((p, n) => linkName(now, p, n.name) ?? p, now.scenes[scene.id].prose);
                 commit({ ...now, scenes: { ...now.scenes, [scene.id]: { ...now.scenes[scene.id], prose } } }, 'Link names');
                 patch({ unlinkedNames: [] });
                 if (enabled) readSceneNow(scene.id);
@@ -434,7 +434,7 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
                     onClick={() => {
                       flushEditors();
                       const now = useStore.getState().vault;
-                      const prose = linkFirstMention(now.scenes[scene.id].prose, n.name);
+                      const prose = linkName(now, now.scenes[scene.id].prose, n.name);
                       if (prose) commit({ ...now, scenes: { ...now.scenes, [scene.id]: { ...now.scenes[scene.id], prose } } }, 'Link a name');
                       patch({ unlinkedNames: report.unlinkedNames.filter((u) => u.name !== n.name) });
                     }}
