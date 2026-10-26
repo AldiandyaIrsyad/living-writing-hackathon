@@ -289,11 +289,12 @@ describe('properties and time', () => {
   });
 
   it.each([
-    ['repeats the time label', 'Late autumn, 2026', undefined],
-    ['is a span of time, not a date', '3 weeks', undefined],
-    ['is a date the timeline can order', '2026-11-03', '2026-11-03'],
-  ])('offers a date only when it is not one that %s', (_, concrete, offered) => {
-    expect(applyAgentOutput(world('Snow fell.'), 's2', answer({ timeLabel: 'Late Autumn, 2026', concrete }), agent).report.concrete).toBe(offered);
+    ['repeats the time label', 'Late Autumn, 2026', 'Late autumn, 2026', undefined],
+    ['repeats the time label in other words', '2026-11-03', '3 November 2026', undefined],
+    ['is a span of time, not a date', 'Late Autumn, 2026', '3 weeks', undefined],
+    ['is a date the timeline can order', 'Late Autumn, 2026', '2026-11-03', '2026-11-03'],
+  ])('offers a date only when it is not one that %s', (_, timeLabel, concrete, offered) => {
+    expect(applyAgentOutput(world('Snow fell.'), 's2', answer({ timeLabel, concrete }), agent).report.concrete).toBe(offered);
   });
 });
 
