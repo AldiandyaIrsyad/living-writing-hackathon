@@ -259,6 +259,8 @@ async function readScene(sceneId: Id): Promise<void> {
   try {
     const { text, model } = await askModel(sceneId, stopper.signal);
     const s = useStore.getState();
+    // Deleted while it was read: there is nothing to apply the answer to, and nothing went wrong.
+    if (!s.vault.scenes[sceneId]) return;
     // The writer kept typing while the model read: its answer is about text that no longer exists.
     if (s.vault.scenes[sceneId]?.prose !== start.prose) throw new Error('The scene changed while the agent was reading it.');
     const { allowOverwrite, linkNames, sceneTitles } = useAgent.getState();
