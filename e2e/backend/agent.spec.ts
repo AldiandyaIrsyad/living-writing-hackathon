@@ -101,6 +101,14 @@ test('taking back what the agent linked is not read again as the writer’s edit
   await page.waitForTimeout(7_000);
   await expect(editor.locator('.cm-wikilink[data-link-target="Bram"]')).toHaveCount(0);
   await expect(page.getByTestId('agent-report')).toHaveCount(0);
+
+  // Undoing a reading is the same "no".
+  await page.getByTestId('agent-read').click();
+  await expect(editor.locator('.cm-wikilink[data-link-target="Bram"]')).toBeVisible();
+  await page.getByRole('button', { name: '↶' }).click();
+  await expect(editor.locator('.cm-wikilink[data-link-target="Bram"]')).toHaveCount(0);
+  await page.waitForTimeout(7_000);
+  await expect(editor.locator('.cm-wikilink[data-link-target="Bram"]')).toHaveCount(0);
 });
 
 test('logging out forgets the agent’s reports, which quote the manuscript, from this browser', async ({ page }) => {

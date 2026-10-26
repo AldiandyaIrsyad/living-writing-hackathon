@@ -251,8 +251,11 @@ async function askModel(sceneId: Id, signal: AbortSignal): Promise<{ text: strin
   throw new Error('The model kept looking things up instead of answering.');
 }
 
-/** The last prose the agent finished reading for each scene, so a scene that has not changed is not read again. */
-const read = new Map<Id, string>();
+/**
+ * The prose the agent last read for each scene, and as its reading left it (names linked): a scene back at either, as
+ * after an Undo, has not changed and is not read again.
+ */
+const read = new Map<Id, string[]>();
 /** Scenes the writer has edited since the page loaded: the only ones the agent reads on its own. */
 const edited = new Set<Id>();
 let queue: Promise<void> = Promise.resolve();
@@ -282,7 +285,7 @@ async function readScene(sceneId: Id, asked: boolean): Promise<void> {
     const { vault, report } = applyAgentOutput(s.vault, sceneId, parseAgentOutput(text), { model, allowOverwrite, linkNames: linkNames === 'link', sceneTitles });
     s.commit(vault, undefined, `Agent: ${start.title || 'scene'}`);
     // Linking names changes the prose: that is not the writer editing it again.
-    read.set(sceneId, vault.scenes[sceneId].prose);
+    read.set(sceneId, [start.prose, vault.scenes[sceneId].prose]);
     edited.delete(sceneId);
     useAgent.getState().setReport(sceneId, report);
   } catch (e) {
@@ -320,13 +323,13 @@ export function enqueueScene(sceneId: Id, asked = true): void {
  * with what the earlier ones wrote). Scenes read since the page loaded and not changed since are skipped.
  */
 export function readChapter(chapterId: Id): void {
-  for (const s of chapterScenes(useStore.getState().vault, chapterId)) if (s.prose.trim() && s.prose !== read.get(s.id)) enqueueScene(s.id);
+  for (const s of chapterScenes(useStore.getState().vault, chapterId)) if (s.prose.trim() && !read.get(s.id)?.includes(s.prose)) enqueueScene(s.id);
 }
 
 /** Reading on its own, the agent skips a scene marked as an idea: it is not canon yet. */
 function readOnItsOwn(sceneId: Id): void {
   const scene = useStore.getState().vault.scenes[sceneId];
-  if (scene && scene.status !== 'idea' && scene.prose !== read.get(sceneId)) enqueueScene(sceneId, false);
+  if (scene && scene.status !== 'idea' && !read.get(sceneId)?.includes(scene.prose)) enqueueScene(sceneId, false);
 }
 
 function readEdited(): void {
@@ -380,7 +383,7 @@ export function startAgent(): void {
  * an edit to read: reading it would put back what they just took back.
  */
 export function tookBack(sceneId: Id): void {
-  read.set(sceneId, useStore.getState().vault.scenes[sceneId].prose);
+  read.set(sceneId, [...(read.get(sceneId) ?? []), useStore.getState().vault.scenes[sceneId].prose]);
   edited.delete(sceneId);
 }
 
