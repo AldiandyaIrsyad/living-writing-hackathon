@@ -49,6 +49,15 @@ function add(lines: string[], text: string, under?: string): boolean {
       return true;
     }
   }
+  // With no heading named, a page that has sections takes the line in its lead (after a "# Title"), not in its last one.
+  const top = lines.findIndex((l) => l.trim() !== '');
+  const first = lines.findIndex((l, i) => HEADING.test(l) && !(i === top && HEADING.exec(l)![1].length === 1));
+  if (!under && first >= 0) {
+    let end = first;
+    while (end > top + 1 && lines[end - 1].trim() === '') end--;
+    lines.splice(end, 0, line);
+    return true;
+  }
   while (lines.length && lines[lines.length - 1].trim() === '') lines.pop();
   const last = lines[lines.length - 1];
   if (under) lines.push(...(lines.length ? [''] : []), `## ${under.replace(/^#+\s*/, '')}`, line);

@@ -7,7 +7,8 @@ import { Resolver, valueEquals } from '../core/resolve';
 import type { Id, PropValue, StateChange, Vault } from '../core/types';
 import { slugify } from '../core/types';
 import { addChange, addEntity, addEntityType, commitRevision, setMomentLabel, sortedTypes, updateChange } from '../store/actions';
-import { sceneText, unresolvedLinks } from './context';
+import { installPreset } from '../core/presets';
+import { GALLERY_TYPES, sceneText, unresolvedLinks } from './context';
 import { agentLines, applyEdits, findLine, inverseEdits, isAgentLine, pageLines, squash, type PageEdit } from './page';
 
 export type Certainty = 'stated' | 'implied' | 'claimed';
@@ -194,7 +195,11 @@ export function editPage(
 }
 
 function typeFor(vault: Vault, name: string): { vault: Vault; id: Id } {
-  const known = Object.values(vault.entityTypes).find((t) => slugify(t.name) === slugify(name)) ?? sortedTypes(vault)[0];
+  const exact = Object.values(vault.entityTypes).find((t) => slugify(t.name) === slugify(name));
+  if (exact) return { vault, id: exact.id };
+  const preset = GALLERY_TYPES.find((p) => slugify(p.name) === slugify(name));
+  if (preset) return installPreset(vault, preset);
+  const known = sortedTypes(vault)[0];
   if (known) return { vault, id: known.id };
   const r = addEntityType(vault, { name: 'Note' });
   return { vault: r.vault, id: r.id };
@@ -217,7 +222,7 @@ export function applyAgentOutput(vault: Vault, sceneId: Id, out: AgentOutput, op
   let v = undoAgentChanges(vault, sceneId).vault;
 
   // 1. A [[link]] with no page is the writer asking for one. Only those become entities; other names are suggestions.
-  const wanted = new Map(unresolvedLinks(v, scene.prose).map((t) => [slugify(t), t]));
+  const wanted = new Map(unresolvedLinks(v, sceneId).map((t) => [slugify(t), t]));
   for (const n of out.newEntities) {
     if (findEntity(v, n.name)) continue;
     const target = wanted.get(slugify(n.name));

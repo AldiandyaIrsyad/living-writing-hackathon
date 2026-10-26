@@ -3,6 +3,7 @@
 // is checked against its own past and not against the latest state. Pure data in, text out.
 
 import { findAuthorNotesOutsideCode, findEntity, findScene, parseLinks } from '../core/links';
+import { TYPE_PRESETS } from '../core/presets';
 import { formatValue, Resolver } from '../core/resolve';
 import type { Id, Vault } from '../core/types';
 import { slugify } from '../core/types';
@@ -25,15 +26,15 @@ Finish with ONE JSON object and nothing else:
 }
 
 Rules:
-- newEntities: only for names listed under "Links with no page yet". A link can name any kind of thing (a person, a place, an object, a group, a creature, an idea): pick "type" from the listed entity types by what the scene says the thing is. Then describe it with "pages" edits like any other entity.
-- pages keep each wiki page true and tidy. Pages hold LASTING facts: identity, appearance, history, relationships, abilities, lasting injuries, death. "add" a new fact as one short line, "under" the page heading it belongs to when the page has one. When the scene makes a line on the page untrue or out of date, "replace" that line (copy it exactly) or "remove" it; never add a second line that contradicts it. Never repeat what the page already says.
+- newEntities: only for names listed under "Links with no page yet". A link can name any kind of thing (a person, a place, an object, a group, a creature, an idea): pick "type" from the listed entity types by what the scene says the thing is (an object is an Item, not a Person). Then describe it with "pages" edits like any other entity.
+- pages keep each wiki page true and tidy. Pages hold LASTING facts: identity, appearance, history, relationships, abilities, lasting injuries, death. "add" a new fact as one short line. When the page has headings (## Appearance, ## History), or its type lists page sections (a new page starts with them), every "add" names the one it belongs to in "under". When the scene makes a line on the page untrue or out of date, "replace" that line (copy it exactly) or "remove" it; never add a second line that contradicts it. Never repeat what the page already says.
 - certainty: "stated" = the narrator or a clear action establishes it. "implied" = clearly inferable. "claimed" = something a character says that may be a lie, rumour, belief, dream or hypothetical.
 - properties: only properties the entity already has (listed under Properties), when the scene changes them for good (status alive -> dead, a new owner). A value naming another entity is written as [[Name]].
-- states is a SHORT-LIVED snapshot for each character present: where they are, their condition and mood, who they are with, what they have just learned. One short sentence each, replacing the previous state. Hunger, mood and position belong here, never in pages.
-- contradictions: only when the scene plainly conflicts with the page, properties or state shown. "sceneQuote" is copied verbatim from the scene and "wikiQuote" verbatim from what you were shown. A change the scene itself narrates (she loses the hand in this scene) is an update, not a contradiction. If the scene's time is unknown, report none. When in doubt, report nothing.
+- states is a SHORT-LIVED snapshot for each character present: where they are, their condition and mood, who they are with, what they have just learned. One short sentence each, replacing the previous state. Hunger, mood and position belong here, never in pages. A character who dies in the scene gets the state "Dead" and how.
+- contradictions: check each thing the scene says about a linked entity (looks, belongings, injuries, where they are) against its page, properties and state. Report one only when the scene plainly conflicts with what you were shown. "sceneQuote" is copied verbatim from the scene and "wikiQuote" verbatim from what you were shown. A change the scene itself narrates (she loses the hand in this scene) is an update, not a contradiction. If the scene's time is unknown, report none. When in doubt, report nothing.
 - timeSkip / concrete: only when the scene says how much time passed ("three days later") or gives a date. timeLabel: a short label for when the scene happens, from what the scene shows ("late autumn", "the night of the fire"). Otherwise omit them.
 - unlinkedNames: named people, places or things in the scene that have no page and are not linked. Skip throwaway mentions.
-- "Notes from the writer" are the writer's comments on this scene, not story text. When a note says something about the story ("this is not true", "she is lying", "this is a dream", "Tam is the courier from chapter 2"), it outranks the scene: follow it. Ignore notes about the writing itself (pacing, wording, "fix later"), and never record an idea a note only wonders about ("maybe Nora dies?") as a fact.
+- [Writer's note: ...] in the scene text is the writer's comment, left where it applies; it is not story text. When a note says something about the story ("this is not true", "she is lying", "this is a dream", "Tam is the courier from chapter 2"), it outranks the scene: follow it. A note about a passage ("this section is a dream") covers only that passage, the one it closes or opens; the rest of the scene still counts. Ignore notes about the writing itself (pacing, wording, "fix later"), and never record an idea a note only wonders about ("maybe Nora dies?") as a fact.
 - Write in the language of the scene. Invent nothing. If the scene establishes nothing new, return empty arrays.`;
 
 export const TOOLS = [
@@ -63,25 +64,35 @@ export function sceneText(prose: string): string {
 }
 
 /**
- * The writer's author notes (`%% this is not true %%`), given to the agent apart from the scene text so a comment is
- * never read as story. An "agent:" at the start, for a note meant only for it, is dropped.
+ * The scene for the model, with the writer's author notes (`%% this is not true %%`) marked as notes where they stand,
+ * so a note about a passage ("this section is a dream") is read against that passage and never as story. An "agent:"
+ * at the start, for a note meant only for it, is dropped.
  */
-export function writerNotes(prose: string): string[] {
-  return findAuthorNotesOutsideCode(prose)
-    .map((n) => n.text.replace(/^agent\s*:\s*/i, '').trim())
-    .filter(Boolean);
+export function sceneWithNotes(prose: string): string {
+  let out = prose;
+  for (const n of findAuthorNotesOutsideCode(prose).reverse()) {
+    const text = n.text.replace(/^agent\s*:\s*/i, '').trim();
+    out = out.slice(0, n.start) + (text ? `[Writer's note: ${text}]` : '') + out.slice(n.end);
+  }
+  return out.trim();
 }
 
-/** Link targets in the scene that name no entity and no scene, once each, as the writer spelled them. */
-export function unresolvedLinks(vault: Vault, prose: string): string[] {
+/**
+ * Link targets in the scene that name no entity and no other scene, once each, as the writer spelled them. A scene
+ * never links itself, so [[the Hollow Cairn]] in the scene titled "The Hollow Cairn" names a place that needs a page.
+ */
+export function unresolvedLinks(vault: Vault, sceneId: Id): string[] {
   const seen = new Map<string, string>();
-  for (const l of parseLinks(prose)) {
+  for (const l of parseLinks(vault.scenes[sceneId].prose)) {
     if (l.embed) continue;
     const slug = slugify(l.target);
-    if (slug && !seen.has(slug) && !findEntity(vault, l.target) && !findScene(vault, l.target)) seen.set(slug, l.target);
+    if (slug && !seen.has(slug) && !findEntity(vault, l.target) && (findScene(vault, l.target)?.id ?? sceneId) === sceneId) seen.set(slug, l.target);
   }
   return [...seen.values()];
 }
+
+/** Gallery types the agent may file a new page under; one is installed the first time it is used. */
+export const GALLERY_TYPES = TYPE_PRESETS.filter((p) => !['template', 'inbox', 'query'].includes(p.key));
 
 const PAGE_LIMIT = 1800;
 
@@ -91,7 +102,7 @@ export function describeEntity(vault: Vault, r: Resolver, entityId: Id, sceneId:
   const at = r.entityBefore(entityId, { sceneId });
   const type = vault.entityTypes[e.typeId]?.name ?? '';
   const props = Object.entries(at.props).filter(([k]) => k !== 'state').map(([k, p]) => `- ${k}: ${formatValue(p.value)}`);
-  const state = at.props.state ? formatValue(at.props.state.value) : '(none recorded)';
+  const state = (at.props.state && formatValue(at.props.state.value)) || '(none recorded)';
   const aliases = e.aliases.length ? ` (also: ${e.aliases.join(', ')})` : '';
   const page = at.note.length > PAGE_LIMIT ? `${at.note.slice(0, PAGE_LIMIT)}…` : at.note;
   return [`### ${at.name} [${type}]${aliases}`, `Current state: ${state}`, props.length ? `Properties:\n${props.join('\n')}` : '', `Page:\n${page.trim() || '(empty)'}`].filter(Boolean).join('\n');
@@ -110,19 +121,25 @@ export function buildContext(vault: Vault, sceneId: Id): string {
     if (e) linked.add(e.id);
   }
   const roster = Object.values(vault.entities).map((e) => `- ${e.name} [${vault.entityTypes[e.typeId]?.name ?? ''}]${e.aliases.length ? ` also: ${e.aliases.join(', ')}` : ''}`);
-  const types = Object.values(vault.entityTypes).map((t) => `- ${t.name}${t.description ? `: ${t.description}` : ''}`);
-  const notes = writerNotes(scene.prose);
-  const missing = unresolvedLinks(vault, scene.prose);
+  // A new page starts from its type's template, so the model needs the template's headings to file facts under them.
+  const sections = (template?: string) => {
+    const hs = [...(template ?? '').matchAll(/^#{1,6}\s+(.+)$/gm)].map((m) => m[1].trim());
+    return hs.length ? ` (page sections: ${hs.join(', ')})` : '';
+  };
+  const types = Object.values(vault.entityTypes).map((t) => `- ${t.name}${sections(t.template)}${t.description ? `: ${t.description}` : ''}`);
+  const installed = new Set(Object.values(vault.entityTypes).map((t) => slugify(t.name)));
+  const more = GALLERY_TYPES.filter((p) => !installed.has(slugify(p.name))).map((p) => `- ${p.name}${sections(p.template)}: ${p.description}`);
+  const missing = unresolvedLinks(vault, sceneId);
 
   return [
     `Scene: ${scene.title || 'Untitled'}`,
     `Time: ${time}`,
     `Entity types:\n${types.join('\n')}`,
+    more.length ? `Types the writer has not used yet (pick one only when no type above fits):\n${more.join('\n')}` : '',
     `Roster:\n${roster.join('\n') || '(none yet)'}`,
     `Links with no page yet: ${missing.length ? missing.join(', ') : '(none)'}`,
     `Linked entities as they stand entering this scene:\n${[...linked].map((id) => describeEntity(vault, r, id, sceneId)).join('\n\n') || '(none)'}`,
-    notes.length ? `Notes from the writer:\n${notes.map((n) => `- ${n}`).join('\n')}` : '',
-    `Scene text:\n"""\n${sceneText(scene.prose)}\n"""`,
+    `Scene text:\n"""\n${sceneWithNotes(scene.prose)}\n"""`,
   ]
     .filter(Boolean)
     .join('\n\n');

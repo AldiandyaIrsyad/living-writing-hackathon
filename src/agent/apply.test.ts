@@ -61,6 +61,25 @@ describe('a [[link]] with no page', () => {
     expect(r.entityAt(tam, r.atScene('s2')).note).toBe('');
     expect(r.entityAt(tam, r.atScene('s2', true)).note).toBe('- A courier from the north\n');
   });
+
+  it('gets a page even when it shares its own scene’s title, since a scene never links itself', () => {
+    const v = world('She woke by [[the Hollow Cairn]].');
+    v.scenes.s2.title = 'The Hollow Cairn';
+    expect(buildContext(v, 's2')).toContain('Links with no page yet: the Hollow Cairn');
+    const { report } = applyAgentOutput(v, 's2', answer({ newEntities: [{ name: 'the Hollow Cairn', type: 'Person', aliases: [] }] }), agent);
+    expect(report.created.map((c) => c.name)).toEqual(['the Hollow Cairn']);
+  });
+
+  it('filed under a gallery type the writer has not used yet, installs that type', () => {
+    const v = world('Mira hid the [[split tally]].');
+    const context = buildContext(v, 's2');
+    expect(context).toContain('- Item: Objects, artefacts and tools that matter to the plot.');
+    // A new page starts from its type's template: the model is told its sections so it can file facts under them.
+    expect(context).toContain('- Creature (page sections: Appearance, Habitat, Behaviour): Animals');
+    const { vault, report } = applyAgentOutput(v, 's2', answer({ newEntities: [{ name: 'split tally', type: 'item', aliases: [] }] }), agent);
+    expect(report.created.map((c) => c.type)).toEqual(['Item']);
+    expect(vault.entityTypes[findEntity(vault, 'split tally')!.typeId].defaultProps).toEqual({ owner: '' });
+  });
 });
 
 describe('editing pages', () => {
@@ -152,6 +171,11 @@ describe('placing a new line on a page', () => {
     expect(applyEdits(page, [{ kind: 'add', text: 'Scar on her cheek', under: 'Looks' }]).note).toBe('# Nora\n\n## Looks\n- Tall\n- Scar on her cheek\n\n## History\n- Born in Ashford\n');
     expect(applyEdits(page, [{ kind: 'add', text: 'Hates the sea', under: 'Quirks' }]).note).toBe('# Nora\n\n## Looks\n- Tall\n\n## History\n- Born in Ashford\n\n## Quirks\n- Hates the sea\n');
   });
+
+  it('with no heading named, goes in the page’s lead, not into whichever section happens to be last', () => {
+    expect(applyEdits('# Nora\n\n## Looks\n- Tall\n\n## History\n', [{ kind: 'add', text: 'A courier' }]).note).toBe('# Nora\n- A courier\n\n## Looks\n- Tall\n\n## History\n');
+    expect(applyEdits('## Appearance\n\n## Background\n', [{ kind: 'add', text: 'Grey eyes' }]).note).toBe('- Grey eyes\n## Appearance\n\n## Background\n');
+  });
 });
 
 describe('properties and time', () => {
@@ -225,11 +249,11 @@ describe('what the agent is shown', () => {
     expect(buildContext(v, 's2')).not.toContain('Current state: (none recorded)');
   });
 
-  it('gives the agent the writer’s notes apart from the scene text, so a comment is never read as story', () => {
-    const v = world('[[Nora]] woke screaming. %% this whole scene is a dream %% She ran. %% agent: Nora is lying later %%');
-    const context = buildContext(v, 's2');
-    expect(context).toContain('Notes from the writer:\n- this whole scene is a dream\n- Nora is lying later');
-    expect(context).toContain('Scene text:\n"""\n[[Nora]] woke screaming.  She ran.\n"""');
+  it('marks the writer’s notes as notes where they stand, so a note about one passage is read against that passage', () => {
+    const v = world('[[Nora]] flew over the sea. %% this section is a dream %% She woke in the cart. %% agent: Nora is lying later %%');
+    expect(buildContext(v, 's2')).toContain(
+      'Scene text:\n"""\n[[Nora]] flew over the sea. [Writer\'s note: this section is a dream] She woke in the cart. [Writer\'s note: Nora is lying later]\n"""',
+    );
   });
 });
 
