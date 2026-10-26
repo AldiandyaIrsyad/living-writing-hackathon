@@ -1,0 +1,471 @@
+/* Inspector: one scrolling column. Scene on top, cast below. Works down to ~330px wide. */
+
+.inspector {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--bg-sunk);
+  border-left: 1px solid var(--border);
+}
+.inspector > * {
+  flex: none;
+}
+
+.insp-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  min-width: 0;
+}
+.insp-scene {
+  border-bottom: 1px solid var(--border);
+}
+
+/* Section headers: "CAST  3". */
+.insp-sec-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-muted);
+}
+.insp-count {
+  margin-left: auto;
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--bg-hover);
+  color: var(--fg-muted);
+  font-size: 11px;
+  letter-spacing: 0;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Scene header block. */
+.insp-time {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-strong);
+}
+.insp-time.is-writing {
+  border-left-color: var(--accent);
+}
+.insp-time.is-playhead {
+  border-left-color: var(--tl-playhead, #e5484d);
+}
+.insp-time-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-muted);
+}
+.insp-scene-title {
+  font-family: var(--font-prose);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  margin-top: 2px;
+}
+.insp-glyph {
+  color: var(--fg-faint);
+  margin-right: 2px;
+}
+.insp-time-sub {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--fg-muted);
+  overflow-wrap: anywhere;
+}
+.insp-time-stat {
+  font-size: 11px;
+  color: var(--fg-faint);
+  font-variant-numeric: tabular-nums;
+}
+.insp-open {
+  align-self: flex-start;
+}
+
+/* Scene chips: When / Commits / Notes. */
+.insp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.insp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elev);
+  color: var(--fg-muted);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.6;
+  cursor: pointer;
+}
+.insp-chip:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.insp-chip.on {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.insp-caret {
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+/* Embedded When / Commits / Notes panels: integrated, not boxed. */
+.insp-drawer {
+  padding: 2px 0 2px 10px;
+  border-left: 2px solid var(--border);
+  min-width: 0;
+}
+.inspector .panel {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+.inspector .panel-head {
+  padding: 0 0 6px;
+  background: none;
+  border-bottom: none;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--fg-muted);
+}
+.inspector .panel-body {
+  padding: 6px 0 0;
+}
+.inspector .place-row,
+.inspector .change-row {
+  font-size: 12.5px;
+}
+.inspector .change-row {
+  padding-bottom: 6px;
+}
+
+/* Empty / idle states. */
+.insp-empty {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--fg-faint);
+  padding: 4px 2px;
+}
+.insp-empty code {
+  font-family: var(--font-mono);
+  background: var(--bg-elev);
+  padding: 0 3px;
+  border-radius: 3px;
+}
+
+/* Cast cards. */
+.insp-cast {
+  gap: 4px;
+}
+.insp-card {
+  min-width: 0;
+  padding: 0 8px 0 10px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12.5px;
+  box-shadow: inset 3px 0 0 var(--type, var(--accent));
+}
+.insp-card[data-open='true'] {
+  padding-bottom: 7px;
+}
+/* One line per cast member: the whole row opens and closes the card. */
+.insp-card-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 26px;
+  margin: 0 -8px 0 -10px;
+  padding: 0 8px 0 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.insp-card-head:hover {
+  background: var(--bg-hover);
+}
+.insp-card-head:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.insp-card-name {
+  min-width: 0;
+  font-weight: 600;
+  color: var(--fg);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.insp-card-name:hover {
+  text-decoration: underline;
+}
+.insp-card-type {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.insp-card-delta {
+  flex: none;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+}
+.insp-card-caret {
+  flex: none;
+  font-size: 10px;
+  color: var(--fg-muted);
+}
+.insp-card-summary {
+  margin-top: 2px;
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+.insp-k {
+  color: var(--fg-faint);
+}
+.insp-card .aff-chips {
+  margin-top: 4px;
+}
+.insp-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border);
+}
+.insp-card-body .cast-here {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.cast-log {
+  list-style: none;
+  margin: 2px 0 4px;
+  padding: 0 0 0 10px;
+  border-left: 2px solid color-mix(in srgb, var(--type, var(--accent)) 50%, transparent);
+}
+.cast-log li {
+  font-size: 12.5px;
+  line-height: 1.35;
+  padding: 1px 0;
+}
+.cast-log-msg {
+  font-family: var(--font-prose);
+  font-style: italic;
+}
+.cast-log-src {
+  color: var(--fg-faint);
+  font-size: 11px;
+}
+.cast-here {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px dashed var(--border);
+}
+.cast-here-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  font-weight: 700;
+  margin-right: 4px;
+}
+.cast-commit-btn {
+  margin-top: 6px;
+  border: 1px dashed var(--border-strong);
+  background: transparent;
+  color: var(--fg-muted);
+  border-radius: 6px;
+  width: 100%;
+  padding: 3px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+.cast-commit-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.cast-actions {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+.cast-actions .cast-commit-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.commit-composer {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.commit-composer textarea {
+  resize: vertical;
+  font-family: var(--font-prose);
+  font-size: 14px;
+}
+.cast-add {
+  display: flex;
+  margin-top: 2px;
+  min-width: 0;
+}
+
+/* Chapter and delete, under the scene's drawers. */
+.insp-scene-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* Where a commit sits in time, under its composer. */
+.anchor-note {
+  line-height: 1.4;
+}
+.link-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* Cast scope: the chapter, this scene, or one scene. Sits in the section head beside the count. */
+.insp-scope {
+  min-width: 0;
+  max-width: 150px;
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+.cast-in {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+.cast-in-scene {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--fg-muted);
+  border-radius: 999px;
+  padding: 0 7px;
+  font-size: 11px;
+  cursor: pointer;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cast-in-scene:hover {
+  color: var(--fg);
+  border-color: var(--border-strong);
+}
+
+/* Pinning the Inspector to one scene. */
+.insp-time-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.insp-pin {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--fg-muted);
+  border-radius: 4px;
+  font-size: 11px;
+  padding: 0 6px;
+  cursor: pointer;
+}
+
+.insp-pin.on {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.insp-pin-chip {
+  font-size: 11px;
+  color: var(--accent);
+}
+
+/* Story agent */
+.agent-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.agent-row select {
+  flex: 1;
+  min-width: 0;
+}
+.agent-model {
+  margin-left: auto;
+  font-size: 10px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.agent-report {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.agent-report ul {
+  margin: 2px 0 0;
+  padding-left: 16px;
+}
+.agent-flag {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--warn, #d97706);
+  border-radius: 4px;
+  align-items: flex-start;
+}
+.agent-error {
+  color: var(--danger, #dc2626);
+}

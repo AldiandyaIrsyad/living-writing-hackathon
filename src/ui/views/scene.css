@@ -1,0 +1,86 @@
+.scene-layout {
+  height: 100%;
+}
+.scene-side {
+  border-left: 1px solid var(--border);
+  background: var(--bg-sunk);
+  overflow: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.change-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed var(--border);
+}
+.change-row:last-child {
+  border-bottom: none;
+}
+.place-row {
+  gap: 4px;
+}
+.world-card {
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  font-size: 13px;
+}
+.world-name {
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--fg);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.editor {
+  min-height: 60vh;
+}
+
+/* A scene after the first in a chapter's preview. */
+.chapter-scene {
+  margin-top: 1.8em;
+  padding-top: 0.7em;
+  border-top: 1px solid var(--border);
+}
+
+/* Reader-style bottom chapter navigation bar */
+.chapter-footer-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 32px;
+  padding-top: 16px;
+  padding-bottom: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.chapter-nav-side {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.chapter-nav-right {
+  justify-content: flex-end;
+}
+
+.chapter-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 240px;
+}
+
+.chapter-nav-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

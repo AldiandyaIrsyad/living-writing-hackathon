@@ -1,0 +1,197 @@
+/* Timeline popovers (track menu, behaviour) and the collapsed strip. */
+
+.tl-pop-wrap {
+  position: relative;
+}
+.tl-addtrack {
+  position: sticky;
+  left: 0;
+  padding: 6px 8px;
+  z-index: 8;
+}
+.tl-pop {
+  position: absolute;
+  z-index: 30;
+  min-width: 230px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  box-shadow: var(--shadow);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+}
+.tl-pop-up {
+  bottom: calc(100% - 2px);
+  left: 8px;
+}
+.tl-pop-right {
+  right: 0;
+  top: calc(100% + 4px);
+  width: 290px;
+}
+.tl-pop-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-muted);
+  padding: 6px 10px 4px;
+  font-weight: 600;
+}
+.tl-pop-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.tl-pop-item:hover {
+  background: var(--bg-hover);
+}
+.tl-pop-item.on .tl-pop-check {
+  color: var(--accent);
+}
+.tl-pop-item .story-swatch {
+  margin-top: 4px;
+}
+.tl-pop-check {
+  width: 12px;
+  color: var(--fg-faint);
+  flex: none;
+}
+.tl-pop-label {
+  display: block;
+  font-weight: 500;
+}
+.tl-pop-hint {
+  display: block;
+  font-size: 11.5px;
+  color: var(--fg-muted);
+  line-height: 1.35;
+}
+.tl-pop-note {
+  padding: 4px 10px;
+}
+.tl-pop-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 2px;
+}
+
+/* ---------- shortcuts popover ---------- */
+.tl-pop-keys {
+  width: 330px;
+  padding-bottom: 6px;
+}
+.tl-key-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+.tl-key-keys {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 96px;
+  flex: none;
+}
+.tl-key-plus {
+  color: var(--fg-faint);
+  font-size: 11px;
+}
+.tl-key-what {
+  color: var(--fg);
+  line-height: 1.35;
+}
+.tl-kbd {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  min-width: 18px;
+  padding: 1px 5px;
+  text-align: center;
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--bg-elev);
+  color: var(--fg);
+}
+
+/* ---------- collapsed strip ---------- */
+.tl-strip {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px;
+  background: var(--tl-panel);
+  color: var(--tl-text);
+  cursor: pointer;
+  font-size: 12px;
+  user-select: none;
+}
+.tl-strip:hover {
+  background: var(--tl-bg);
+}
+.tl-strip .tl-readout {
+  min-width: 0;
+  padding: 1px 8px;
+}
+.tl-strip-bar {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--tl-bg);
+  position: relative;
+  overflow: hidden;
+}
+.tl-strip-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: color-mix(in srgb, var(--tl-playhead) 55%, transparent);
+  border-radius: 3px;
+}
+
+/* ---------- right-click menu ---------- */
+.tl-ctx {
+  position: fixed;
+  z-index: 60;
+  min-width: 230px;
+  max-width: 320px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  box-shadow: var(--shadow);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+}
+.tl-ctx-item {
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.tl-ctx-item:hover:not(:disabled),
+.tl-ctx-item.active {
+  background: var(--bg-hover);
+}
+.tl-ctx-item:disabled {
+  color: var(--fg-faint);
+  cursor: default;
+}
+.tl-ctx-item.danger {
+  color: var(--danger, #e5484d);
+}

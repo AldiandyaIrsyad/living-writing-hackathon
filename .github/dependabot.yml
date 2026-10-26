@@ -1,0 +1,14 @@
+# Weekly pull requests for outdated dependencies, grouped so a week's updates arrive as one change to review.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

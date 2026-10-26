@@ -1,0 +1,196 @@
+.entity-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.entity-main,
+.entity-side {
+  min-width: 0;
+}
+.time-label {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  color: var(--accent);
+}
+.time-slider {
+  accent-color: var(--accent);
+}
+.entity-last-commit {
+  padding: 2px 0 6px;
+}
+.commit-quote {
+  font-style: italic;
+}
+/* Git-log style history: a vertical rail with one dot per commit, newest at the bottom. */
+.commit-log {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 18px;
+}
+.commit-log::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: var(--border);
+}
+.commit {
+  position: relative;
+  padding-bottom: 14px;
+}
+.commit:last-child {
+  padding-bottom: 0;
+}
+.commit::before {
+  content: '';
+  position: absolute;
+  left: -18px;
+  top: 5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--bg-elev);
+}
+.commit-body {
+  display: block;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.commit-msg {
+  display: block;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.commit-body:hover .commit-msg {
+  text-decoration: underline;
+}
+.commit-generated {
+  font-weight: 500;
+  color: var(--fg-muted);
+}
+.commit-where,
+.commit-change {
+  margin-top: 2px;
+}
+.commit-scene {
+  font-weight: 500;
+}
+.backlink a {
+  font-weight: 500;
+}
+
+/* Living pages: which time the page is shown at, the revision draft, and per-revision diffs. */
+.page-time {
+  color: var(--fg-muted);
+}
+.revision-text {
+  width: 100%;
+  min-height: 180px;
+  resize: vertical;
+  font-family: var(--font-prose);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.revision-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-sunk);
+}
+.propagate-version {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.propagate-version:last-of-type {
+  border-bottom: 0;
+}
+.revision-scene {
+  font-weight: 600;
+}
+.commit-diff {
+  margin-top: 4px;
+  font-size: 12px;
+}
+.commit-diff > summary {
+  cursor: pointer;
+  color: var(--fg-muted);
+  list-style-position: outside;
+}
+.diff-count-add {
+  color: var(--ok);
+  font-weight: 600;
+}
+.diff-count-del {
+  color: var(--danger);
+  font-weight: 600;
+}
+.diff {
+  margin-top: 4px;
+  border-left: 2px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-x: auto;
+}
+.diff-line {
+  display: flex;
+  gap: 6px;
+  padding: 0 6px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.diff-mark {
+  flex: none;
+  width: 10px;
+  color: var(--fg-faint);
+  user-select: none;
+}
+.diff-add {
+  background: color-mix(in srgb, var(--ok) 14%, transparent);
+  color: var(--ok);
+}
+.diff-add .diff-mark {
+  color: var(--ok);
+}
+.diff-del {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--danger) 50%, transparent);
+}
+.diff-del .diff-mark {
+  color: var(--danger);
+}
+.diff-same {
+  color: var(--fg-muted);
+}
+.diff-gap {
+  padding: 0 6px;
+  color: var(--fg-faint);
+}
+@media (max-width: 1000px) {
+  .entity-layout {
+    grid-template-columns: 1fr;
+  }
+}

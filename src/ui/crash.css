@@ -1,0 +1,50 @@
+/* The error panel and the recovery screen. Uses the app's theme variables. */
+
+.crash {
+  margin: 24px auto;
+  max-width: 560px;
+  padding: 16px 18px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--bg-elev);
+  color: var(--fg);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.crash-full {
+  margin-top: 12vh;
+}
+
+.crash h1 {
+  font-size: 18px;
+  margin: 0 0 8px;
+}
+
+.crash p {
+  margin: 6px 0 10px;
+  color: var(--fg-muted);
+}
+
+.crash ul {
+  margin: 0 0 12px;
+  padding-left: 18px;
+  color: var(--fg-muted);
+}
+
+.crash-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.crash-detail {
+  margin: 12px 0 0;
+  padding: 8px;
+  max-height: 120px;
+  overflow: auto;
+  font-size: 11.5px;
+  background: var(--bg-sunk);
+  border-radius: 6px;
+  white-space: pre-wrap;
+}

@@ -1,0 +1,114 @@
+/* Affiliations: group chips, leave confirmation, join form and member lists. Colours come from the theme tokens. */
+
+.aff-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.aff-chip-wrap {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-elev);
+  transition:
+    border-color 0.12s,
+    background 0.12s;
+}
+.aff-chip-wrap:hover,
+.aff-chip-wrap.is-leaving {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+}
+.aff-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 2px 8px 2px 7px;
+  border: none;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.aff-chip:hover {
+  text-decoration: underline;
+}
+.aff-chip:focus-visible,
+.aff-x:focus-visible,
+.aff-member:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.aff-x {
+  padding: 0 7px 0 1px;
+  border: none;
+  background: none;
+  color: var(--fg-faint);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+.aff-x:hover {
+  color: var(--danger);
+}
+.aff-dot {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--fg-faint);
+}
+.aff-empty {
+  margin: 0;
+}
+.aff-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-sunk);
+}
+.aff-confirm b {
+  font-weight: 600;
+}
+.aff-join {
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.aff-when {
+  max-width: 100%;
+}
+.aff-members {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.aff-member {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 4px 6px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.aff-member:hover {
+  background: var(--bg-hover);
+}

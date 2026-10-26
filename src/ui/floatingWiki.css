@@ -1,0 +1,124 @@
+.floating-wiki {
+  position: fixed;
+  top: 52px;
+  right: 16px;
+  width: 390px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 104px);
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elev);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.app.right-collapsed .floating-wiki {
+  right: 16px;
+}
+
+.app.zen .floating-wiki {
+  right: 20px;
+}
+
+@media (max-width: 820px) {
+  .floating-wiki {
+    right: 16px;
+    max-width: calc(100vw - 32px);
+  }
+}
+
+.fw-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg-sunk);
+  border-bottom: 1px solid var(--border);
+  cursor: grab;
+  user-select: none;
+}
+
+.fw-head:active {
+  cursor: grabbing;
+}
+
+.fw-title-input {
+  font-weight: 600;
+  font-size: 14px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--fg);
+  padding: 2px 5px;
+  min-width: 80px;
+  max-width: 170px;
+}
+
+.fw-title-input:focus {
+  border-color: var(--accent);
+  background: var(--bg-elev);
+  outline: none;
+}
+
+.fw-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: color-mix(in srgb, var(--accent-soft) 45%, var(--bg-elev));
+  border-bottom: 1px solid var(--border);
+}
+
+.fw-time-badge {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.fw-last-commit {
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fw-body {
+  padding: 10px 12px 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fw-state-box {
+  padding: 8px 10px;
+  background: var(--bg-sunk);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.fw-commit-box {
+  padding: 8px 10px;
+  background: var(--bg-sunk);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.fw-note-box {
+  display: flex;
+  flex-direction: column;
+  min-height: 150px;
+}
+
+.fw-note-box .editor {
+  min-height: 150px;
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  background: var(--bg);
+}

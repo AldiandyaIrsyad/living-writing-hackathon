@@ -1,0 +1,321 @@
+/* The retcon preview dialog. Uses the app's theme variables. */
+
+.modal.impact-modal {
+  width: min(640px, 94vw);
+  max-height: 78vh;
+}
+
+.impact-head {
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.impact-heading {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.impact-lead {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--fg-muted);
+}
+
+.impact-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.impact-row {
+  padding: 7px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.impact-where {
+  font-size: 12.5px;
+}
+
+.impact-what {
+  font-size: 12.5px;
+  color: var(--fg-muted);
+  margin-top: 2px;
+}
+
+.impact-who {
+  color: var(--fg);
+  margin-right: 8px;
+  font-weight: 500;
+}
+
+.impact-more {
+  padding: 8px 16px;
+  font-size: 12px;
+}
+
+.impact-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.modal.impact-modal:focus {
+  outline: none;
+}
+
+/* The keyboard cheat sheet shares the dialog frame. */
+.keys-body {
+  overflow-y: auto;
+  padding: 4px 16px 14px;
+}
+
+.keys-group {
+  margin: 14px 0 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+
+.keys-row {
+  display: grid;
+  grid-template-columns: 170px 1fr;
+  gap: 10px;
+  padding: 3px 0;
+  font-size: 13px;
+  color: var(--fg);
+}
+
+.keys-keys {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+}
+
+.keys-plus {
+  color: var(--fg-muted);
+  font-size: 11px;
+}
+
+/* The Problems list shares the dialog frame. */
+.problem-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12.5px;
+  color: var(--fg);
+}
+
+.problem-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.problem-hint {
+  color: var(--fg-muted);
+}
+
+.problem-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+/* Find and replace shares the dialog frame. */
+.replace-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.replace-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.replace-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.replace-row mark {
+  background: color-mix(in srgb, var(--warn) 35%, transparent);
+  color: inherit;
+}
+
+/* Quick capture: a single line near the top of the window. */
+.capture-backdrop {
+  align-items: flex-start;
+  padding-top: 18vh;
+}
+
+.capture-modal {
+  width: min(560px, 92vw);
+  padding: 10px;
+}
+
+/* Idea Queue (Deck & List views in the Inbox page and modal) */
+.modal.idea-queue-modal {
+  width: min(720px, 94vw);
+  max-height: 82vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.idea-queue-wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.idea-queue-head {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.idea-queue-title {
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.idea-queue-body {
+  overflow-y: auto;
+}
+
+.idea-quick-add {
+  gap: 8px;
+}
+
+.idea-empty {
+  padding: 18px 12px;
+  text-align: center;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+
+.idea-card {
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: var(--bg-elev);
+  transition: border-color 0.15s ease;
+}
+
+.idea-card.is-done {
+  opacity: 0.72;
+  border-style: dashed;
+}
+
+.idea-card-meta {
+  gap: 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.idea-done-pill {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--fg);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.idea-rendered-body {
+  padding: 12px 2px 6px;
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+
+.idea-code-block {
+  margin: 10px 0 4px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-family: var(--font-mono, monospace);
+  font-size: 12.5px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--fg);
+}
+
+.idea-author-notes {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.idea-author-note-chip {
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--warn) 14%, transparent);
+  border-left: 2px solid var(--warn);
+}
+
+.idea-promote-drawer {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.idea-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.idea-list-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-elev);
+}
+
+.idea-list-row.is-done {
+  opacity: 0.65;
+}
+
+.idea-list-content {
+  cursor: pointer;
+  min-width: 0;
+}
+
+.idea-list-content .prose p {
+  margin: 0;
+}
+
+.idea-inline-code {
+  display: block;
+  font-family: var(--font-mono, monospace);
+  font-size: 12.5px;
+  white-space: pre-wrap;
+}
+

@@ -1,0 +1,628 @@
+/* Docked timeline — an editing-suite look in both themes. */
+
+:root {
+  --tl-bg: #efebe4;
+  --tl-panel: #e6e1d8;
+  --tl-lane: #f6f3ee;
+  --tl-lane-alt: #f1ede6;
+  --tl-grid: rgba(60, 50, 40, 0.07);
+  --tl-text: #2a2621;
+  --tl-muted: #7a7166;
+  --tl-btn: #faf8f4;
+  --tl-btn-on: #2a2621;
+  --tl-btn-on-fg: #faf8f4;
+  --tl-playhead: #e5484d;
+}
+:root[data-theme='dark'] {
+  --tl-bg: #141210;
+  --tl-panel: #1b1916;
+  --tl-lane: #191714;
+  --tl-lane-alt: #1d1b18;
+  --tl-grid: rgba(255, 255, 255, 0.045);
+  --tl-text: #e9e3da;
+  --tl-muted: #8a8175;
+  --tl-btn: #26231f;
+  --tl-btn-on: #e9e3da;
+  --tl-btn-on-fg: #141210;
+  --tl-playhead: #ff5a5f;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  background: var(--tl-bg);
+  color: var(--tl-text);
+  outline: none;
+  user-select: none;
+}
+
+/* ---------- toolbar ---------- */
+.tl-toolbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: var(--tl-panel);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  flex: none;
+}
+.tl-minimize {
+  /* A tab hanging from the timeline's top edge, exactly in the middle: the spot nearest the writing area. */
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 18px;
+  height: 25px;
+  border: 1px solid var(--border-strong);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  background: var(--tl-btn);
+  color: var(--tl-text);
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.tl-minimize:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+@media (max-width: 1250px) {
+  .tl-minimize-long {
+    display: none;
+  }
+}
+.tl-toolbar .tl-readout {
+  min-width: 160px;
+  max-width: 340px;
+  flex: 0 1 auto;
+}
+.tl-readout {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 220px;
+  max-width: 420px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: var(--tl-bg);
+  border: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tl-readout-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tl-playhead);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tl-playhead) 25%, transparent);
+  flex: none;
+}
+.tl-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.tl-seg {
+  background: var(--tl-bg);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 2px;
+  gap: 2px;
+}
+.tl-btn {
+  border: 1px solid transparent;
+  background: var(--tl-btn);
+  color: var(--tl-text);
+  border-radius: 5px;
+  padding: 2px 9px;
+  font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tl-seg .tl-btn {
+  background: transparent;
+}
+.tl-btn:hover {
+  border-color: var(--border-strong);
+}
+.tl-btn.on {
+  background: var(--tl-btn-on);
+  color: var(--tl-btn-on-fg);
+}
+.tl-select {
+  background: var(--tl-btn);
+  color: var(--tl-text);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-size: 12px;
+  padding: 2px 6px;
+  max-width: 190px;
+}
+
+/* ---------- scroll area ---------- */
+.tl-scroll {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+  position: relative;
+}
+.tl-content {
+  position: relative;
+  min-height: 100%;
+}
+
+/* ---------- ruler ---------- */
+.tl-ruler {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  background: var(--tl-panel);
+  border-bottom: 1px solid var(--border);
+  cursor: ew-resize;
+}
+.tl-ruler-head {
+  position: sticky;
+  left: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+  background: var(--tl-panel);
+  border-right: 1px solid var(--border);
+  z-index: 2;
+  cursor: default;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.tl-tick {
+  position: absolute;
+  bottom: 0;
+  width: 1px;
+  height: 6px;
+  background: var(--tl-muted);
+  opacity: 0.5;
+}
+.tl-tick.major {
+  height: 12px;
+  opacity: 0.9;
+}
+.tl-tick-label {
+  position: absolute;
+  top: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--tl-muted);
+  white-space: nowrap;
+  pointer-events: none;
+}
+/* A moment's label (a date, a season): second ruler line, in the story's own words rather than the grid's numbers. */
+.tl-moment-label {
+  position: absolute;
+  bottom: 3px;
+  padding: 0 6px;
+  height: 16px;
+  line-height: 15px;
+  border-left: 2px solid var(--accent);
+  border-radius: 0 4px 4px 0;
+  background: color-mix(in srgb, var(--accent) 14%, var(--tl-panel));
+  color: var(--tl-text);
+  font-size: 10.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+/* ---------- tracks ---------- */
+.tl-track {
+  display: flex;
+  position: relative;
+  border-bottom: 1px solid var(--border);
+}
+.tl-track:nth-of-type(even) .tl-lane {
+  background-color: var(--tl-lane-alt);
+}
+.tl-track-head {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 8px 8px 8px 0;
+  background: var(--tl-panel);
+  border-right: 1px solid var(--border);
+  cursor: grab;
+  flex: none;
+}
+.tl-track-color {
+  width: 4px;
+  align-self: stretch;
+  border-radius: 0 3px 3px 0;
+  background: var(--story);
+  flex: none;
+}
+.tl-track-text {
+  min-width: 0;
+}
+.tl-track-name {
+  display: block;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--tl-text);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tl-track-meta {
+  font-size: 11px;
+  color: var(--tl-muted);
+}
+.tl-icon {
+  border: none;
+  background: transparent;
+  color: var(--tl-muted);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0 3px;
+  border-radius: 4px;
+}
+.tl-icon:hover {
+  color: var(--tl-text);
+  background: var(--tl-btn);
+}
+.tl-lane {
+  position: relative;
+  background-color: var(--tl-lane);
+  background-image: linear-gradient(to right, var(--tl-grid) 1px, transparent 1px);
+  background-size: var(--col, 150px) 100%;
+}
+
+/* ---------- arc & chapter spans ---------- */
+.tl-span {
+  position: absolute;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  font-size: 11px;
+  white-space: nowrap;
+  color: var(--tl-text);
+}
+.tl-arc {
+  background: color-mix(in srgb, var(--story) 34%, var(--tl-lane));
+  border: 1px solid color-mix(in srgb, var(--story) 55%, transparent);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.tl-chapter {
+  background: color-mix(in srgb, var(--story) 16%, var(--tl-lane));
+  border: 1px solid color-mix(in srgb, var(--story) 35%, transparent);
+}
+.tl-span:hover {
+  filter: brightness(1.06);
+  border-color: var(--story);
+}
+/* A chapter or arc cut by other work: the edge that carries on has no border and a dashed seam, so the parts read as one. */
+.tl-span.cont-before {
+  border-left-style: dashed;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.tl-span.cont-after {
+  border-right-style: dashed;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.tl-span-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- clips ---------- */
+.tl-clip {
+  position: absolute;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--story) 22%, var(--bg-elev));
+  border: 1px solid color-mix(in srgb, var(--story) 45%, transparent);
+  border-left: 3px solid var(--story);
+  cursor: pointer;
+  overflow: hidden;
+  transition: opacity 0.12s, box-shadow 0.12s;
+}
+/* Narrow clips (zoomed far out) are slim solid slivers in the story colour, with no text. */
+.tl-clip.narrow {
+  border-width: 0;
+  border-radius: 2px;
+  background: var(--story);
+  opacity: 0.85;
+}
+.tl-clip:not(.narrow) {
+  padding: 5px 20px 4px 7px;
+}
+.tl-clip:hover {
+  box-shadow: 0 0 0 1px var(--story), var(--shadow);
+  z-index: 2;
+}
+.tl-clip.active {
+  box-shadow: 0 0 0 2px var(--accent);
+  z-index: 2;
+}
+.tl-clip.live:not(.narrow) {
+  background: color-mix(in srgb, var(--story) 34%, var(--bg-elev));
+}
+.tl-clip.selected {
+  outline: 2px dashed var(--accent);
+  outline-offset: 1px;
+}
+.tl-clip.floating {
+  border-style: dashed;
+}
+.tl-clip.dim {
+  opacity: 0.22;
+}
+.tl-clip.involved.narrow {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.tl-clip.hint-before {
+  box-shadow: inset 4px 0 0 var(--tl-playhead), -3px 0 0 var(--tl-playhead);
+}
+.tl-clip.hint-after {
+  box-shadow: inset -4px 0 0 var(--tl-playhead), 3px 0 0 var(--tl-playhead);
+}
+.tl-clip.hint-same {
+  box-shadow: 0 0 0 2px var(--tl-playhead);
+}
+.tl-clip.flash {
+  animation: tl-flash 0.7s;
+}
+@keyframes tl-flash {
+  0%,
+  100% {
+    filter: none;
+  }
+  40% {
+    filter: brightness(1.4) saturate(2) hue-rotate(-30deg);
+  }
+}
+.tl-clip-title {
+  font-family: var(--font-prose);
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tl-clip-meta {
+  display: flex;
+  gap: 6px;
+  font-size: 10.5px;
+  color: var(--tl-muted);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.tl-delta {
+  color: var(--accent);
+  font-weight: 600;
+}
+.tl-float {
+  color: var(--warn);
+}
+.tl-insert {
+  position: absolute;
+  right: 3px;
+  top: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elev);
+  color: var(--tl-muted);
+  font-size: 11px;
+  line-height: 13px;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.4;
+}
+.tl-clip:hover .tl-insert {
+  opacity: 1;
+}
+
+/* Stretch handle: the right edge of a clip. Shows on hover; drag to change the span. */
+.tl-clip-resize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: 6px;
+  cursor: ew-resize;
+  opacity: 0;
+  background: linear-gradient(to right, transparent, color-mix(in srgb, var(--story) 60%, transparent));
+  transition: opacity 0.12s;
+}
+.tl-clip:hover .tl-clip-resize,
+.tl-clip.resizing .tl-clip-resize {
+  opacity: 1;
+}
+.tl-clip.resizing {
+  box-shadow: 0 0 0 2px var(--accent);
+  z-index: 3;
+}
+
+/* Drop marker: where a dragged clip will land (before / after / same time / during a stretched clip). */
+.tl-drop {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--tl-playhead);
+  pointer-events: none;
+  z-index: 6;
+}
+.tl-drop-label {
+  position: absolute;
+  top: 0;
+  left: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--tl-playhead);
+  color: var(--tl-btn-on-fg);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 14px;
+  white-space: nowrap;
+}
+.tl-clip.hint-during {
+  box-shadow: inset 0 0 0 2px var(--tl-playhead);
+}
+
+/* ---------- playhead ---------- */
+/* The playhead is a whole column (time is discrete): a tinted band over the cell, numbered in the ruler. */
+.tl-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--tl-playhead) 18%, transparent);
+  border-left: 1px solid var(--tl-playhead);
+  border-right: 1px solid var(--tl-playhead);
+  pointer-events: none;
+  z-index: 5;
+}
+.tl-playhead-cap {
+  position: sticky;
+  top: 0;
+  height: 18px;
+  line-height: 18px;
+  text-align: center;
+  background: var(--tl-playhead);
+  color: var(--tl-btn-on-fg);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  overflow: hidden;
+  z-index: 7;
+}
+
+.tl-addtrack {
+  position: sticky;
+  left: 0;
+  padding: 6px 8px;
+  z-index: 3;
+}
+.tl-empty {
+  position: sticky;
+  left: 0;
+  padding: 24px;
+  color: var(--tl-muted);
+}
+
+/* ---------- range bar: the whole work in miniature, with the visible window ---------- */
+.tl-rangebar {
+  flex: none;
+  background: var(--tl-panel);
+  border-top: 1px solid var(--border);
+  padding: 6px 12px 6px 0;
+  user-select: none;
+}
+.tl-rangebar {
+  position: relative;
+}
+.tl-range-head {
+  position: absolute;
+  left: 0;
+  top: 6px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.tl-range-inner {
+  position: relative;
+  height: 30px;
+  cursor: pointer;
+  border-radius: 4px;
+  background: var(--tl-bg);
+  touch-action: none;
+}
+.tl-range-inner canvas {
+  display: block;
+  pointer-events: none;
+  border-radius: 4px;
+}
+/* Outside the visible window: shaded, so zoomed-in and fitted states read apart at a glance. */
+.tl-range-shade {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: color-mix(in srgb, var(--tl-text) 30%, transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+.tl-range-window {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  min-width: 6px;
+  box-sizing: border-box;
+  border: 2px solid var(--accent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  cursor: grab;
+  z-index: 1;
+}
+/* At fit-all the window is the whole bar: its edges sit on the bar's ends, so show them as a plain frame. */
+.tl-range-window[data-fit='true'] {
+  border-radius: 0;
+  background: transparent;
+}
+.tl-range-inner:active .tl-range-window {
+  cursor: grabbing;
+}
+/* Handles: an 8px grab area around each window edge, with a short visible grip. */
+.tl-range-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  cursor: ew-resize;
+}
+.tl-range-handle::after {
+  content: '';
+  width: 3px;
+  margin: 5px 0;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.tl-range-ph {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--tl-playhead);
+  pointer-events: none;
+  z-index: 3;
+}

@@ -1,0 +1,477 @@
+{
+  "format": "living-writing",
+  "version": 2,
+  "vault": {
+    "entityTypes": {
+      "type_character": {
+        "id": "type_character",
+        "name": "Character",
+        "color": "#c2410c",
+        "icon": "user",
+        "defaultProps": {
+          "status": "alive"
+        }
+      },
+      "type_place": {
+        "id": "type_place",
+        "name": "Place",
+        "color": "#15803d",
+        "icon": "map-pin",
+        "defaultProps": {}
+      },
+      "type_object": {
+        "id": "type_object",
+        "name": "Object",
+        "color": "#7c3aed",
+        "icon": "box",
+        "defaultProps": {}
+      },
+      "type_relationship": {
+        "id": "type_relationship",
+        "name": "Relationship",
+        "color": "#be185d",
+        "icon": "link",
+        "defaultProps": {
+          "status": ""
+        }
+      },
+      "type_faction": {
+        "id": "type_faction",
+        "name": "Faction",
+        "color": "#0f766e",
+        "icon": "flag",
+        "defaultProps": {},
+        "group": true
+      }
+    },
+    "entities": {
+      "ent_norman": {
+        "id": "ent_norman",
+        "typeId": "type_character",
+        "name": "Norman",
+        "aliases": [],
+        "note": "Norman keeps the inn at [[Ashford]] and has done for thirty years. He remembers every guest's order and most of their secrets.\n\nHe is the quiet centre of the town. #innkeeper",
+        "props": {
+          "status": "alive",
+          "role": "innkeeper",
+          "home": {
+            "kind": "link",
+            "target": "Ashford"
+          },
+          "affiliations": [
+            {
+              "kind": "link",
+              "target": "The Ashford Guard"
+            }
+          ]
+        }
+      },
+      "ent_mira": {
+        "id": "ent_mira",
+        "typeId": "type_character",
+        "name": "Mira",
+        "aliases": [
+          "The Wanderer"
+        ],
+        "note": "Mira has walked every road between [[Ashford]] and the hills. She never stays anywhere long. #wanderer",
+        "props": {
+          "status": "alive",
+          "role": "wanderer"
+        }
+      },
+      "ent_alice": {
+        "id": "ent_alice",
+        "typeId": "type_character",
+        "name": "Alice",
+        "aliases": [],
+        "note": "Alice has known [[Bob]] since they were children. #friend",
+        "props": {
+          "status": "alive"
+        }
+      },
+      "ent_bob": {
+        "id": "ent_bob",
+        "typeId": "type_character",
+        "name": "Bob",
+        "aliases": [],
+        "note": "Bob is loud, loyal and easily hurt. #friend",
+        "props": {
+          "status": "alive",
+          "affiliations": [
+            {
+              "kind": "link",
+              "target": "The Ashford Guard"
+            }
+          ]
+        }
+      },
+      "ent_ashford": {
+        "id": "ent_ashford",
+        "typeId": "type_place",
+        "name": "Ashford",
+        "aliases": [],
+        "note": "A river town where the old roads meet. #place",
+        "props": {
+          "state": "thriving"
+        }
+      },
+      "ent_sword": {
+        "id": "ent_sword",
+        "typeId": "type_object",
+        "name": "Sword of Ash",
+        "aliases": [],
+        "note": "Forged from black iron and quenched in ash. #object",
+        "props": {
+          "material": "black iron"
+        }
+      },
+      "ent_alice_bob": {
+        "id": "ent_alice_bob",
+        "typeId": "type_relationship",
+        "name": "Alice-Bob",
+        "aliases": [],
+        "note": "The bond between [[Alice]] and [[Bob]].",
+        "props": {
+          "between": [
+            {
+              "kind": "link",
+              "target": "Alice"
+            },
+            {
+              "kind": "link",
+              "target": "Bob"
+            }
+          ],
+          "status": "friends"
+        }
+      },
+      "ent_guard": {
+        "id": "ent_guard",
+        "typeId": "type_faction",
+        "name": "The Ashford Guard",
+        "aliases": [],
+        "note": "The town watch of [[Ashford]]. Few of them are paid, most of them are neighbours. #faction",
+        "props": {
+          "motto": "Hold the gate"
+        }
+      },
+      "ent_wanderers": {
+        "id": "ent_wanderers",
+        "typeId": "type_faction",
+        "name": "The Wanderers' Guild",
+        "aliases": [],
+        "note": "Loose fellowship of people who never stay put. Mira knows most of them. #faction",
+        "props": {}
+      }
+    },
+    "moments": {
+      "m_1": {
+        "id": "m_1",
+        "label": "Late autumn",
+        "timelineId": "main"
+      },
+      "m_2": {
+        "id": "m_2",
+        "timelineId": "main"
+      },
+      "m_3": {
+        "id": "m_3",
+        "timelineId": "main"
+      },
+      "m_4": {
+        "id": "m_4",
+        "timelineId": "main"
+      },
+      "m_5": {
+        "id": "m_5",
+        "timelineId": "main"
+      },
+      "m_m1": {
+        "id": "m_m1",
+        "timelineId": "main"
+      },
+      "m_m2": {
+        "id": "m_m2",
+        "timelineId": "main"
+      }
+    },
+    "constraints": {
+      "c_1": {
+        "id": "c_1",
+        "before": "m_1",
+        "after": "m_2",
+        "timelineId": "main"
+      },
+      "c_2": {
+        "id": "c_2",
+        "before": "m_2",
+        "after": "m_3",
+        "timelineId": "main"
+      },
+      "c_3": {
+        "id": "c_3",
+        "before": "m_3",
+        "after": "m_4",
+        "timelineId": "main"
+      },
+      "c_4": {
+        "id": "c_4",
+        "before": "m_4",
+        "after": "m_5",
+        "timelineId": "main"
+      },
+      "c_5": {
+        "id": "c_5",
+        "before": "m_2",
+        "after": "m_m1",
+        "timelineId": "main"
+      },
+      "c_6": {
+        "id": "c_6",
+        "before": "m_m1",
+        "after": "m_m2",
+        "timelineId": "main"
+      },
+      "c_7": {
+        "id": "c_7",
+        "before": "m_m2",
+        "after": "m_3",
+        "timelineId": "main"
+      }
+    },
+    "stories": {
+      "story_main": {
+        "id": "story_main",
+        "name": "The Ashford Chronicle",
+        "color": "#2563eb",
+        "order": 0
+      },
+      "story_mira": {
+        "id": "story_mira",
+        "name": "Mira's Road",
+        "color": "#d97706",
+        "order": 1
+      }
+    },
+    "arcs": {
+      "arc_1": {
+        "id": "arc_1",
+        "storyId": "story_main",
+        "title": "Arc I: Embers",
+        "order": 0
+      },
+      "arc_2": {
+        "id": "arc_2",
+        "storyId": "story_main",
+        "title": "Arc II: Ash",
+        "order": 1
+      }
+    },
+    "chapters": {
+      "ch_1": {
+        "id": "ch_1",
+        "storyId": "story_main",
+        "title": "Chapter 1",
+        "order": 0,
+        "arcId": "arc_1"
+      },
+      "ch_2": {
+        "id": "ch_2",
+        "storyId": "story_main",
+        "title": "Chapter 2",
+        "order": 1,
+        "arcId": "arc_1"
+      },
+      "ch_3": {
+        "id": "ch_3",
+        "storyId": "story_main",
+        "title": "Chapter 3",
+        "order": 2,
+        "arcId": "arc_1"
+      },
+      "ch_4": {
+        "id": "ch_4",
+        "storyId": "story_main",
+        "title": "Chapter 4",
+        "order": 3,
+        "arcId": "arc_2"
+      },
+      "ch_5": {
+        "id": "ch_5",
+        "storyId": "story_main",
+        "title": "Chapter 5",
+        "order": 4,
+        "arcId": "arc_2"
+      }
+    },
+    "scenes": {
+      "sc_1": {
+        "id": "sc_1",
+        "title": "Supper at the Inn",
+        "storyId": "story_main",
+        "chapterId": "ch_1",
+        "order": 0,
+        "momentId": "m_1",
+        "prose": "[[norman]] is eating his food.\n\nAcross the table, [[Alice]] and [[Bob]] argue quietly over the price of ale. The fire is low, and the [[Sword of Ash]] hangs above the hearth, black against the stones."
+      },
+      "sc_2": {
+        "id": "sc_2",
+        "title": "The Stranger",
+        "storyId": "story_main",
+        "chapterId": "ch_2",
+        "order": 1,
+        "momentId": "m_2",
+        "prose": "A stranger comes in from the rain and asks for [[Norman]] by name. [[Mira]] watches from the doorway, her cloak still wet. [[Alice]] and [[Bob]] laugh together at the far table, not yet knowing what the night will cost them."
+      },
+      "sc_3": {
+        "id": "sc_3",
+        "title": "The Betrayal",
+        "storyId": "story_main",
+        "chapterId": "ch_3",
+        "order": 2,
+        "momentId": "m_3",
+        "prose": "[[Bob]] says the words [[Alice]] will never forget. By morning their friendship lies broken on the floor of the [[Ashford]] inn."
+      },
+      "sc_4": {
+        "id": "sc_4",
+        "title": "Gathering Storm",
+        "storyId": "story_main",
+        "chapterId": "ch_4",
+        "order": 3,
+        "momentId": "m_4",
+        "prose": "Clouds pile up over the hills above [[Ashford]]. [[Mira]] counts the coins in her purse and decides to leave before the storm breaks."
+      },
+      "sc_5": {
+        "id": "sc_5",
+        "title": "The Fall of Ashford",
+        "storyId": "story_main",
+        "chapterId": "ch_5",
+        "order": 4,
+        "momentId": "m_5",
+        "prose": "The gates of [[Ashford]] give way at dusk. [[Norman]] falls defending the inn, and the town burns until the sky is red. Little of [[Ashford]] is left standing."
+      },
+      "sc_m1": {
+        "id": "sc_m1",
+        "title": "Crossroads",
+        "storyId": "story_mira",
+        "chapterId": null,
+        "order": 0,
+        "momentId": "m_m1",
+        "prose": "[[Mira]] reaches the crossroads at first light. One road leads back to [[Ashford]]; the other climbs into the hills. She stands there longer than she means to."
+      },
+      "sc_m2": {
+        "id": "sc_m2",
+        "title": "The Sword in the Ash",
+        "storyId": "story_mira",
+        "chapterId": null,
+        "order": 1,
+        "momentId": "m_m2",
+        "prose": "Among the ashes of the old road, [[Mira]] finds the [[Sword of Ash]] half buried in cinders. She lifts it, and it is heavier than it should be. From now on it is hers to carry."
+      }
+    },
+    "changes": {
+      "chg_1": {
+        "id": "chg_1",
+        "sceneId": "sc_3",
+        "entityId": "ent_alice_bob",
+        "op": "set",
+        "property": "status",
+        "value": "enemies",
+        "order": 0,
+        "message": "Alice sells Bob out to the mayor"
+      },
+      "chg_2": {
+        "id": "chg_2",
+        "sceneId": "sc_5",
+        "entityId": "ent_norman",
+        "op": "set",
+        "property": "status",
+        "value": "dead",
+        "order": 0,
+        "message": "Falls defending the inn"
+      },
+      "chg_3": {
+        "id": "chg_3",
+        "sceneId": "sc_5",
+        "entityId": "ent_ashford",
+        "op": "set",
+        "property": "state",
+        "value": "ruined",
+        "order": 0,
+        "message": "Burned in the night of the fall"
+      },
+      "chg_4": {
+        "id": "chg_4",
+        "sceneId": "sc_m2",
+        "entityId": "ent_sword",
+        "op": "set",
+        "property": "owner",
+        "value": {
+          "kind": "link",
+          "target": "Mira"
+        },
+        "order": 0,
+        "message": "Mira pulls the sword from the ashes"
+      },
+      "chg_5": {
+        "id": "chg_5",
+        "sceneId": "sc_2",
+        "entityId": "ent_mira",
+        "op": "note",
+        "order": 0,
+        "message": "Arrives in Ashford, watching from the doorway"
+      },
+      "chg_6": {
+        "id": "chg_6",
+        "sceneId": "sc_m1",
+        "entityId": "ent_mira",
+        "op": "add",
+        "property": "affiliations",
+        "value": {
+          "kind": "link",
+          "target": "The Wanderers' Guild"
+        },
+        "order": 0,
+        "message": "Joins the Wanderers' Guild at the crossroads"
+      },
+      "chg_7": {
+        "id": "chg_7",
+        "sceneId": "sc_3",
+        "entityId": "ent_alice",
+        "op": "add",
+        "property": "affiliations",
+        "value": {
+          "kind": "link",
+          "target": "The Ashford Guard"
+        },
+        "order": 1,
+        "message": "Takes Bob's place in the Guard"
+      },
+      "chg_8": {
+        "id": "chg_8",
+        "sceneId": "sc_4",
+        "entityId": "ent_mira",
+        "op": "revise",
+        "order": 0,
+        "message": "Decides to leave before the storm",
+        "note": "Mira has walked every road between [[Ashford]] and the hills. She never stays anywhere long. #wanderer\n\nShe has cut her hair short for the road and means to be gone before the storm breaks."
+      }
+    },
+    "reviewItems": {
+      "review_mvinpxyrh0fhe01": {
+        "id": "review_mvinpxyrh0fhe01",
+        "sceneId": "sc_m1",
+        "cause": "Delete a commit: Norman status: dead → alive",
+        "status": "open",
+        "created": 1700000000000
+      },
+      "review_mvinpxyrjxj7g32": {
+        "id": "review_mvinpxyrjxj7g32",
+        "sceneId": "sc_2",
+        "cause": "Moved a scene",
+        "status": "done",
+        "created": 1700000000000
+      }
+    }
+  }
+}

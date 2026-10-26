@@ -1,0 +1,118 @@
+/* Folder sync indicator and its popover (FolderSync.tsx). The popover reuses the .menu classes. */
+
+.folder-sync {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.folder-sync-pill {
+  border: none;
+  background: transparent;
+  color: var(--fg-muted);
+  font: inherit;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.folder-sync-pill:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+
+.folder-sync-pill.error {
+  color: var(--danger);
+}
+
+.folder-sync-reconnect {
+  color: var(--warn);
+  border-color: var(--warn);
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.folder-sync-menu {
+  min-width: 260px;
+  max-width: min(320px, calc(100vw - 32px));
+  padding: 10px;
+}
+
+.folder-sync-title {
+  font-weight: 600;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.folder-sync-meta {
+  font-size: 12px;
+  color: var(--fg-muted);
+  margin: 2px 0 8px;
+}
+
+.folder-sync-error {
+  font-size: 12px;
+  color: var(--danger);
+  margin-bottom: 8px;
+  overflow-wrap: anywhere;
+}
+
+.folder-sync-note {
+  font-size: 12px;
+  color: var(--fg-muted);
+  line-height: 1.4;
+  margin: 0 0 6px;
+}
+
+/* The banner for changes sync cannot settle alone. */
+.folder-banner {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 60;
+  max-width: min(480px, calc(100vw - 32px));
+  padding: 12px 14px;
+  border: 1px solid var(--warn);
+  border-radius: 10px;
+  background: var(--bg-elev);
+  color: var(--fg);
+  font-size: 12.5px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+}
+
+.folder-banner p {
+  margin: 4px 0 8px;
+  color: var(--fg-muted);
+}
+
+.folder-banner ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.folder-banner li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+}
+
+.folder-banner-path {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.folder-banner-actions {
+  display: flex;
+  gap: 8px;
+}

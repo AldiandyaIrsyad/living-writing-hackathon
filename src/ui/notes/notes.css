@@ -1,0 +1,214 @@
+/* Author notes: editor highlight, preview spans, the scene panel and the Notes view. */
+
+/* Editor (CodeMirror mark decoration). */
+.cm-author-note {
+  color: var(--fg-muted);
+  font-style: italic;
+  background: var(--warn-soft);
+  border-radius: 4px;
+  padding: 0 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* Editor, notes collapsed: a small chip in place of each note. Click it to reveal the note. */
+.cm-note-marker {
+  display: inline-block;
+  min-width: 1.4em;
+  padding: 0 4px;
+  margin: 0 2px;
+  border-radius: 999px;
+  background: var(--warn-soft);
+  color: var(--fg-muted);
+  font-size: 0.8em;
+  line-height: 1.5;
+  text-align: center;
+  vertical-align: 0.1em;
+  cursor: pointer;
+  user-select: none;
+}
+.cm-note-marker:hover {
+  color: var(--fg);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+/* Preview / export-style rendering when notes are shown. */
+.author-note {
+  color: var(--fg-muted);
+  font-style: italic;
+  background: var(--warn-soft);
+  border-radius: 4px;
+  padding: 0 2px;
+}
+
+/* Scene panel ("Author notes" in the inspector). */
+.author-notes-panel .panel-head {
+  justify-content: space-between;
+}
+.author-notes-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-faint);
+  font-weight: 500;
+}
+.author-notes-empty {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.notes-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.notes-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--fg-muted);
+  font-style: italic;
+  background: var(--warn-soft);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.notes-item:hover {
+  border-color: var(--border-strong);
+}
+.notes-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Notes view: every author note in the vault. */
+.notes-view {
+  padding-bottom: 80px;
+}
+.notes-count {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: var(--bg-sunk);
+  border: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+.notes-intro {
+  margin: 4px 0 14px;
+  font-size: 12.5px;
+}
+.notes-filter {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--fg);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 7px 10px;
+}
+.notes-filter::placeholder {
+  color: var(--fg-faint);
+}
+.notes-filter:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.notes-empty {
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+.notes-group {
+  margin-top: 22px;
+}
+.notes-group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-muted);
+}
+.notes-group-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--accent);
+}
+.notes-group-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-faint);
+  font-weight: 500;
+}
+.notes-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.notes-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: var(--fg);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.notes-row:hover {
+  background: var(--bg-hover);
+}
+.notes-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.notes-row-where {
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.notes-row-text {
+  font-family: var(--font-prose);
+  font-size: 14px;
+  line-height: 1.5;
+  font-style: italic;
+  color: var(--fg-muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
