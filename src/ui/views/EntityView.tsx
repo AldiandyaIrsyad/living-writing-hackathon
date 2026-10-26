@@ -128,6 +128,7 @@ function EntityPage({ entity, at }: { entity: Entity; at?: TimePoint }) {
   const pending = useStore((s) => s.pendingRevise);
   const [sel, setSel] = useState<TimeSel>(fromTimePoint(at));
   const [preview, setPreview] = useState(true);
+  const [sources, setSources] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const [consumed, setConsumed] = useState<typeof pending>(null);
@@ -311,6 +312,18 @@ function EntityPage({ entity, at }: { entity: Entity; at?: TimePoint }) {
           <section className="panel" data-testid="page-panel">
             <div className="panel-head">
               Note <span className="grow" />
+              {!draft && (
+                <button
+                  type="button"
+                  className={`btn btn-sm btn-ghost ${sources ? 'active' : ''}`}
+                  data-testid="page-sources-toggle"
+                  aria-pressed={sources}
+                  title="Show which scene wrote each line"
+                  onClick={() => setSources(!sources)}
+                >
+                  Sources
+                </button>
+              )}
               {!draft && reviseScene && (
                 <button type="button" className="btn btn-sm" data-testid="revise-page" onClick={openDraft}>
                   Revise page here
@@ -416,6 +429,8 @@ function EntityPage({ entity, at }: { entity: Entity; at?: TimePoint }) {
                     </div>
                   )}
                 </div>
+              ) : sources ? (
+                <LineSources entityId={entity.id} revision={state.revision} />
               ) : preview || hasRevisions ? (
                 <div onDoubleClick={() => (hasRevisions ? openDraft() : setPreview(false))} title={hasRevisions ? 'Double-click to edit' : undefined}>
                   <Markdown text={state.note} testId="note-preview" />
@@ -452,6 +467,40 @@ function EntityPage({ entity, at }: { entity: Entity; at?: TimePoint }) {
         </aside>
       </div>
     </div>
+  );
+}
+
+/** The page as it reads now, line by line, each run of lines tagged with the scene whose version wrote it. */
+function LineSources({ entityId, revision }: { entityId: Id; revision: StateChange | null }) {
+  const vault = useVault();
+  const navigate = useStore((s) => s.navigate);
+  const lines = getResolver(vault).lineSources(entityId, revision);
+  if (!lines.length) return <div className="faint small">The page is empty.</div>;
+  return (
+    <ol className="page-sources" data-testid="page-sources">
+      {lines.map((l, i) => {
+        const prev = lines[i - 1];
+        const tag = l.text.trim() !== '' && (!prev || prev.change !== l.change || prev.text.trim() === '');
+        const sceneId = l.change?.at === undefined ? l.change?.sceneId : undefined;
+        return (
+          <li key={i} className={l.change?.agent ? 'by-agent' : undefined} data-testid="page-source-line">
+            <span className="page-source-text">{l.text || ' '}</span>
+            {tag && (
+              <button
+                type="button"
+                className="page-source-tag small"
+                disabled={!sceneId}
+                title={sceneId ? 'Open the scene' : undefined}
+                onClick={() => sceneId && navigate({ kind: 'scene', id: sceneId })}
+              >
+                {l.change ? changeWhere(vault, l.change) : 'Base page'}
+                {l.change?.agent ? ' · agent' : ''}
+              </button>
+            )}
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 

@@ -100,28 +100,14 @@ export function inverseEdits(before: string, after: string): PageEdit[] {
   return out;
 }
 
-/**
- * Whether each line of a page version was written by the agent: replays the page's history up to the revision that
- * made it (null = the base page, all the writer's).
- */
+/** The lines of a page version (made by `upTo`, null = the base page) that the agent wrote, by their words. */
 export function agentLines(r: Resolver, entityId: Id, upTo: StateChange | null): Set<string> {
-  const versions = r.pageHistory(entityId);
-  let owned = pageLines(versions[0].note).map((text) => ({ text, agent: false }));
-  if (upTo) {
-    for (const v of versions.slice(1)) {
-      const diff = diffLines(v.prevNote, v.note);
-      const next: typeof owned = [];
-      let k = 0;
-      for (const d of diff) {
-        if (d.kind === 'same') next.push(owned[k++]);
-        else if (d.kind === 'del') k++;
-        else next.push({ text: d.text, agent: v.change!.agent !== undefined });
-      }
-      owned = next;
-      if (v.change!.id === upTo.id) break;
-    }
-  }
-  return new Set(owned.filter((l) => l.agent).map((l) => words(l.text)));
+  return new Set(
+    r
+      .lineSources(entityId, upTo)
+      .filter((l) => l.change?.agent !== undefined)
+      .map((l) => words(l.text)),
+  );
 }
 
 export const isAgentLine = (owned: Set<string>, line: string): boolean => owned.has(words(line));

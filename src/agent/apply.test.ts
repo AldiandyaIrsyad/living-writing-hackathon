@@ -128,6 +128,24 @@ describe('editing pages', () => {
   });
 });
 
+describe('where each line of a page came from', () => {
+  it('tags each line with the page version that wrote it, telling the agent’s lines from the writer’s', () => {
+    let v = world('Nora quit.');
+    v = applyAgentOutput(v, 's1', answer({ pages: [adds('Nora', 'Rides a grey mare')] }), agent).vault;
+    v = editPage(v, 's2', 'nora', [{ kind: 'add', text: 'Quit the guild' }], 'writer', 'Mine').vault;
+    const r = new Resolver(v);
+    const sources = r
+      .lineSources('nora', r.entityAt('nora', { kind: 'latest' }).revision)
+      .filter((l) => l.text.trim())
+      .map((l) => [l.text, l.change?.sceneId ?? 'base page', l.change?.agent ?? 'writer']);
+    expect(sources).toEqual([
+      ['Nora is a courier.', 'base page', 'writer'],
+      ['- Rides a grey mare', 's1', 'm1'],
+      ['- Quit the guild', 's2', 'writer'],
+    ]);
+  });
+});
+
 describe('placing a new line on a page', () => {
   it('goes at the end of its heading’s section, and a heading the page lacks is added', () => {
     const page = '# Nora\n\n## Looks\n- Tall\n\n## History\n- Born in Ashford\n';
@@ -137,13 +155,30 @@ describe('placing a new line on a page', () => {
 });
 
 describe('properties and time', () => {
-  it('changes a property the entity has from the scene on, and ignores one it does not have', () => {
-    const v = new VaultBuilder().entity('norman', { status: 'alive' }, 'Norman').scene('s1').scene('s2').chain('s1', 's2').build();
+  it('changes a property from the scene on, over a value the writer set only when overwriting is allowed, else offers it', () => {
+    const v = new VaultBuilder().entity('norman', { status: 'alive', mood: 'calm' }, 'Norman').scene('s1').scene('s2').chain('s1', 's2').build();
+    v.entityTypes.t.defaultProps = { mood: 'calm' }; // filled in by the type, not chosen by the writer
     v.scenes.s2.prose = 'Norman fell.';
-    const { vault } = applyAgentOutput(v, 's2', answer({ properties: [{ entity: 'Norman', property: 'status', value: 'dead' }, { entity: 'Norman', property: 'shoeSize', value: '9' }] }), agent);
-    const r = new Resolver(vault);
+    const out = answer({
+      properties: [
+        { entity: 'Norman', property: 'status', value: 'dead' },
+        { entity: 'Norman', property: 'mood', value: 'angry' },
+        { entity: 'Norman', property: 'shoeSize', value: '9' },
+      ],
+    });
+    const after = (x: Vault) => {
+      const r = new Resolver(x);
+      return Object.fromEntries(Object.entries(r.entityAt('norman', r.atScene('s2', true)).props).map(([k, p]) => [k, p.value]));
+    };
+
+    const careful = applyAgentOutput(v, 's2', out, agent);
+    expect(after(careful.vault)).toEqual({ status: 'alive', mood: 'angry' });
+    expect(careful.report.propertySuggestions.map((p) => [p.property, p.value])).toEqual([['status', 'dead']]);
+
+    const bold = applyAgentOutput(v, 's2', out, { ...agent, allowOverwrite: true });
+    expect(after(bold.vault)).toEqual({ status: 'dead', mood: 'angry' });
+    const r = new Resolver(bold.vault);
     expect(r.entityAt('norman', r.atScene('s2')).props.status.value).toBe('alive');
-    expect(Object.fromEntries(Object.entries(r.entityAt('norman', r.atScene('s2', true)).props).map(([k, p]) => [k, p.value]))).toEqual({ status: 'dead' });
   });
 
   it('fills an empty time label, and only suggests one over the writer’s', () => {
@@ -190,11 +225,11 @@ describe('what the agent is shown', () => {
     expect(buildContext(v, 's2')).not.toContain('Current state: (none recorded)');
   });
 
-  it('passes on notes the writer addressed to the agent, and keeps their other notes private', () => {
-    const v = world('[[Nora]] woke screaming. %% agent: this whole scene is a dream %% %% fix the pacing here %%');
+  it('gives the agent the writer’s notes apart from the scene text, so a comment is never read as story', () => {
+    const v = world('[[Nora]] woke screaming. %% this whole scene is a dream %% She ran. %% agent: Nora is lying later %%');
     const context = buildContext(v, 's2');
-    expect(context).toContain('Notes from the writer:\n- this whole scene is a dream');
-    expect(context).not.toContain('pacing');
+    expect(context).toContain('Notes from the writer:\n- this whole scene is a dream\n- Nora is lying later');
+    expect(context).toContain('Scene text:\n"""\n[[Nora]] woke screaming.  She ran.\n"""');
   });
 });
 

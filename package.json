@@ -6,6 +6,7 @@
     "dev": "vite",
     "dev:server": "node --watch server/main.ts",
     "dev:full": "node scripts/dev-full.mjs",
+    "dev:gemini": "node scripts/dev-full.mjs --provider=gemini",
     "build": "tsc && vite build",
     "build:full": "tsc && vite build --mode backend",
     "start": "node server/main.ts",

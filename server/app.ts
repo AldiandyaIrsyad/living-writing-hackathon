@@ -21,7 +21,7 @@ export interface ServerOptions {
    * The models behind the story agent (an OpenAI-style chat completions service); the writer picks one of `models`, and
    * the first is the default. Without it the agent is off.
    */
-  agent?: { apiKey: string; baseUrl: string; models: string[] };
+  agent?: { provider: string; apiKey: string; baseUrl: string; models: string[] };
 }
 
 const AGENT_CALLS_PER_WINDOW = 120;
@@ -220,13 +220,13 @@ export async function buildApp(opts: ServerOptions) {
 
   app.get('/api/agent', async (req, reply) => {
     if (!sessionUser(req)) return reply.code(401).send({ error: 'Not signed in.' });
-    return { enabled: !!opts.agent, models: opts.agent?.models ?? [] };
+    return { enabled: !!opts.agent, provider: opts.agent?.provider ?? null, models: opts.agent?.models ?? [] };
   });
 
   app.post('/api/agent/chat', async (req, reply) => {
     const user = sessionUser(req);
     if (!user) return reply.code(401).send({ error: 'Not signed in.' });
-    if (!opts.agent) return reply.code(503).send({ error: 'The story agent is off: the server has no MODEL_API_KEY.' });
+    if (!opts.agent) return reply.code(503).send({ error: 'The story agent is off: the server has no model API key.' });
     const { messages, tools, model = opts.agent.models[0] } = (req.body ?? {}) as { messages?: unknown; tools?: unknown; model?: unknown };
     if (!Array.isArray(messages) || messages.length === 0 || (tools !== undefined && !Array.isArray(tools))) return reply.code(400).send({ error: 'Malformed agent request.' });
     if (typeof model !== 'string' || !opts.agent.models.includes(model)) return reply.code(400).send({ error: 'That model is not offered on this server.' });

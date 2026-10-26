@@ -1,5 +1,6 @@
 // State resolution: what an entity looks like at a point in relative time.
 
+import { diffLines } from './diff';
 import { buildGraph, type MomentGraph } from './graph';
 import type { Anchor, Id, PropValue, ScalarValue, StateChange, TimePoint, Vault } from './types';
 import { isLink } from './types';
@@ -69,6 +70,14 @@ export function formatValue(v: PropValue | undefined): string {
   if (Array.isArray(v)) return v.map((x) => formatValue(x)).join(', ');
   if (isLink(v)) return `[[${v.target}]]`;
   return String(v);
+}
+
+/** A page's lines as `diffLines` counts them: a trailing newline adds no empty line. */
+function splitPage(note: string): string[] {
+  if (note === '') return [];
+  const lines = note.replace(/\r\n/g, '\n').split('\n');
+  if (lines[lines.length - 1] === '') lines.pop();
+  return lines;
 }
 
 function toList(v: PropValue | undefined): ScalarValue[] {
@@ -342,6 +351,28 @@ export class Resolver {
       out.push({ change: c, note, name, prevNote, prevName });
     }
     return out;
+  }
+
+  /**
+   * Where each line of a page version came from: replays the page's history up to the revision that made the version
+   * (null = the base page) and keeps, for every line, the revision that wrote it (null = the base page).
+   */
+  lineSources(entityId: Id, upTo: StateChange | null): { text: string; change: StateChange | null }[] {
+    const versions = this.pageHistory(entityId);
+    let lines = splitPage(versions[0].note).map((text) => ({ text, change: null as StateChange | null }));
+    if (!upTo) return lines;
+    for (const v of versions.slice(1)) {
+      const next: typeof lines = [];
+      let k = 0;
+      for (const d of diffLines(v.prevNote, v.note)) {
+        if (d.kind === 'same') next.push(lines[k++]);
+        else if (d.kind === 'del') k++;
+        else next.push({ text: d.text, change: v.change });
+      }
+      lines = next;
+      if (v.change!.id === upTo.id) break;
+    }
+    return lines;
   }
 
   /** Every change to the entity in chronological order with before/after values. */

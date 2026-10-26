@@ -35,7 +35,10 @@ export interface AgentOutput {
 export interface AgentOptions {
   /** The model that wrote it, recorded on every change it makes. */
   model: string;
-  /** May the agent rewrite or remove lines the writer wrote? Off: those edits are only offered. Its own lines it may always rewrite. */
+  /**
+   * May the agent overwrite what the writer wrote: rewrite or remove their lines on a page, or change a property value
+   * they set? Off: those changes are only offered. What the agent wrote itself it may always change.
+   */
   allowOverwrite: boolean;
 }
 
@@ -46,6 +49,8 @@ export interface AgentReport {
   /** Edits to the writer's own lines, offered and not made (overwriting is off, or the writer revised the page here). */
   suggestions: { entityId: Id; entity: string; edit: PageEdit }[];
   properties: { entity: string; property: string; value: string }[];
+  /** Property changes over a value the writer set, offered and not made (overwriting is off). */
+  propertySuggestions: { entityId: Id; entity: string; property: string; value: string }[];
   states: { entity: string; state: string }[];
   /** Facts a character only claimed: offered to the writer, never written. */
   claimed: { entity: string; edits: PageEdit[] }[];
@@ -196,7 +201,7 @@ function typeFor(vault: Vault, name: string): { vault: Vault; id: Id } {
 }
 
 /** A property value as the model wrote it: "[[Name]]" is a link, anything else is text. */
-function propValue(raw: string): PropValue {
+export function propValue(raw: string): PropValue {
   const link = /^\[\[([^\]|]+)(?:\|[^\]]*)?\]\]$/.exec(raw);
   return link ? { kind: 'link', target: link[1].trim() } : raw;
 }
@@ -208,7 +213,7 @@ function propValue(raw: string): PropValue {
  */
 export function applyAgentOutput(vault: Vault, sceneId: Id, out: AgentOutput, opts: AgentOptions): { vault: Vault; report: AgentReport } {
   const scene = vault.scenes[sceneId];
-  const report: AgentReport = { created: [], pages: [], suggestions: [], properties: [], states: [], claimed: [], skipped: [], contradictions: [], unlinkedNames: [...out.unlinkedNames] };
+  const report: AgentReport = { created: [], pages: [], suggestions: [], properties: [], propertySuggestions: [], states: [], claimed: [], skipped: [], contradictions: [], unlinkedNames: [...out.unlinkedNames] };
   let v = undoAgentChanges(vault, sceneId).vault;
 
   // 1. A [[link]] with no page is the writer asking for one. Only those become entities; other names are suggestions.
@@ -256,10 +261,17 @@ export function applyAgentOutput(vault: Vault, sceneId: Id, out: AgentOutput, op
     const known = p.property in at.props || p.property in (v.entityTypes[e.typeId]?.defaultProps ?? {});
     if (!known || p.property === 'state') continue;
     const value = propValue(p.value);
-    if (valueEquals(at.props[p.property]?.value, value)) continue;
-    const writers = Object.values(v.changes).some((c: StateChange) => c.sceneId === sceneId && c.entityId === e.id && c.property === p.property);
-    if (writers) {
+    const current = at.props[p.property];
+    if (valueEquals(current?.value, value)) continue;
+    const setHere = Object.values(v.changes).some((c: StateChange) => c.sceneId === sceneId && c.entityId === e.id && c.property === p.property);
+    if (setHere) {
       report.skipped.push(`You already set ${e.name}’s ${p.property} in this scene, so it was left alone.`);
+      continue;
+    }
+    // The writer's value: from a commit of theirs, or a starting value they chose (not one the type's template filled in).
+    const writers = current && (current.changeId ? v.changes[current.changeId]?.agent === undefined : !valueEquals(current.value, v.entityTypes[e.typeId]?.defaultProps[p.property]));
+    if (writers && !opts.allowOverwrite) {
+      report.propertySuggestions.push({ entityId: e.id, entity: e.name, property: p.property, value: p.value });
       continue;
     }
     v = addChange(v, { sceneId, entityId: e.id, op: 'set', property: p.property, value, agent: opts.model }).vault;

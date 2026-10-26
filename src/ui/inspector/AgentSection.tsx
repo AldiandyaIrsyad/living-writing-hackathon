@@ -2,12 +2,12 @@
 // writer to decide. Everything it wrote can be taken back for this scene in one click; everything it only offered can
 // be accepted one line at a time.
 
-import { editPage, revertAgentOutput, type AgentReport } from '../../agent/apply';
+import { editPage, propValue, revertAgentOutput, type AgentReport } from '../../agent/apply';
 import type { PageEdit } from '../../agent/page';
 import { enqueueScene, isContributor, readSceneNow, useAgent, type Trigger } from '../../agent/run';
 import type { Id, Scene, Vault } from '../../core/types';
 import { slugify } from '../../core/types';
-import { setMomentConcrete, setMomentLabel, setMomentTimeSkip, sortedTypes, updateEntity } from '../../store/actions';
+import { addChange, setMomentConcrete, setMomentLabel, setMomentTimeSkip, sortedTypes, updateEntity } from '../../store/actions';
 import { BACKEND } from '../../store/server';
 import { useStore, useVault } from '../../store/store';
 import { setDismissed, useDismissed } from '../dismissed';
@@ -38,7 +38,7 @@ const commit = (next: Vault, label: string) => useStore.getState().commit(next, 
 
 export function AgentSection({ scene, writing }: { scene: Scene; writing: boolean }) {
   const vault = useVault();
-  const { trigger, setTrigger, enabled, models, model, setModel, allowOverwrite, setAllowOverwrite, running, error, reports, setReport } = useAgent();
+  const { trigger, setTrigger, enabled, provider, models, model, setModel, allowOverwrite, setAllowOverwrite, running, error, reports, setReport } = useAgent();
   const dismissed = useDismissed();
   if (!BACKEND) return null;
 
@@ -54,6 +54,7 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
     <section className="insp-section agent" data-testid="insp-agent">
       <div className="insp-sec-head">
         <span>Story agent</span>
+        {provider && <span className="agent-provider">via {provider}</span>}
       </div>
 
       <label className="agent-row small">
@@ -78,18 +79,23 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
           </select>
         </label>
       )}
+      {provider === 'Google Gemini' && (
+        <div className="small faint" data-testid="agent-gemini-note">
+          Gemini is a stand-in for Meta’s models. On Google’s free tier, what is sent may be used to improve Google’s products.
+        </div>
+      )}
       {model && isContributor(model) && (
         <div className="small agent-error" data-testid="agent-contributor-warning">
           Contributor mode: Meta may use what the agent sends (your scenes and wiki pages) to train its models.
         </div>
       )}
-      <label className="agent-row small" title="Off: the agent rewrites only lines it wrote itself, and offers changes to yours instead.">
+      <label className="agent-row small" title="Off: the agent changes only what it wrote itself (page lines, property values), and offers changes to yours instead.">
         <input type="checkbox" checked={allowOverwrite} onChange={(e) => setAllowOverwrite(e.target.checked)} data-testid="agent-overwrite" />
         <span>Allow overwriting what I wrote in the wiki</span>
       </label>
 
       {enabled === false ? (
-        <div className="small faint">The server has no model key. Set MODEL_API_KEY and restart it.</div>
+        <div className="small faint">The server has no model key. Put MODEL_API_KEY (Meta) or GEMINI_API_KEY in .env.local and restart it (`npm run dev:gemini` for Gemini).</div>
       ) : (
         <div className="agent-row">
           <button type="button" className="btn btn-sm" data-testid="agent-read" disabled={busy || !writing || scene.prose.trim() === ''} onClick={() => readSceneNow(scene.id)}>
@@ -185,6 +191,28 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
                   Apply
                 </button>
                 <button type="button" className="btn btn-sm btn-ghost" onClick={() => patch({ suggestions: report.suggestions.filter((_, k) => k !== i) })}>
+                  Keep mine
+                </button>
+              </div>
+            </div>
+          ))}
+          {(report.propertySuggestions ?? []).map((p, i) => (
+            <div key={`${p.entity}:${p.property}`} className="agent-flag" data-testid="agent-property-suggestion">
+              <div>
+                <b>{p.entity}</b>, a value you set: {p.property} → {p.value}
+              </div>
+              <div className="agent-row">
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => {
+                    commit(addChange(useStore.getState().vault, { sceneId: scene.id, entityId: p.entityId, op: 'set', property: p.property, value: propValue(p.value) }).vault, 'Accept agent property');
+                    patch({ propertySuggestions: report.propertySuggestions.filter((_, k) => k !== i) });
+                  }}
+                >
+                  Apply
+                </button>
+                <button type="button" className="btn btn-sm btn-ghost" onClick={() => patch({ propertySuggestions: report.propertySuggestions.filter((_, k) => k !== i) })}>
                   Keep mine
                 </button>
               </div>

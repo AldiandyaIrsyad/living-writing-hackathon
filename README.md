@@ -51,7 +51,9 @@ reload"). `npm run test:e2e:backend` runs the browser test for server mode.
 A model reads each scene you hand in and keeps the wiki current, so you only write the story. It runs in the Inspector's
 "Story agent" section and needs the server: set `MODEL_API_KEY` (and optionally `META_API_BASE`, default
 `https://api.meta.ai/v1`, and `AGENT_MODELS`, a comma-separated list the writer picks from in the panel, the first being
-the default), then `npm run dev:full`. The default list is Meta's chat models, Standard first: a `-contributor` model is
+the default), then `npm run dev:full`. Keys can go in `.env.local` (copy `.env.local.example`; it is never committed).
+Without a Meta key, `npm run dev:gemini` uses Google's Gemini instead (`GEMINI_API_KEY`, optional `GEMINI_API_BASE`,
+default model `gemini-3.8-flash`) through its OpenAI-compatible endpoint; the panel says which service it talks to. The default list is Meta's chat models, Standard first: a `-contributor` model is
 cheaper, but Meta may train its models on what is sent to it, so the panel warns when one is picked.
 
 - **When it reads:** only when you press "Read this scene" (default), when you leave a scene you edited, or 20 seconds
@@ -65,7 +67,8 @@ cheaper, but Meta may train its models on what is sent to it, so the panel warns
   back, updates those later versions too.
 - **Your lines are yours.** Who wrote each line is read from the page's history. The agent may always rewrite its own
   lines; yours only with "Allow overwriting what I wrote in the wiki" on. Off (the default), its changes to your lines
-  are offered with Apply / Keep mine. A page version you edit, or an agent edit you accept, becomes yours, and "Take
+  are offered with Apply / Keep mine. The same option covers property values you set (a value the type's template
+  filled in does not count as yours). A page version you edit, or an agent edit you accept, becomes yours, and "Take
   back" leaves it alone.
 - **Properties** the entity already has (status, owner…) are changed from the scene on when the story changes them.
   **Short-lived condition** (where they are, mood, what they know) is kept as one `state` property per scene, shown in
@@ -75,8 +78,11 @@ cheaper, but Meta may train its models on what is sent to it, so the panel warns
   both quotes is dropped. A flashback is checked against the story as it was at its own place on the timeline.
 - **Time:** the agent fills in a moment's time label ("late autumn") when it has none, and only suggests one over yours;
   time skips and dates are suggestions with Apply. It never moves a scene.
-- **Talking to the agent:** an author note starting with `agent:` (`%% agent: this scene is a dream %%`) is passed to it
-  as an instruction. Every other author note stays private.
+- **Talking to the agent:** author notes (`%% this is not true, she is lying %%`) are given to it apart from the scene
+  text. A note about the story outranks the scene; notes about the writing itself (pacing, "fix later") are ignored, and
+  an idea a note only wonders about is never recorded as fact.
+- **Sources:** the entity page's "Sources" button shows the page line by line, each run of lines tagged with the scene
+  whose version wrote it (and "agent" when the agent did). Click a tag to open the scene.
 - **Take back** removes everything the agent wrote for a scene. Agent changes carry an `agent` field (the model that
   wrote them) in the vault and in exports.
 

@@ -33,7 +33,7 @@ Rules:
 - contradictions: only when the scene plainly conflicts with the page, properties or state shown. "sceneQuote" is copied verbatim from the scene and "wikiQuote" verbatim from what you were shown. A change the scene itself narrates (she loses the hand in this scene) is an update, not a contradiction. If the scene's time is unknown, report none. When in doubt, report nothing.
 - timeSkip / concrete: only when the scene says how much time passed ("three days later") or gives a date. timeLabel: a short label for when the scene happens, from what the scene shows ("late autumn", "the night of the fire"). Otherwise omit them.
 - unlinkedNames: named people, places or things in the scene that have no page and are not linked. Skip throwaway mentions.
-- "Notes from the writer" are the writer's instructions about this scene (for example "this is a dream", "she is lying"). Follow them.
+- "Notes from the writer" are the writer's comments on this scene, not story text. When a note says something about the story ("this is not true", "she is lying", "this is a dream", "Tam is the courier from chapter 2"), it outranks the scene: follow it. Ignore notes about the writing itself (pacing, wording, "fix later"), and never record an idea a note only wonders about ("maybe Nora dies?") as a fact.
 - Write in the language of the scene. Invent nothing. If the scene establishes nothing new, return empty arrays.`;
 
 export const TOOLS = [
@@ -62,13 +62,13 @@ export function sceneText(prose: string): string {
   return out.trim();
 }
 
-const TO_AGENT = /^agent\s*:\s*/i;
-
-/** Author notes the writer addressed to the agent (`%% agent: this is a dream %%`). Every other note stays private. */
-export function notesToAgent(prose: string): string[] {
+/**
+ * The writer's author notes (`%% this is not true %%`), given to the agent apart from the scene text so a comment is
+ * never read as story. An "agent:" at the start, for a note meant only for it, is dropped.
+ */
+export function writerNotes(prose: string): string[] {
   return findAuthorNotesOutsideCode(prose)
-    .filter((n) => TO_AGENT.test(n.text))
-    .map((n) => n.text.replace(TO_AGENT, '').trim())
+    .map((n) => n.text.replace(/^agent\s*:\s*/i, '').trim())
     .filter(Boolean);
 }
 
@@ -111,7 +111,7 @@ export function buildContext(vault: Vault, sceneId: Id): string {
   }
   const roster = Object.values(vault.entities).map((e) => `- ${e.name} [${vault.entityTypes[e.typeId]?.name ?? ''}]${e.aliases.length ? ` also: ${e.aliases.join(', ')}` : ''}`);
   const types = Object.values(vault.entityTypes).map((t) => `- ${t.name}${t.description ? `: ${t.description}` : ''}`);
-  const notes = notesToAgent(scene.prose);
+  const notes = writerNotes(scene.prose);
   const missing = unresolvedLinks(vault, scene.prose);
 
   return [

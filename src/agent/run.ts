@@ -30,6 +30,8 @@ interface AgentStore {
   trigger: Trigger;
   /** Null until the server has said whether it has a model key. */
   enabled: boolean | null;
+  /** The model service the server talks to, by name (Meta, or Google Gemini as a stand-in). */
+  provider: string | null;
   /** The models the server offers, its default first. */
   models: string[];
   /** The writer's pick among `models`. */
@@ -83,6 +85,7 @@ function loadReports(): Record<Id, AgentReport> {
 export const useAgent = create<AgentStore>((set) => ({
   trigger: loadTrigger(),
   enabled: null,
+  provider: null,
   models: [],
   model: null,
   allowOverwrite: recall(OVERWRITE_KEY) === 'true',
@@ -193,11 +196,11 @@ function readEdited(): void {
 export function startAgent(): void {
   if (!BACKEND) return;
   void fetch('/api/agent')
-    .then((r) => r.json() as Promise<{ enabled: boolean; models: string[] }>)
+    .then((r) => r.json() as Promise<{ enabled: boolean; provider: string | null; models: string[] }>)
     .then((a) => {
       // A model remembered from before is kept only while the server still offers it.
       const saved = recall(MODEL_KEY);
-      useAgent.setState({ enabled: a.enabled, models: a.models, model: saved && a.models.includes(saved) ? saved : (a.models[0] ?? null) });
+      useAgent.setState({ enabled: a.enabled, provider: a.provider, models: a.models, model: saved && a.models.includes(saved) ? saved : (a.models[0] ?? null) });
     })
     .catch(() => useAgent.setState({ enabled: false }));
 
