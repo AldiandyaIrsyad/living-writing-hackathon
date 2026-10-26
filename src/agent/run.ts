@@ -165,7 +165,8 @@ async function askModel(sceneId: Id, signal: AbortSignal): Promise<{ text: strin
   // With an empty wiki there is nothing to look up, and every lookup costs a whole round with the model.
   const steps = Object.keys(vault.entities).length ? MAX_STEPS : 1;
   for (let step = 0; step < steps; step++) {
-    // The last step offers no tools, so the model has to answer.
+    // The last step offers no tools, so the model has to answer; some models still try, unless told.
+    if (step > 0 && step === steps - 1) messages.push({ role: 'user', content: 'No more lookups. Answer now with the JSON object, from what you have.' });
     const { message, model } = await post<{ message: ChatMessage; model: string }>(
       '/api/agent/chat',
       { messages, model: picked, ...(effort && effort !== 'default' ? { effort } : {}), ...(step < steps - 1 ? { tools: TOOLS } : {}) },
@@ -254,15 +255,16 @@ export function startAgent(): void {
     .then((a) => {
       // A model remembered from before is kept only while the server still offers it.
       const saved = recall(MODEL_KEY);
-      // Gemini thinks for half a minute by default; "medium" answers in seconds. Other services decide for themselves
-      // unless the writer says otherwise, as not every one takes the setting.
+      // Gemini thinks for half a minute by default, and on "medium" a scene with a few lookups can still pass the
+      // server's time limit; "low" answers in seconds. Other services decide for themselves unless the writer says
+      // otherwise, as not every one takes the setting.
       const effort = recall(EFFORT_KEY) as Effort | null;
       useAgent.setState({
         enabled: a.enabled,
         provider: a.provider,
         models: a.models,
         model: saved && a.models.includes(saved) ? saved : (a.models[0] ?? null),
-        effort: effort && EFFORTS.includes(effort) ? effort : a.provider === 'Google Gemini' ? 'medium' : 'default',
+        effort: effort && EFFORTS.includes(effort) ? effort : a.provider === 'Google Gemini' ? 'low' : 'default',
       });
     })
     .catch(() => useAgent.setState({ enabled: false }));

@@ -64,7 +64,7 @@ cheaper, but Meta may train its models on what is sent to it, so the panel warns
   didn't link → Link and file them** and the agent links a name where it first appears and makes its page, so you can
   write without `[[ ]]` at all. A name a letter or two off an existing page is never linked this way (it asks instead).
 - **Thinking** sets how long the model thinks before it answers. Longer catches more but is slower: on Gemini, "High"
-  takes about half a minute for a short scene, "Medium" (its default here) a few seconds. "Model default" sends no
+  takes about half a minute for a short scene, "Low" (its default here) a few seconds. "Model default" sends no
   setting, for a model that does not take one. A reading can be stopped (**Stop**), and the server gives up on a model
   call after 90 seconds (`AGENT_TIMEOUT_SECONDS`). While it reads, the panel says what it is looking up.
 - **Pages are kept true, not only added to.** The agent adds a fact under the heading it belongs to, and rewrites or

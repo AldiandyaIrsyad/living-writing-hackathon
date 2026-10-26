@@ -5,7 +5,7 @@ import { VaultBuilder } from '../core/testkit';
 import type { Vault } from '../core/types';
 import { commitRevision } from '../store/actions';
 import { applyAgentOutput, createHeldPage, editPage, fixNearMiss, parseAgentOutput, revertAgentOutput, type AgentOptions, type AgentOutput } from './apply';
-import { buildContext } from './context';
+import { buildContext, runTool } from './context';
 import { applyEdits, pageLines, type PageEdit } from './page';
 
 const answer = (part: Partial<AgentOutput> = {}): AgentOutput => ({ newEntities: [], pages: [], properties: [], states: [], contradictions: [], unlinkedNames: [], ...part });
@@ -310,6 +310,25 @@ describe('what the agent is shown', () => {
     const context = buildContext(v, 's2');
     expect(context).toContain('Latest dated scene before this one: "s1", Late Autumn, 2026');
     expect(context).toContain('Chapter notes from the writer (they hold for every scene in "The Crossing"):\nSet in late autumn, 2026.');
+  });
+
+  it('shows the page of someone the scene names without a link, by name or alias, matching capitals', () => {
+    const v = world('Pike sat by the fire while the pike swam.');
+    v.entities.orrin = { ...v.entities.nora, id: 'orrin', name: 'Orrin Pike', aliases: ['Pike'], note: 'A grey-eyed captain.' };
+    const named = (prose: string) => {
+      v.scenes.s2.prose = prose;
+      return buildContext(v, 's2').split('Named in the scene without a link')[1] ?? '';
+    };
+    expect(named('Pike sat by the fire.')).toContain('A grey-eyed captain.');
+    expect(named('The pike swam.')).toBe('');
+    expect(named('[[Orrin Pike]] sat by the fire.')).toBe(''); // linked: already shown with the linked entities
+  });
+
+  it('answers a lookup for a name it does not know with the pages that share a word of it', () => {
+    const v = world('');
+    v.entities.orrin = { ...v.entities.nora, id: 'orrin', name: 'Captain Orrin Pike', aliases: [], note: 'A grey-eyed captain.' };
+    expect(runTool(v, 's2', 'get_entity', { name: 'Orin Pike' })).toContain('A grey-eyed captain.');
+    expect(runTool(v, 's2', 'get_entity', { name: 'Jessa' })).toBe('No entity with that name or alias.');
   });
 
   it('marks the writer’s notes as notes where they stand, so a note about one passage is read against that passage', () => {

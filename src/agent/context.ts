@@ -137,6 +137,20 @@ export function describeEntity(vault: Vault, r: Resolver, entityId: Id, sceneId:
   return [`### ${at.name} [${type}]${aliases}`, `Current state: ${state}`, props.length ? `Properties:\n${props.join('\n')}` : '', `Page:\n${page.trim() || '(empty)'}`].filter(Boolean).join('\n');
 }
 
+/**
+ * Entities the scene names without linking them: by name or alias, as a whole word with its capitals (so the alias
+ * "Pike" is not the fish "pike"). The model is shown their pages too, instead of having to look each one up.
+ */
+export function namedEntities(vault: Vault, sceneId: Id): Id[] {
+  const text = sceneText(vault.scenes[sceneId].prose);
+  const out: Id[] = [];
+  for (const e of Object.values(vault.entities)) {
+    const names = [e.name, ...e.aliases].map((n) => n.trim()).filter((n) => n.length >= 3);
+    if (names.some((n) => new RegExp(`(?<![\\p{L}\\p{N}])${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`, 'u').test(text))) out.push(e.id);
+  }
+  return out;
+}
+
 /** The user message: the scene, who exists, and what the wiki says about everyone linked in it. */
 export function buildContext(vault: Vault, sceneId: Id, opts: { linkNames?: boolean } = {}): string {
   const scene = vault.scenes[sceneId];
@@ -159,6 +173,7 @@ export function buildContext(vault: Vault, sceneId: Id, opts: { linkNames?: bool
   const installed = new Set(Object.values(vault.entityTypes).map((t) => slugify(t.name)));
   const more = GALLERY_TYPES.filter((p) => !installed.has(slugify(p.name))).map((p) => `- ${p.name}${sections(p.template)}: ${p.description}`);
   const missing = unresolvedLinks(vault, sceneId);
+  const named = namedEntities(vault, sceneId).filter((id) => !linked.has(id));
   const { before } = scene.someday ? {} : datedNeighbours(vault, sceneId);
   const chapter = scene.chapterId ? vault.chapters[scene.chapterId] : undefined;
 
@@ -172,9 +187,10 @@ export function buildContext(vault: Vault, sceneId: Id, opts: { linkNames?: bool
     `Roster:\n${roster.join('\n') || '(none yet)'}`,
     `Links with no page yet: ${missing.length ? missing.join(', ') : '(none)'}`,
     opts.linkNames
-      ? 'The writer does not link names by hand: treat every named person, place, group or thing in the scene text that has no page and is worth one as if it were listed above (newEntities, named exactly as the scene spells it). Skip throwaway mentions.'
+      ? 'The writer does not link names by hand: treat every named person, place, group or thing in the scene text that has no page and is worth one as if it were listed above. Name it as the scene writes it but without a title or honorific ("Orrin Pike" for "Captain Orrin Pike"), and give the other ways the scene calls it as aliases ("Captain Pike", "Orrin"). A name that is a page on the roster under another form ("Pike" for Orrin Pike) is that page, not a new one. Skip throwaway mentions.'
       : '',
     `Linked entities as they stand entering this scene:\n${[...linked].map((id) => describeEntity(vault, r, id, sceneId)).join('\n\n') || '(none)'}`,
+    named.length ? `Named in the scene without a link, as they stand entering it:\n${named.map((id) => describeEntity(vault, r, id, sceneId)).join('\n\n')}` : '',
     `Scene text:\n"""\n${sceneWithNotes(scene.prose)}\n"""`,
   ]
     .filter(Boolean)
@@ -186,8 +202,15 @@ export function runTool(vault: Vault, sceneId: Id, name: string, args: unknown):
   const input = typeof args === 'object' && args !== null ? (args as Record<string, unknown>) : {};
   const r = new Resolver(vault);
   if (name === 'get_entity') {
-    const e = typeof input.name === 'string' ? findEntity(vault, input.name) : undefined;
-    return e ? describeEntity(vault, r, e.id, sceneId) : 'No entity with that name or alias.';
+    const asked = typeof input.name === 'string' ? input.name.trim() : '';
+    const e = asked ? findEntity(vault, asked) : undefined;
+    if (e) return describeEntity(vault, r, e.id, sceneId);
+    // "Orin Pike" or "Pike" for the page "Captain Orrin Pike": pages that share a word of the name, so the model does
+    // not go on guessing spellings.
+    const words = new Set(slugify(asked).split('-').filter((w) => w.length >= 3));
+    const near = Object.values(vault.entities).filter((x) => [x.name, ...x.aliases].some((n) => slugify(n).split('-').some((w) => words.has(w))));
+    if (!near.length) return 'No entity with that name or alias.';
+    return `No entity is called exactly that. Pages with a name in common:\n\n${near.slice(0, 3).map((x) => describeEntity(vault, r, x.id, sceneId)).join('\n\n')}`;
   }
   if (name === 'search_wiki') {
     const q = typeof input.query === 'string' ? input.query.trim().toLowerCase() : '';
