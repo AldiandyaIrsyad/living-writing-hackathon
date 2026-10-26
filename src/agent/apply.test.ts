@@ -105,6 +105,10 @@ describe('a [[link]] with no page', () => {
     expect(noteAfter(vault, 'Zed', 's2')).toContain('- Waves a lot');
     // Mria is a letter off Mira: linking it would make a typo into a character.
     expect(report.unlinkedNames.map((n) => n.name)).toEqual(['Mria']);
+
+    // Taking it back takes back the link too, so the next reading does not take it for one the writer made.
+    const taken = revertAgentOutput(vault, 's2', report.linked);
+    expect([taken.scenes.s2.prose, findEntity(taken, 'Zed')]).toEqual([v.scenes.s2.prose, undefined]);
   });
 
   it('with "link names" on, a true name only a note gives is linked where the scene uses its alias', () => {
@@ -113,6 +117,7 @@ describe('a [[link]] with no page', () => {
     const { vault, report } = applyAgentOutput(v, 's2', out, { ...agent, linkNames: true });
     expect(vault.scenes.s2.prose).toBe('He said his name was [[Corwen|Wren]]. %% he is lying: Wren is the exiled prince Corwen %%');
     expect([report.created.map((c) => c.name), findEntity(vault, 'Wren')?.name, report.skipped]).toEqual([['Corwen'], 'Corwen', []]);
+    expect(revertAgentOutput(vault, 's2', report.linked).scenes.s2.prose).toBe(v.scenes.s2.prose);
   });
 
   it('filed under a gallery type the writer has not used yet, installs that type', () => {

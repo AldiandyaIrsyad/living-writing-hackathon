@@ -86,17 +86,18 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
               Stop
             </button>
           )}
-          {mine > 0 && (
+          {mine + (report?.linked?.length ?? 0) > 0 && (
             <button
               type="button"
               className="btn btn-sm btn-ghost"
-              title="Remove everything the agent wrote for this scene, also where it reached later versions of a page. Your own edits stay."
+              title="Remove everything the agent wrote for this scene, also where it reached later versions of a page, and the links it added to the scene. Your own edits stay."
               onClick={() => {
-                commit(revertAgentOutput(useStore.getState().vault, scene.id), 'Agent output for a scene');
+                flushEditors();
+                commit(revertAgentOutput(useStore.getState().vault, scene.id, report?.linked), 'Agent output for a scene');
                 setReport(scene.id, null);
               }}
             >
-              Take back {mine} change{mine === 1 ? '' : 's'}
+              Take back {mine + (report?.linked?.length ?? 0)} change{mine + (report?.linked?.length ?? 0) === 1 ? '' : 's'}
             </button>
           )}
         </div>

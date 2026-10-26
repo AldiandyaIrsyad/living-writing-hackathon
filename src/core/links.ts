@@ -250,6 +250,12 @@ export function linkFirstMention(text: string, name: string, target = name): str
   return `${text.slice(0, m.index)}[[${slugify(target) === slugify(shown) ? shown : `${target.trim()}|${shown}`}]]${text.slice(end)}`;
 }
 
+/** Undoes linkFirstMention: the first link spelled `link` goes back to the plain text it shows. */
+export function unlinkFirst(text: string, link: string): string {
+  const l = parseLinks(text).find((p) => p.raw === link);
+  return l ? text.slice(0, l.start) + (l.alias ?? l.raw.slice(2, -2)) + text.slice(l.end) : text;
+}
+
 /** Inverse of parseLinkInner/parseLinks: builds the link text from its parts. */
 export function formatLink(p: {
   target: string;

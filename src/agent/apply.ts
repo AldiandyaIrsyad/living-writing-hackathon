@@ -3,7 +3,7 @@
 // up is dropped rather than written. The result is one vault; the caller commits it as a single step.
 
 import { compareConcretes, momentConcrete, parseConcrete } from '../core/concrete';
-import { findEntity, linkFirstMention, parseLinks, retargetLinks } from '../core/links';
+import { findEntity, linkFirstMention, parseLinks, retargetLinks, unlinkFirst } from '../core/links';
 import { installPreset } from '../core/presets';
 import { Resolver, valueEquals } from '../core/resolve';
 import type { Id, PropValue, StateChange, Vault } from '../core/types';
@@ -81,6 +81,8 @@ export interface AgentReport {
   nearMisses?: { link: string; entityId: Id; name: string; type: string; aliases: string[]; edits: PageEdit[] }[];
   /** Pages an earlier read of this scene made for a link that is gone (a typo, retyped): removed, as nothing else used them. */
   removed?: string[];
+  /** Links the agent put in the prose for names the writer had not linked ("Link and file them"), as written. */
+  linked?: string[];
 }
 
 const str = (x: unknown): string => (typeof x === 'string' ? x.trim() : typeof x === 'number' || typeof x === 'boolean' ? String(x) : '');
@@ -184,10 +186,18 @@ function linkedAnywhere(v: Vault, id: Id): boolean {
   );
 }
 
-/** Undoes the agent's output for one scene, and removes pages it created that nothing else has touched since. */
-export function revertAgentOutput(vault: Vault, sceneId: Id): Vault {
-  const undone = undoAgentChanges(vault, sceneId);
-  return without(undone.vault, blankPages(undone.vault, undone.entityIds));
+/**
+ * Undoes the agent's output for one scene: the links it added to the prose (`linked`, from its report) go back to
+ * plain text, and pages it created that nothing else has touched since are removed.
+ */
+export function revertAgentOutput(vault: Vault, sceneId: Id, linked: string[] = []): Vault {
+  const scene = vault.scenes[sceneId];
+  const prose = linked.reduce(unlinkFirst, scene.prose);
+  const unlinked = prose === scene.prose ? vault : { ...vault, scenes: { ...vault.scenes, [sceneId]: { ...scene, prose } } };
+  const undone = undoAgentChanges(unlinked, sceneId);
+  // A page made for a name the agent linked has no change on it when the read wrote nothing about it.
+  const made = new Set([...undone.entityIds, ...linked.map((l) => findEntity(unlinked, parseLinks(l)[0]?.target ?? '')?.id).filter((id): id is Id => !!id)]);
+  return without(undone.vault, blankPages(undone.vault, made));
 }
 
 type NearMiss = NonNullable<AgentReport['nearMisses']>[number];
@@ -321,6 +331,7 @@ export function applyAgentOutput(vault: Vault, sceneId: Id, out: AgentOutput, op
         : null;
     if (linked) {
       v = { ...v, scenes: { ...v.scenes, [sceneId]: { ...v.scenes[sceneId], prose: linked } } };
+      (report.linked ??= []).push(parseLinks(linked).find((l) => !parseLinks(prose).some((p) => p.raw === l.raw))!.raw);
       target = unresolvedLinks(v, sceneId).find((t) => slugify(t) === slugify(n.name));
     }
     if (!target) {
