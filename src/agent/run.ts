@@ -250,7 +250,8 @@ const queued = new Set<Id>();
 /** Bumped by Stop: readings queued before it are dropped. */
 let generation = 0;
 
-async function readScene(sceneId: Id): Promise<void> {
+/** `asked`: the writer asked for this reading (a button), rather than the agent reading on its own. */
+async function readScene(sceneId: Id, asked: boolean): Promise<void> {
   flushEditors();
   const start = useStore.getState().vault.scenes[sceneId];
   if (!start || start.prose.trim() === '') return;
@@ -262,7 +263,11 @@ async function readScene(sceneId: Id): Promise<void> {
     // Deleted while it was read: there is nothing to apply the answer to, and nothing went wrong.
     if (!s.vault.scenes[sceneId]) return;
     // The writer kept typing while the model read: its answer is about text that no longer exists.
-    if (s.vault.scenes[sceneId]?.prose !== start.prose) throw new Error('The scene changed while the agent was reading it.');
+    if (s.vault.scenes[sceneId]?.prose !== start.prose) {
+      // Reading on its own, the agent reads it again when the writer next pauses or leaves: no need to say anything.
+      if (!asked) return;
+      throw new Error('The scene changed while the agent was reading it.');
+    }
     const { allowOverwrite, linkNames, sceneTitles } = useAgent.getState();
     const { vault, report } = applyAgentOutput(s.vault, sceneId, parseAgentOutput(text), { model, allowOverwrite, linkNames: linkNames === 'link', sceneTitles });
     s.commit(vault, undefined, `Agent: ${start.title || 'scene'}`);
@@ -286,14 +291,14 @@ export function stopReading(): void {
 }
 
 /** Reads a scene after any reading already under way. A scene already waiting is not queued twice. */
-export function enqueueScene(sceneId: Id): void {
+export function enqueueScene(sceneId: Id, asked = true): void {
   if (queued.has(sceneId)) return;
   queued.add(sceneId);
   useAgent.setState({ waiting: queued.size });
-  const asked = generation;
+  const at = generation;
   queue = queue
     // Stop drops what was waiting too.
-    .then(() => (asked === generation ? readScene(sceneId) : undefined))
+    .then(() => (at === generation ? readScene(sceneId, asked) : undefined))
     .finally(() => {
       queued.delete(sceneId);
       useAgent.setState({ waiting: queued.size });
@@ -311,7 +316,7 @@ export function readChapter(chapterId: Id): void {
 /** Reading on its own, the agent skips a scene marked as an idea: it is not canon yet. */
 function readOnItsOwn(sceneId: Id): void {
   const scene = useStore.getState().vault.scenes[sceneId];
-  if (scene && scene.status !== 'idea' && scene.prose !== read.get(sceneId)) enqueueScene(sceneId);
+  if (scene && scene.status !== 'idea' && scene.prose !== read.get(sceneId)) enqueueScene(sceneId, false);
 }
 
 function readEdited(): void {
