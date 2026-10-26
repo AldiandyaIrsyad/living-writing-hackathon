@@ -184,11 +184,11 @@ async function post<T>(path: string, body: object, signal: AbortSignal): Promise
 /** One scene through the model: it may look things up a few times, then answers with the JSON the prompt asks for. */
 async function askModel(sceneId: Id, signal: AbortSignal): Promise<{ text: string; model: string }> {
   const vault = useStore.getState().vault;
+  const { model: picked, effort, linkNames, sceneTitles } = useAgent.getState();
   const messages: ChatMessage[] = [
     { role: 'system', content: SYSTEM_PROMPT },
-    { role: 'user', content: buildContext(vault, sceneId, { linkNames: useAgent.getState().linkNames === 'link', sceneTitles: useAgent.getState().sceneTitles }) },
+    { role: 'user', content: buildContext(vault, sceneId, { linkNames: linkNames === 'link', sceneTitles }) },
   ];
-  const { model: picked, effort } = useAgent.getState();
   // With an empty wiki there is nothing to look up, and every lookup costs a whole round with the model.
   const steps = Object.keys(vault.entities).length ? MAX_STEPS : 1;
   for (let step = 0; step < steps; step++) {
