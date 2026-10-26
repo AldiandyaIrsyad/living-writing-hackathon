@@ -78,9 +78,11 @@ cheaper, but Meta may train its models on what is sent to it, so the panel warns
   both quotes is dropped. A flashback is checked against the story as it was at its own place on the timeline.
 - **Time:** the agent fills in a moment's time label ("late autumn") when it has none, and only suggests one over yours;
   time skips and dates are suggestions with Apply. It never moves a scene.
-- **Talking to the agent:** author notes (`%% this is not true, she is lying %%`) are given to it apart from the scene
-  text. A note about the story outranks the scene; notes about the writing itself (pacing, "fix later") are ignored, and
-  an idea a note only wonders about is never recorded as fact.
+- **Talking to the agent:** author notes (`%% this is not true, she is lying %%`) reach it marked as notes, where
+  you left them. A note about the story outranks the scene; notes about the writing itself (pacing, "fix later") are
+  ignored, and an idea a note only wonders about is never recorded as fact. Put a note next to what it is about: a
+  `%% this section is a dream %%` right after the dream covers the dream, not the waking scene that follows. Say what
+  the prose leaves open (`%% Gull is dead %%` when he only "went under"), since the agent records only what it can tell.
 - **Sources:** the entity page's "Sources" button shows the page line by line, each run of lines tagged with the scene
   whose version wrote it (and "agent" when the agent did). Click a tag to open the scene.
 - **Take back** removes everything the agent wrote for a scene. Agent changes carry an `agent` field (the model that
