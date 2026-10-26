@@ -34,7 +34,7 @@ Rules:
 - certainty: "stated" = the narrator or a clear action establishes it. "implied" = clearly inferable. "claimed" = something a character says that may be a lie, rumour, belief, dream or hypothetical.
 - properties: only properties the entity already has (listed under Properties), when the scene changes them for good (status alive -> dead, a new owner). A value naming another entity is written as [[Name]].
 - states is a SHORT-LIVED snapshot for each character present: where they are, their condition and mood, who they are with, what they have just learned. One short sentence each, replacing the previous state. Hunger, mood and position belong here, never in pages. A character who dies in the scene gets the state "Dead" and how.
-- contradictions: check each thing the scene says about a linked entity (looks, belongings, injuries, where they are) against its page, properties and state. Report one only when the scene plainly conflicts with what you were shown. "sceneQuote" is copied verbatim from the scene and "wikiQuote" verbatim from what you were shown. A change the scene itself narrates (she loses the hand in this scene) is an update, not a contradiction. If the scene's time is unknown, report none. When in doubt, report nothing.
+- contradictions: check each thing the scene says about an entity you were shown (looks, belongings, injuries and what they still allow, where they are) against its page, properties and state: someone who "walks with a cane" running unaided is a conflict. Report one only when the scene plainly conflicts with what you were shown. "sceneQuote" is copied verbatim from the scene and "wikiQuote" verbatim from what you were shown. A change the scene itself narrates (she loses the hand in this scene) is an update, not a contradiction. If the scene's time is unknown, report none. When in doubt, report nothing.
 - timeSkip / concrete: only when the scene says how much time passed ("three days later") or a note or the scene gives a date outright.
 - timeLabel: when the scene happens, as a date the timeline can order: "Late Autumn, 2026", "Early Winter, Year 3", "October 2026", "2026-10-25". Work it out from the scene, the writer's notes and the latest dated scene before it plus any time the scene says has passed (three weeks after late autumn is early winter). Never a time of day or an event ("morning", "the night of the fire"), and never a year nobody gave: when no year can be known, omit it.
 - title: only when you are told the scene has no title; otherwise leave it out.
@@ -147,18 +147,23 @@ export function describeEntity(vault: Vault, r: Resolver, entityId: Id, sceneId:
 }
 
 /**
- * Entities the scene names without linking them: by name or alias, as a whole word with its capitals (so the alias
- * "Pike" is not the fish "pike"). The model is shown their pages too, instead of having to look each one up.
+ * Entities the scene names without linking them: by name, alias, or a capitalised word of a longer name ("Edric" for
+ * Edric Hale), as a whole word with its capitals (so the alias "Pike" is not the fish "pike"). The model is shown their
+ * pages too, instead of having to look each one up, or missing what the scene says about them.
  */
 export function namedEntities(vault: Vault, sceneId: Id): Id[] {
   const text = sceneText(vault.scenes[sceneId].prose);
   const out: Id[] = [];
   for (const e of Object.values(vault.entities)) {
-    const names = [e.name, ...e.aliases].map((n) => n.trim()).filter((n) => n.length >= 3);
+    const parts = e.name.split(/\s+/).filter((w) => /^\p{Lu}/u.test(w) && !TITLES.has(w.toLowerCase()));
+    const names = [e.name, ...e.aliases, ...(parts.length > 1 ? parts : [])].map((n) => n.trim()).filter((n) => n.length >= 3);
     if (names.some((n) => new RegExp(`(?<![\\p{L}\\p{N}])${n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}\\p{N}])`, 'u').test(text))) out.push(e.id);
   }
   return out;
 }
+
+/** Words in a name that say what someone is, not who: "Captain" alone names no one. */
+const TITLES = new Set(['the', 'captain', 'lord', 'lady', 'sir', 'dame', 'king', 'queen', 'prince', 'princess', 'old', 'young', 'saint', 'master', 'mistress', 'doctor', 'father', 'mother', 'brother', 'sister']);
 
 /** The user message: the scene, who exists, and what the wiki says about everyone linked in it. */
 export function buildContext(vault: Vault, sceneId: Id, opts: { linkNames?: boolean; sceneTitles?: SceneTitles } = {}): string {
@@ -199,7 +204,7 @@ export function buildContext(vault: Vault, sceneId: Id, opts: { linkNames?: bool
     `Roster:\n${roster.join('\n') || '(none yet)'}`,
     `Links with no page yet: ${missing.length ? missing.join(', ') : '(none)'}`,
     opts.linkNames
-      ? 'The writer does not link names by hand: treat every named person, place, group or thing in the scene text that has no page and is worth one as if it were listed above. Name it as the scene writes it but without a title or honorific ("Orrin Pike" for "Captain Orrin Pike"), and give the other ways the scene calls it as aliases ("Captain Pike", "Orrin"). A name that is a page on the roster under another form ("Pike" for Orrin Pike) is that page, not a new one. Skip throwaway mentions.'
+      ? 'The writer does not link names by hand: treat every named person, place, group or thing in the scene text that has no page and is worth one as if it were listed above. Name it as the scene writes it but without a title or honorific ("Orrin Pike" for "Captain Orrin Pike"), and give the other ways the scene calls it as aliases ("Captain Pike", "Orrin"). A name that is a page on the roster under another form ("Pike" for Orrin Pike) is that page, not a new one. Only proper names: not common nouns ("the mill", "the tavern"). Skip throwaway mentions.'
       : '',
     `Linked entities as they stand entering this scene:\n${[...linked].map((id) => describeEntity(vault, r, id, sceneId)).join('\n\n') || '(none)'}`,
     named.length ? `Named in the scene without a link, as they stand entering it:\n${named.map((id) => describeEntity(vault, r, id, sceneId)).join('\n\n')}` : '',

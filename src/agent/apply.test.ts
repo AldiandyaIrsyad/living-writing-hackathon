@@ -107,6 +107,14 @@ describe('a [[link]] with no page', () => {
     expect(report.unlinkedNames.map((n) => n.name)).toEqual(['Mria']);
   });
 
+  it('with "link names" on, a true name only a note gives is linked where the scene uses its alias', () => {
+    const v = world('He said his name was Wren. %% he is lying: Wren is the exiled prince Corwen %%');
+    const out = answer({ newEntities: [{ name: 'Corwen', type: 'Person', aliases: ['Wren'] }], pages: [adds('Corwen', 'An exiled prince')] });
+    const { vault, report } = applyAgentOutput(v, 's2', out, { ...agent, linkNames: true });
+    expect(vault.scenes.s2.prose).toBe('He said his name was [[Corwen|Wren]]. %% he is lying: Wren is the exiled prince Corwen %%');
+    expect([report.created.map((c) => c.name), findEntity(vault, 'Wren')?.name, report.skipped]).toEqual([['Corwen'], 'Corwen', []]);
+  });
+
   it('filed under a gallery type the writer has not used yet, installs that type', () => {
     const v = world('Mira hid the [[split tally]].');
     const context = buildContext(v, 's2');
@@ -334,6 +342,7 @@ describe('what the agent is shown', () => {
       return buildContext(v, 's2').split('Named in the scene without a link')[1] ?? '';
     };
     expect(named('Pike sat by the fire.')).toContain('A grey-eyed captain.');
+    expect(named('Orrin ran out.')).toContain('A grey-eyed captain.'); // a word of the name is enough
     expect(named('The pike swam.')).toBe('');
     expect(named('[[Orrin Pike]] sat by the fire.')).toBe(''); // linked: already shown with the linked entities
   });

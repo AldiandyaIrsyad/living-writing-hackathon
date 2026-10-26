@@ -155,11 +155,21 @@ export const useAgent = create<AgentStore>((set) => ({
 /** The reading under way, so the writer can stop it. */
 let stopper: AbortController | null = null;
 
-async function post<T>(path: string, body: object, signal?: AbortSignal): Promise<T> {
-  const res = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal });
-  const json = (await res.json()) as T & { error?: string };
-  if (!res.ok) throw new Error(json.error ?? `The server answered ${res.status}.`);
-  return json;
+/** How many times a call the model service was too busy for is tried again before the reading gives up. */
+const BUSY_RETRIES = 2;
+
+async function post<T>(path: string, body: object, signal: AbortSignal): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal });
+    const json = (await res.json()) as T & { error?: string; retryAfter?: number };
+    if (res.ok) return json;
+    if (!json.retryAfter || attempt === BUSY_RETRIES) throw new Error(json.error ?? `The server answered ${res.status}.`);
+    useAgent.setState({ progress: `${json.error} Trying again in ${json.retryAfter} s…` });
+    await new Promise<void>((done, fail) => {
+      const timer = setTimeout(done, json.retryAfter! * 1000);
+      signal.addEventListener('abort', () => (clearTimeout(timer), fail(signal.reason)), { once: true });
+    });
+  }
 }
 
 /** One scene through the model: it may look things up a few times, then answers with the JSON the prompt asks for. */

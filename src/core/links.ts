@@ -235,9 +235,10 @@ export function parseLinks(text: string): ParsedLink[] {
 
 /**
  * Turns the first plain mention of `name` (a whole word, any case, outside code, author notes and links) into a link,
- * spelled as the text has it. Null when the text never mentions it plainly.
+ * spelled as the text has it, to `target` when that is another name ([[Corwen|Wren]]). Null when the text never
+ * mentions it plainly.
  */
-export function linkFirstMention(text: string, name: string): string | null {
+export function linkFirstMention(text: string, name: string, target = name): string | null {
   const masked = maskNotes(maskCode(text)).split('');
   for (const l of parseLinks(text)) for (let k = l.start; k < l.end; k++) masked[k] = ' ';
   const escaped = name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -245,7 +246,8 @@ export function linkFirstMention(text: string, name: string): string | null {
   const m = new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, 'iu').exec(masked.join(''));
   if (!m) return null;
   const end = m.index + m[0].length;
-  return `${text.slice(0, m.index)}[[${text.slice(m.index, end)}]]${text.slice(end)}`;
+  const shown = text.slice(m.index, end);
+  return `${text.slice(0, m.index)}[[${slugify(target) === slugify(shown) ? shown : `${target.trim()}|${shown}`}]]${text.slice(end)}`;
 }
 
 /** Inverse of parseLinkInner/parseLinks: builds the link text from its parts. */

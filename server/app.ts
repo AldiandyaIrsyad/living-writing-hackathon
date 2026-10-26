@@ -258,6 +258,11 @@ export async function buildApp(opts: ServerOptions) {
       console.warn(`agent call failed after ${Date.now() - started} ms (${timedOut ? 'timeout' : String(e)})`);
       return reply.code(timedOut ? 504 : 502).send({ error: timedOut ? `The model did not answer within ${Math.round(timeoutMs / 1000)} seconds.` : 'The model service could not be reached.' });
     }
+    // Busy or rate-limited: worth trying again shortly, so the browser is told when.
+    if (upstream.status === 429 || upstream.status === 503) {
+      const retryAfter = Math.min(Math.max(Number(upstream.headers.get('retry-after')) || 10, 1), 60);
+      return reply.code(503).send({ error: `The model service is busy (${upstream.status}).`, retryAfter });
+    }
     if (!upstream.ok) return reply.code(502).send({ error: `The model service answered ${upstream.status}: ${(await upstream.text()).slice(0, 300)}` });
     const message = ((await upstream.json()) as { choices?: { message?: unknown }[] }).choices?.[0]?.message;
     if (!message) return reply.code(502).send({ error: 'The model service sent no answer.' });

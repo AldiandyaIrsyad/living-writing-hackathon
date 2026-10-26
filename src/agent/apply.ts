@@ -313,7 +313,12 @@ export function applyAgentOutput(vault: Vault, sceneId: Id, out: AgentOutput, op
     let target = wanted.get(slugify(n.name));
     // A name the writer did not link is linked for them where it is first mentioned, if they asked for that, unless it
     // looks like a misspelling of a page that exists.
-    const linked = !target && opts.linkNames && !nearMiss(v, n.name) ? linkFirstMention(v.scenes[sceneId].prose, n.name) : null;
+    // A name only a note gives ("Wren is really Corwen") is linked where the scene uses one of its aliases: [[Corwen|Wren]].
+    const prose = v.scenes[sceneId].prose;
+    const linked =
+      !target && opts.linkNames && !nearMiss(v, n.name)
+        ? [n.name, ...n.aliases].reduce<string | null>((done, name) => done ?? linkFirstMention(prose, name, n.name), null)
+        : null;
     if (linked) {
       v = { ...v, scenes: { ...v.scenes, [sceneId]: { ...v.scenes[sceneId], prose: linked } } };
       target = unresolvedLinks(v, sceneId).find((t) => slugify(t) === slugify(n.name));

@@ -166,6 +166,11 @@ describe('the story agent relay', () => {
     const refused = await on.call('POST', '/api/agent/chat', ask);
     expect(refused.status).toBe(502);
     expect(refused.body.error).toContain('500');
+
+    // Busy is not refused: the browser is told to try again.
+    const busy = browser(await newApp(true, { provider: 'Test', apiKey: 'k', baseUrl: (await fakeModel(429)).baseUrl, models: ['m'] }));
+    await busy.call('POST', '/api/signup', credentials('c@example.com'));
+    expect((await busy.call('POST', '/api/agent/chat', ask)).body).toEqual({ error: 'The model service is busy (429).', retryAfter: 10 });
   });
 
   it('passes on how long the model may think, and refuses an effort it does not know', async () => {

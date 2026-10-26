@@ -808,6 +808,11 @@ describe('linkFirstMention', () => {
     expect(linkFirstMention(text, name)).toBe(linked);
   });
 
+  it('links a mention to another name as an alias link, and to its own name plainly', () => {
+    expect(linkFirstMention('He said his name was Wren.', 'Wren', 'Corwen')).toBe('He said his name was [[Corwen|Wren]].');
+    expect(linkFirstMention('wren sang.', 'Wren', 'Wren')).toBe('[[wren]] sang.');
+  });
+
   it('gives null when the name is only mentioned where it cannot be linked', () => {
     expect(linkFirstMention('[[Nora]] and `Nora`', 'Nora')).toBeNull();
   });
