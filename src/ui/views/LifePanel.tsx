@@ -40,7 +40,9 @@ export function LifePanel({ entityId }: { entityId: string }) {
               {s.props.map((p) => (
                 <span key={p.name} className="life-change" data-testid="life-change">
                   {' '}
-                  {p.name}: {p.before} → {p.after}.
+                  {/* A state that is a sentence already ends with its own full stop. */}
+                  {p.name}: {p.before} → {p.after}
+                  {/[.!?…]$/.test(p.after) ? '' : '.'}
                 </span>
               ))}
               {s.quiet && <span className="faint"> is there.</span>}
