@@ -2,7 +2,7 @@
 // writer to decide. Everything it wrote can be taken back for this scene in one click; everything it only offered can
 // be accepted one line at a time.
 
-import { createHeldPage, editPage, fixNearMiss, propValue, revertAgentOutput, type AgentReport } from '../../agent/apply';
+import { createHeldPage, editPage, fixNearMiss, propValue, revertAgentOutput, type AgentReport, type Contradiction } from '../../agent/apply';
 import type { PageEdit } from '../../agent/page';
 import { enqueueScene, isContributor, readSceneNow, stopReading, useAgent, type Effort, type LinkNames, type Trigger } from '../../agent/run';
 import { isUntitled, type SceneTitles } from '../../agent/context';
@@ -57,7 +57,9 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
   const patch = (p: Partial<AgentReport>) => report && setReport(scene.id, { ...report, ...p });
   /** The writer accepts edits the agent only offered: they are made as the writer's own. */
   const accept = (entityId: Id, edits: PageEdit[]) => commit(editPage(useStore.getState().vault, scene.id, entityId, edits, 'writer', 'Accepted from the story agent').vault, 'Accept agent edit');
-  const contradictionKey = (entity: string, claim: string) => `agent:${scene.id}:${slugify(entity)}:${slugify(claim)}`;
+  // By the wiki line it contradicts, which is quoted verbatim, not the claim, which the model words afresh on every
+  // reading (nor the scene quote, whose extent varies): "Intentional" has to survive a re-read.
+  const contradictionKey = (c: Contradiction) => `agent:${scene.id}:${slugify(c.entity)}:${slugify(c.wikiQuote)}`;
 
   return (
     <section className="insp-section agent" data-testid="insp-agent">
@@ -155,6 +157,11 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
               Take back {mine} change{mine === 1 ? '' : 's'}
             </button>
           )}
+        </div>
+      )}
+      {running && running !== scene.id && (
+        <div className="small faint" data-testid="agent-busy">
+          Reading “{vault.scenes[running]?.title || 'another scene'}” first.
         </div>
       )}
       {running === scene.id && progress && (
@@ -325,7 +332,7 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
           ))}
 
           {report.contradictions
-            .filter((c) => !dismissed.has(contradictionKey(c.entity, c.claim)))
+            .filter((c) => !dismissed.has(contradictionKey(c)))
             .map((c) => (
               <div key={c.claim} className="agent-flag" data-testid="agent-contradiction">
                 <div>
@@ -333,7 +340,7 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
                 </div>
                 <div className="faint">Scene: “{c.sceneQuote}”</div>
                 <div className="faint">Wiki: “{c.wikiQuote}”</div>
-                <button type="button" className="btn btn-sm btn-ghost" onClick={() => setDismissed(contradictionKey(c.entity, c.claim), true)}>
+                <button type="button" className="btn btn-sm btn-ghost" onClick={() => setDismissed(contradictionKey(c), true)}>
                   Intentional
                 </button>
               </div>
