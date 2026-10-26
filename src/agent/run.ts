@@ -5,6 +5,7 @@
 import { create } from 'zustand';
 import { BACKEND } from '../store/server';
 import { flushEditors, useStore } from '../store/store';
+import { chapterScenes } from '../core/chapterDoc';
 import { applyAgentOutput, parseAgentOutput, type AgentReport } from './apply';
 import { SYSTEM_PROMPT, TOOLS, buildContext, runTool, type SceneTitles } from './context';
 import type { Id } from '../core/types';
@@ -60,9 +61,12 @@ interface AgentStore {
   settingsOpen: boolean;
   setSettingsOpen: (open: boolean) => void;
   running: Id | null;
+  /** Scenes queued for reading, the one being read included. */
+  waiting: number;
   /** What the reading under way is doing, in words. */
   progress: string | null;
-  error: string | null;
+  /** Why the last reading of a scene failed, by scene: one scene failing in a batch does not hide behind the next. */
+  errors: Record<Id, string>;
   /** What the last run of each scene did, kept in this browser. */
   reports: Record<Id, AgentReport>;
   setTrigger: (t: Trigger) => void;
@@ -124,8 +128,9 @@ export const useAgent = create<AgentStore>((set) => ({
     set({ settingsOpen });
   },
   running: null,
+  waiting: 0,
   progress: null,
-  error: null,
+  errors: {},
   reports: loadReports(),
   setTrigger: (trigger) => {
     remember(TRIGGER_KEY, trigger);
@@ -160,6 +165,12 @@ export const useAgent = create<AgentStore>((set) => ({
       return { reports };
     }),
 }));
+
+const without = (errors: Record<Id, string>, sceneId: Id): Record<Id, string> => {
+  const rest = { ...errors };
+  delete rest[sceneId];
+  return rest;
+};
 
 /** The reading under way, so the writer can stop it. */
 let stopper: AbortController | null = null;
@@ -224,12 +235,14 @@ const read = new Map<Id, string>();
 const edited = new Set<Id>();
 let queue: Promise<void> = Promise.resolve();
 const queued = new Set<Id>();
+/** Bumped by Stop: readings queued before it are dropped. */
+let generation = 0;
 
 async function readScene(sceneId: Id): Promise<void> {
   flushEditors();
   const start = useStore.getState().vault.scenes[sceneId];
   if (!start || start.prose.trim() === '') return;
-  useAgent.setState({ running: sceneId, progress: null, error: null });
+  useAgent.setState((a) => ({ running: sceneId, progress: null, errors: without(a.errors, sceneId) }));
   stopper = new AbortController();
   try {
     const { text, model } = await askModel(sceneId, stopper.signal);
@@ -245,15 +258,16 @@ async function readScene(sceneId: Id): Promise<void> {
     useAgent.getState().setReport(sceneId, report);
   } catch (e) {
     // Stopped by the writer: nothing went wrong.
-    if (!stopper?.signal.aborted) useAgent.setState({ error: e instanceof Error ? e.message : String(e) });
+    if (!stopper?.signal.aborted) useAgent.setState((a) => ({ errors: { ...a.errors, [sceneId]: e instanceof Error ? e.message : String(e) } }));
   } finally {
     stopper = null;
     useAgent.setState({ running: null, progress: null });
   }
 }
 
-/** The writer stops the reading under way; nothing is applied. */
+/** The writer stops the reading under way, and those waiting; nothing is applied. */
 export function stopReading(): void {
+  generation++;
   stopper?.abort();
 }
 
@@ -261,7 +275,23 @@ export function stopReading(): void {
 export function enqueueScene(sceneId: Id): void {
   if (queued.has(sceneId)) return;
   queued.add(sceneId);
-  queue = queue.then(() => readScene(sceneId)).finally(() => queued.delete(sceneId));
+  useAgent.setState({ waiting: queued.size });
+  const asked = generation;
+  queue = queue
+    // Stop drops what was waiting too.
+    .then(() => (asked === generation ? readScene(sceneId) : undefined))
+    .finally(() => {
+      queued.delete(sceneId);
+      useAgent.setState({ waiting: queued.size });
+    });
+}
+
+/**
+ * The writer asked for a whole chapter: its scenes in reading order, each after the one before (a later scene is read
+ * with what the earlier ones wrote). Scenes read since the page loaded and not changed since are skipped.
+ */
+export function readChapter(chapterId: Id): void {
+  for (const s of chapterScenes(useStore.getState().vault, chapterId)) if (s.prose.trim() && s.prose !== read.get(s.id)) enqueueScene(s.id);
 }
 
 /** Reading on its own, the agent skips a scene marked as an idea: it is not canon yet. */

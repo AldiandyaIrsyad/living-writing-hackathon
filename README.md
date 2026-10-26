@@ -56,7 +56,8 @@ Without a Meta key, `npm run dev:gemini` uses Google's Gemini instead (`GEMINI_A
 default model `gemini-3.8-flash`) through its OpenAI-compatible endpoint; the panel says which service it talks to. The default list is Meta's chat models, Standard first: a `-contributor` model is
 cheaper, but Meta may train its models on what is sent to it, so the panel warns when one is picked.
 
-- **When it reads:** only when you press "Read this scene" (default), when you leave a scene you edited, or 20 seconds
+- **When it reads:** only when you press "Read this scene" (or "Read the chapter": its scenes in order, skipping
+  those already read and unchanged) (default), when you leave a scene you edited, or 20 seconds
   after you stop typing. A scene whose text has not changed since the last reading is not read again, and a scene marked
   as an idea is only read when you ask (it is not canon yet).
 - **A `[[link]]` with no page** gets a page, of the entity type the scene suggests (a person, a place, an object…); the

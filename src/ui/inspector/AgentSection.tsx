@@ -4,7 +4,7 @@
 
 import { createHeldPage, editPage, fixNearMiss, propValue, revertAgentOutput, type AgentReport, type Contradiction } from '../../agent/apply';
 import type { PageEdit } from '../../agent/page';
-import { enqueueScene, isContributor, readSceneNow, stopReading, useAgent, type Effort, type LinkNames, type Trigger } from '../../agent/run';
+import { enqueueScene, isContributor, readChapter, readSceneNow, stopReading, useAgent, type Effort, type LinkNames, type Trigger } from '../../agent/run';
 import { isUntitled, type SceneTitles } from '../../agent/context';
 import { linkFirstMention } from '../../core/links';
 import type { Id, Scene, Vault } from '../../core/types';
@@ -47,13 +47,15 @@ const commit = (next: Vault, label: string) => useStore.getState().commit(next, 
 
 export function AgentSection({ scene, writing }: { scene: Scene; writing: boolean }) {
   const vault = useVault();
-  const { trigger, setTrigger, enabled, provider, models, model, setModel, allowOverwrite, setAllowOverwrite, effort, setEffort, linkNames, setLinkNames, sceneTitles, setSceneTitles, settingsOpen, setSettingsOpen, running, progress, error, reports, setReport } = useAgent();
+  const { trigger, setTrigger, enabled, provider, models, model, setModel, allowOverwrite, setAllowOverwrite, effort, setEffort, linkNames, setLinkNames, sceneTitles, setSceneTitles, settingsOpen, setSettingsOpen, running, waiting, progress, errors, reports, setReport } = useAgent();
+  const error = errors[scene.id];
   const dismissed = useDismissed();
   if (!BACKEND) return null;
 
   const report = reports[scene.id];
   const mine = Object.values(vault.changes).filter((c) => c.agent && c.sceneId === scene.id).length;
   const busy = running !== null;
+  const chapterSize = scene.chapterId ? Object.values(vault.scenes).filter((s) => s.chapterId === scene.chapterId && s.prose.trim()).length : 0;
   const patch = (p: Partial<AgentReport>) => report && setReport(scene.id, { ...report, ...p });
   /** The writer accepts edits the agent only offered: they are made as the writer's own. */
   const accept = (entityId: Id, edits: PageEdit[]) => commit(editPage(useStore.getState().vault, scene.id, entityId, edits, 'writer', 'Accepted from the story agent').vault, 'Accept agent edit');
@@ -81,9 +83,20 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
           <button type="button" className="btn btn-sm" data-testid="agent-read" disabled={busy || !writing || scene.prose.trim() === ''} onClick={() => readSceneNow(scene.id)}>
             {running === scene.id ? 'Reading…' : 'Read this scene'}
           </button>
-          {running === scene.id && (
+          {!busy && chapterSize > 1 && (
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              data-testid="agent-read-chapter"
+              title="Read each scene of this chapter in order, skipping those read since the page loaded and not changed since."
+              onClick={() => readChapter(scene.chapterId!)}
+            >
+              Read the chapter
+            </button>
+          )}
+          {busy && (
             <button type="button" className="btn btn-sm btn-ghost" data-testid="agent-stop" onClick={stopReading}>
-              Stop
+              Stop{waiting > 1 ? ` (${waiting} scenes)` : ''}
             </button>
           )}
           {mine + (report?.linked?.length ?? 0) > 0 && (
@@ -100,6 +113,21 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
               Take back {mine + (report?.linked?.length ?? 0)} change{mine + (report?.linked?.length ?? 0) === 1 ? '' : 's'}
             </button>
           )}
+        </div>
+      )}
+      {Object.keys(errors).some((id) => id !== scene.id && vault.scenes[id]) && (
+        <div className="small agent-error" data-testid="agent-other-errors">
+          Could not read:{' '}
+          {Object.keys(errors)
+            .filter((id) => id !== scene.id && vault.scenes[id])
+            .map((id, i) => (
+              <span key={id}>
+                {i > 0 && ', '}
+                <button type="button" className="btn btn-sm btn-ghost" title={errors[id]} onClick={() => useStore.getState().navigate({ kind: 'scene', id })}>
+                  {vault.scenes[id].title || 'Untitled scene'}
+                </button>
+              </span>
+            ))}
         </div>
       )}
       {running && running !== scene.id && (
