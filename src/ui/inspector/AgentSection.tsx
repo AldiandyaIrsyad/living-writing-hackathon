@@ -2,6 +2,7 @@
 // writer to decide. Everything it wrote can be taken back for this scene in one click; everything it only offered can
 // be accepted one line at a time.
 
+import type { CSSProperties } from 'react';
 import { createHeldPage, earlierVersionsLacking, editPage, fixNearMiss, propValue, revertAgentOutput, updateFromBeginning, type AgentReport, type Contradiction } from '../../agent/apply';
 import type { PageEdit } from '../../agent/page';
 import { enqueueScene, IDLE_CHOICES, isContributor, readChapter, readSceneNow, stopReading, tookBack, useAgent, type Effort, type LinkNames, type Trigger } from '../../agent/run';
@@ -13,6 +14,7 @@ import { addChange, setMomentConcrete, setMomentLabel, setMomentTimeSkip, sorted
 import { BACKEND } from '../../store/server';
 import { flushEditors, useStore, useVault } from '../../store/store';
 import { setDismissed, useDismissed } from '../dismissed';
+import { openNextScene } from '../stories';
 
 const TRIGGERS: { value: Trigger; label: string }[] = [
   { value: 'off', label: 'Only when I ask' },
@@ -80,8 +82,11 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
         <div className="small faint">The server has no model key. Put MODEL_API_KEY (Meta) or GEMINI_API_KEY in .env.local and restart it (`npm run dev:gemini` for Gemini).</div>
       ) : (
         <div className="agent-row">
-          <button type="button" className="btn btn-sm" data-testid="agent-read" disabled={busy || !writing || scene.prose.trim() === ''} onClick={() => readSceneNow(scene.id)}>
-            {running === scene.id ? 'Reading…' : 'Read this scene'}
+          <button type="button" className="btn btn-sm" data-testid="agent-read" title="The agent reads this scene and keeps the wiki true to it." disabled={busy || !writing || scene.prose.trim() === ''} onClick={() => readSceneNow(scene.id)}>
+            {running === scene.id ? 'Checking…' : 'Check'}
+          </button>
+          <button type="button" className="btn btn-sm btn-ghost" data-testid="agent-next" title="Go to the next scene, or start a new one after the last." onClick={() => openNextScene(scene.id)}>
+            Next →
           </button>
           {!busy && chapterSize > 1 && (
             <button
@@ -158,9 +163,9 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
           ) && (
             <div className="faint">Read it: nothing new to file.</div>
           )}
-          {report.created.map((c) =>
+          {report.created.map((c, n) =>
             vault.entities[c.id] ? (
-              <div key={c.id} className="agent-row">
+              <div key={c.id} className="agent-row agent-filed" style={{ '--i': n } as CSSProperties}>
                 <span>
                   New page: <b>{vault.entities[c.id].name}</b>
                 </span>
@@ -218,11 +223,11 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
             </div>
           ))}
 
-          {report.pages.map((p) => {
+          {report.pages.map((p, n) => {
             const id = findEntity(vault, p.entity)?.id;
             const lacking = id ? earlierVersionsLacking(vault, scene.id, id, p.edits) : 0;
             return (
-              <div key={p.entity}>
+              <div key={p.entity} className="agent-filed" style={{ '--i': report.created.length + n } as CSSProperties}>
                 <b>{p.entity}</b>
                 <ul>
                   {p.edits.map((e, i) => (

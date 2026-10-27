@@ -1,5 +1,6 @@
 // Story-level actions shared by the sidebar and the home page.
 
+import { chapterScenes } from '../core/chapterDoc';
 import { insertScene } from '../core/timeline';
 import type { Id, Scene } from '../core/types';
 import { addStory, chapterForNewScene } from '../store/actions';
@@ -39,6 +40,22 @@ export function appendScene(storyId: Id, chapterId?: Id): void {
   const r = insertScene(v, { storyId, title: 'New scene', chapterId }, last ? 'after' : null, last?.id ?? null);
   st.commit(r.vault);
   st.navigate({ kind: 'scene', id: r.sceneId });
+}
+
+/**
+ * Opens the scene after this one in reading order (the next chapter's first, when this ends its chapter), or starts a
+ * new one in the same chapter when it is the story's last.
+ */
+export function openNextScene(sceneId: Id): void {
+  const { vault, navigate } = useStore.getState();
+  const scene = vault.scenes[sceneId];
+  const reading = Object.values(vault.chapters)
+    .filter((c) => c.storyId === scene.storyId)
+    .sort((a, b) => a.order - b.order)
+    .flatMap((c) => chapterScenes(vault, c.id));
+  const next = reading[reading.indexOf(scene) + 1];
+  if (next) navigate({ kind: 'scene', id: next.id });
+  else appendScene(scene.storyId, scene.chapterId ?? undefined);
 }
 
 /** Creates a Someday (unplaced) scene in the story's Someday tray (creating a first story if none exists yet) and opens it. */
