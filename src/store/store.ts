@@ -104,6 +104,10 @@ interface AppState {
   zoom: number;
   timelineMode: TimelineMode;
   timelineHeight: number;
+  /** The timeline is as tall as its tracks need (within limits); false = the height the writer dragged it to. */
+  timelineFit: boolean;
+  /** Height its tracks need, reported by the timeline itself. */
+  timelineNatural: number;
   timelineMaximized: boolean;
   hiddenStories: Id[];
   /** Characters and wiki pages with a row of their own on the timeline (their changes as keyframes). */
@@ -175,6 +179,8 @@ interface AppState {
   setZoom(zoom: number): void;
   setTimelineMode(mode: TimelineMode): void;
   setTimelineHeight(h: number): void;
+  setTimelineFit(on: boolean): void;
+  setTimelineNatural(h: number): void;
   setTimelineMaximized(on: boolean): void;
   toggleStoryHidden(id: Id): void;
   toggleCastTrack(id: Id): void;
@@ -254,6 +260,8 @@ export const useStore = create<AppState>((set, get) => ({
   zoom: loadUi('zoom', 150),
   timelineMode: 'move',
   timelineHeight: loadUi('timelineHeight', 300),
+  timelineFit: loadUi('timelineFit', true),
+  timelineNatural: 300,
   timelineMaximized: false,
   hiddenStories: loadUi<Id[]>('hiddenStories', []),
   castTracks: loadUi<Id[]>('castTracks', []),
@@ -441,6 +449,15 @@ export const useStore = create<AppState>((set, get) => ({
     const v = Math.round(Math.max(150, Math.min(window.innerHeight - 160, h)));
     saveUi('timelineHeight', v);
     set({ timelineHeight: v });
+  },
+
+  setTimelineFit(on) {
+    saveUi('timelineFit', on);
+    set({ timelineFit: on });
+  },
+
+  setTimelineNatural(h) {
+    set({ timelineNatural: Math.round(h) });
   },
 
   setTimelineMaximized(on) {

@@ -74,3 +74,46 @@ test.describe('State follows the timeline', () => {
     await expect(page.getByTestId('time-slider')).toBeVisible();
   });
 });
+
+test.describe('the timeline dock', () => {
+  const dockHeight = (page: Page) => page.getByTestId('timeline').evaluate((el) => (el as HTMLElement).offsetHeight);
+
+  test('the + Track list shows every page at once, and typing narrows it', async ({ page }) => {
+    await loadDemo(page);
+    await page.getByTestId('tl-add-track').click();
+    const options = page.getByTestId('tl-add-cast-option');
+    expect(await options.count()).toBeGreaterThan(6);
+    await expect(options.first()).toBeInViewport();
+    await expect(options.last()).toBeInViewport();
+
+    await page.getByTestId('tl-add-cast-filter').fill('sword');
+    await expect(options).toHaveCount(1);
+  });
+
+  test('it grows with its rows, until the writer drags it to a height of their own', async ({ page }) => {
+    await loadDemo(page);
+    const alone = await dockHeight(page);
+    await page.getByTestId('tl-add-track').click();
+    await page.locator('[data-testid="tl-add-cast-option"][data-entity="Alice"]').click();
+    await expect.poll(() => dockHeight(page)).toBeGreaterThan(alone);
+
+    // Dragging its top edge up keeps what was dragged to, whatever is added afterwards.
+    const edge = (await page.locator('.dock-resizer').boundingBox())!;
+    const grown = await dockHeight(page);
+    await page.mouse.move(edge.x + 40, edge.y + 2);
+    await page.mouse.down();
+    await page.mouse.move(edge.x + 40, edge.y - 58, { steps: 6 });
+    await page.mouse.up();
+    await expect.poll(() => dockHeight(page)).toBeGreaterThan(grown + 55);
+    const dragged = await dockHeight(page);
+    await openEntity(page, 'Mira');
+    await page.getByTestId('entity-on-timeline').click();
+    await expect(page.getByTestId('tl-cast').filter({ hasText: 'Mira' })).toBeVisible();
+    expect(await dockHeight(page)).toBe(dragged);
+
+    // The setting takes it back to fitting its rows.
+    await page.getByTestId('tl-settings').click();
+    await page.getByTestId('tl-height-fit').click();
+    await expect.poll(() => dockHeight(page)).not.toBe(dragged);
+  });
+});

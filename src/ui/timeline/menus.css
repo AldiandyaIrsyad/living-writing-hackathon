@@ -22,11 +22,12 @@
   flex-direction: column;
 }
 .tl-pop-up {
-  bottom: calc(100% - 2px);
-  left: 8px;
-  /* Grows upward from the button: a long list of pages scrolls instead of running out of the timeline. */
-  max-height: 170px;
+  /* Fixed above the button (position set where it opens), so it is not cut off by the timeline; a long list scrolls. */
+  position: fixed;
   overflow-y: auto;
+}
+.tl-pop-filter {
+  margin: 2px 4px 4px;
 }
 .tl-pop-right {
   right: 0;

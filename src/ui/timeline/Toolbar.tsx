@@ -210,9 +210,15 @@ const STATE_TIMES: { id: StateTime; label: string; hint: string }[] = [
   { id: 'slider', label: 'Its own slider', hint: 'Each page has a slider over every scene of every story, separate from the playhead.' },
 ];
 
+const HEIGHTS = [
+  { id: 'fit', fit: true, label: 'Fit its tracks', hint: 'As tall as its tracks need, up to nearly half the window.' },
+  { id: 'fixed', fit: false, label: 'As I dragged it', hint: 'Keeps the height you gave it by dragging its top edge.' },
+];
+
 function BehaviourMenu() {
   const behaviour = useStore((s) => s.timelineBehaviour);
   const stateTime = useStore((s) => s.stateTime);
+  const fit = useStore((s) => s.timelineFit);
   const [open, setOpen, ref] = usePopover();
   return (
     <div className="tl-pop-wrap" ref={ref}>
@@ -250,6 +256,17 @@ function BehaviourMenu() {
               </span>
             </button>
           ))}
+          <div className="tl-pop-sep" />
+          <div className="tl-pop-title">Timeline height</div>
+          {HEIGHTS.map((b) => (
+            <button key={b.id} className={`tl-pop-item ${fit === b.fit ? 'on' : ''}`} onClick={() => useStore.getState().setTimelineFit(b.fit)} data-testid={`tl-height-${b.id}`}>
+              <span className="tl-pop-check">{fit === b.fit ? '●' : '○'}</span>
+              <span>
+                <span className="tl-pop-label">{b.label}</span>
+                <span className="tl-pop-hint">{b.hint}</span>
+              </span>
+            </button>
+          ))}
         </div>
       )}
     </div>
@@ -262,19 +279,34 @@ export function AddTrackMenu() {
   const hidden = useStore((s) => s.hiddenStories);
   const cast = useStore((s) => s.castTracks);
   const [open, setOpen, ref] = usePopover();
+  // The list opens over the whole window, not just the timeline: it is fixed above the button.
+  const [pos, setPos] = useState<{ left: number; bottom: number; maxHeight: number } | null>(null);
+  const [filter, setFilter] = useState('');
   const offTimeline = Object.values(vault.entities)
     .filter((e) => !cast.includes(e.id))
     .sort((a, b) => a.name.localeCompare(b.name));
+  const shown = offTimeline.filter((e) => e.name.toLowerCase().includes(filter.trim().toLowerCase()));
   const removed = Object.values(vault.stories)
     .filter((st) => hidden.includes(st.id))
     .sort((a, b) => a.order - b.order);
   return (
     <div className="tl-addtrack" style={{ width: HEADER_W }} ref={ref}>
-      <button className="tl-btn" onClick={() => setOpen(!open)} data-testid="tl-add-track">
+      <button
+        className="tl-btn"
+        onClick={(e) => {
+          if (!open) {
+            const r = e.currentTarget.getBoundingClientRect();
+            setPos({ left: r.left, bottom: window.innerHeight - r.top + 4, maxHeight: r.top - 56 });
+            setFilter('');
+          }
+          setOpen(!open);
+        }}
+        data-testid="tl-add-track"
+      >
         + Track{removed.length ? ` · ${removed.length} off` : ''}
       </button>
       {open && (
-        <div className="tl-pop tl-pop-up">
+        <div className="tl-pop tl-pop-up" style={pos ?? undefined}>
           <div className="tl-pop-title">Add to timeline</div>
           {!removed.length && <div className="tl-pop-hint tl-pop-note">Every story is already on the timeline.</div>}
           {removed.map((st) => (
@@ -296,7 +328,8 @@ export function AddTrackMenu() {
             <>
               <div className="tl-pop-sep" />
               <div className="tl-pop-title">Characters &amp; wiki pages</div>
-              {offTimeline.map((e) => (
+              {offTimeline.length > 6 && <input className="input small tl-pop-filter" placeholder="Find a page…" aria-label="Find a page" data-testid="tl-add-cast-filter" autoFocus value={filter} onChange={(e) => setFilter(e.target.value)} />}
+              {shown.map((e) => (
                 <button
                   key={e.id}
                   className="tl-pop-item"

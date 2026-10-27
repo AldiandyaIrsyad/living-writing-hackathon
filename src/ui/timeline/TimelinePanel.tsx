@@ -92,6 +92,30 @@ export function TimelinePanel() {
   const graph = getGraph(vault);
   const model = useMemo(() => buildTimelineModel(vault, graph, hidden), [vault, graph, hidden]);
   const castEntities = castTracks.map((id) => vault.entities[id]).filter(Boolean);
+
+  // The dock is as tall as these rows need (unless the writer dragged it): say how tall that is.
+  useEffect(() => {
+    const content = contentRef.current;
+    const scroll = scrollRef.current;
+    if (!content || !scroll) return;
+    const measure = () => {
+      const rows = [...content.children].filter((c) => !c.classList.contains('tl-playhead')).reduce((n, c) => n + (c as HTMLElement).offsetHeight, 0);
+      useStore.getState().setTimelineNatural(scroll.parentElement!.offsetHeight - scroll.clientHeight + rows + 6);
+    };
+    measure();
+    // Measured a frame later, so a resize caused by the measuring never loops back into it.
+    let frame = 0;
+    const ro = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(measure);
+    });
+    ro.observe(content);
+    for (const c of content.children) ro.observe(c);
+    return () => {
+      cancelAnimationFrame(frame);
+      ro.disconnect();
+    };
+  }, [model.tracks.length, castEntities.length]);
   const involved = useMemo(() => involvementOfAny(vault, highlightEntities), [vault, highlightEntities]);
   const changeCount = useMemo(() => {
     const map = new Map<Id, number>();

@@ -143,6 +143,8 @@ so the timeline is always on screen and is the main way to move through the work
 ```
 
 1. **Timeline (docked, bottom)** — the heart of the app.
+   - The dock is as tall as its tracks need (up to 45% of the window); dragging its top edge keeps the height the
+     writer gave it, and the timeline's ⚙ menu ("Timeline height") switches between the two.
    - One **track per story** (main story, side stories, entirely separate stories).
      Columns are chronological order (topological layers of the moment graph);
      simultaneous scenes share a column. Scenes are **clips**.

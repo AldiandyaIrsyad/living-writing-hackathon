@@ -41,6 +41,8 @@ export function App() {
   const loadError = useStore((s) => s.loadError);
   const view = useStore((s) => s.view);
   const timelineHeight = useStore((s) => s.timelineHeight);
+  const timelineFit = useStore((s) => s.timelineFit);
+  const timelineNatural = useStore((s) => s.timelineNatural);
   const maximized = useStore((s) => s.timelineMaximized);
   const collapsed = useStore((s) => s.timelineCollapsed);
   const leftOpen = useStore((s) => s.leftOpen);
@@ -210,7 +212,7 @@ export function App() {
   const columns = `${zen ? '0px' : leftOpen ? '300px' : '44px'} minmax(0, 1fr) ${zen ? '0px' : rightOpen ? '330px' : '34px'}`;
 
   return (
-    <div className={`app ${maximized && !collapsed ? 'tl-max' : ''} ${zen ? 'zen' : ''} ${!rightOpen ? 'right-collapsed' : ''}`} style={{ gridTemplateRows: maximized && !collapsed ? '44px 0 minmax(0,1fr)' : `44px minmax(0,1fr) ${collapsed ? 30 : timelineHeight}px` }}>
+    <div className={`app ${maximized && !collapsed ? 'tl-max' : ''} ${zen ? 'zen' : ''} ${!rightOpen ? 'right-collapsed' : ''}`} style={{ gridTemplateRows: maximized && !collapsed ? '44px 0 minmax(0,1fr)' : `44px minmax(0,1fr) ${collapsed ? '30px' : timelineFit ? `clamp(190px, ${timelineNatural}px, 45vh)` : `${timelineHeight}px`}` }}>
       <TopBar zen={zen} toggleZen={toggleZen} />
       <div className="workspace" style={{ gridTemplateColumns: columns }}>
         <div className="left-pane">
@@ -287,7 +289,10 @@ function DockResizer() {
       title="Drag to resize the timeline"
       onPointerDown={(e) => {
         const startY = e.clientY;
-        const startH = useStore.getState().timelineHeight;
+        // Dragging leaves "fit to tracks": from the height it has now, as the writer's own.
+        const startH = document.querySelector<HTMLElement>('[data-testid="timeline"]')?.offsetHeight ?? useStore.getState().timelineHeight;
+        useStore.getState().setTimelineHeight(startH);
+        useStore.getState().setTimelineFit(false);
         (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
         const move = (ev: PointerEvent) => useStore.getState().setTimelineHeight(startH + (startY - ev.clientY));
         const up = () => {
