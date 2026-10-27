@@ -1,6 +1,7 @@
 // The timeline ruler: column ticks and numbers. Pointer down on it moves the playhead.
 
 import { HEADER_W, RULER_H, RULER_LABEL_H, type TimelineModel } from './model';
+import { AddTrackMenu } from './Toolbar';
 
 export function Ruler({
   model,
@@ -52,7 +53,7 @@ export function Ruler({
   return (
     <div className="tl-ruler" style={{ height: labels.length ? RULER_LABEL_H : RULER_H }} onPointerDown={onScrub} onContextMenu={onContext} data-testid="tl-ruler">
       <div className="tl-ruler-head" style={{ width: HEADER_W }} onPointerDown={(e) => e.stopPropagation()}>
-        <span className="faint small">Stories</span>
+        <AddTrackMenu />
       </div>
       {ticks}
       {labelEls}

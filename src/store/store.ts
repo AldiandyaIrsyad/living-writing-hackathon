@@ -58,6 +58,12 @@ export type LeftView = 'stories' | 'wiki' | 'search' | 'notes' | 'tags';
 
 /** How the docked timeline behaves while writing. */
 export type TimelineBehaviour = 'always' | 'autohide' | 'hidden';
+/** Which levels of a story track the timeline draws. */
+export interface TimelineShow {
+  arcs: boolean;
+  chapters: boolean;
+  scenes: boolean;
+}
 export type StateTime = 'timeline' | 'slider';
 
 /** An edit that changes what other scenes see, held back until the writer has looked at what it touches. */
@@ -106,6 +112,9 @@ interface AppState {
   timelineHeight: number;
   /** The timeline is as tall as its tracks need (within limits); false = the height the writer dragged it to. */
   timelineFit: boolean;
+  timelineShow: TimelineShow;
+  /** The scrollbar above the overview bar (the overview bar scrolls and zooms too). */
+  timelineScrollbar: boolean;
   /** Height its tracks need, reported by the timeline itself. */
   timelineNatural: number;
   timelineMaximized: boolean;
@@ -180,6 +189,8 @@ interface AppState {
   setTimelineMode(mode: TimelineMode): void;
   setTimelineHeight(h: number): void;
   setTimelineFit(on: boolean): void;
+  setTimelineShow(part: keyof TimelineShow, on: boolean): void;
+  setTimelineScrollbar(on: boolean): void;
   setTimelineNatural(h: number): void;
   setTimelineMaximized(on: boolean): void;
   toggleStoryHidden(id: Id): void;
@@ -261,6 +272,8 @@ export const useStore = create<AppState>((set, get) => ({
   timelineMode: 'move',
   timelineHeight: loadUi('timelineHeight', 300),
   timelineFit: loadUi('timelineFit', true),
+  timelineShow: { arcs: true, chapters: true, scenes: true, ...loadUi<Partial<TimelineShow>>('timelineShow', {}) },
+  timelineScrollbar: loadUi('timelineScrollbar', false),
   timelineNatural: 300,
   timelineMaximized: false,
   hiddenStories: loadUi<Id[]>('hiddenStories', []),
@@ -454,6 +467,17 @@ export const useStore = create<AppState>((set, get) => ({
   setTimelineFit(on) {
     saveUi('timelineFit', on);
     set({ timelineFit: on });
+  },
+
+  setTimelineShow(part, on) {
+    const next = { ...get().timelineShow, [part]: on };
+    saveUi('timelineShow', next);
+    set({ timelineShow: next });
+  },
+
+  setTimelineScrollbar(on) {
+    saveUi('timelineScrollbar', on);
+    set({ timelineScrollbar: on });
   },
 
   setTimelineNatural(h) {

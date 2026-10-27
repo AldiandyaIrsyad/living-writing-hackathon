@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Scene, Story } from '../../core/types';
 import { formatCompact, formatCount, storyWordCounts } from '../../core/wordcount';
 import { update, useStore, useVault } from '../../store/store';
+import { sceneAddresses } from '../goto';
 import { appendScene, appendSomedayScene, createStory } from '../stories';
 import { PanelHeader } from './PanelHeader';
 import { buildOutline, countByStory, indent, type OutlineChapter } from './panelData';
@@ -131,12 +132,11 @@ export function StoriesPanel() {
   };
 
   // A scene's address in the Timetable look: chapter number, then its place in the chapter (2.03).
-  const chapterNo = new Map<string, number>();
-  [...outline.arcs.flatMap((g) => g.chapters), ...outline.chapters].forEach((c, i) => chapterNo.set(c.chapter.id, i + 1));
+  const addresses = useMemo(() => (storyId === null ? new Map<string, string>() : sceneAddresses(vault, storyId)), [vault, storyId]);
 
   const renderScene = (s: Scene, depth: number, siblings: Scene[]) => {
     const on = s.id === activeSceneId;
-    const no = s.chapterId ? chapterNo.get(s.chapterId) : undefined;
+    const address = addresses.get(s.id);
     const mark = dropMark?.id === s.id ? dropMark.side : null;
     return (
       <button
@@ -178,9 +178,9 @@ export function StoriesPanel() {
         <span className="lp-glyph" aria-hidden="true">
           {s.someday ? '☁' : '¶'}
         </span>
-        {no !== undefined && (
+        {address !== undefined && (
           <span className="lp-addr" aria-hidden="true">
-            {no}.{String(siblings.findIndex((x) => x.id === s.id) + 1).padStart(2, '0')}
+            {address}
           </span>
         )}
         <span className="lp-row-name">{s.title || 'Untitled scene'}</span>

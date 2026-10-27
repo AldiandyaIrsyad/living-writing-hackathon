@@ -1,11 +1,13 @@
 // One story track of the timeline: its header, chapter and arc bands, scene clips and the drop marker.
 
+import { useMemo } from 'react';
 import { changeWhere } from '../../core/anchor';
 import { formatValue } from '../../core/resolve';
 import { STATUS_LABELS } from '../../core/status';
 import type { Entity, Id, Vault } from '../../core/types';
 import type { Relation } from '../../core/timeline';
 import { useStore, useVault } from '../../store/store';
+import { sceneAddresses } from '../goto';
 import { HEADER_W, METRICS, partTitle, shortLabel, trackHeight, keyframeInForce, type ClipModel, type Keyframe, type Span, type TrackModel } from './model';
 
 /** Clips narrower than this (px) are slim coloured slivers: no title, no meta, no insert button. */
@@ -84,14 +86,17 @@ export function Track(p: TrackProps) {
   const { track, zoom } = p;
   const m = METRICS;
   const color = track.story.color;
-  const h = trackHeight(track);
+  const show = useStore((s) => s.timelineShow);
+  const h = trackHeight(track, show);
   const navigate = useStore((s) => s.navigate);
   const toggleHidden = useStore((s) => s.toggleStoryHidden);
+  const vault = useVault();
+  const addresses = useMemo(() => sceneAddresses(vault, track.story.id), [vault, track.story.id]);
   let y = m.pad;
   const arcTop = y;
-  if (track.arcs.length) y += m.arcBand + 3;
+  if (show.arcs && track.arcs.length) y += m.arcBand + 3;
   const chTop = y;
-  if (track.chapters.length) y += m.chapterBand + 3;
+  if (show.chapters && track.chapters.length) y += m.chapterBand + 3;
   const clipTop = y;
   // The drop marker, when the pointer is over a clip of this track.
   const marker = p.hint && track.clips.some((c) => c.scene.id === p.hint!.sceneId) ? p.hint : null;
@@ -149,12 +154,12 @@ export function Track(p: TrackProps) {
           p.onContext({ kind: 'lane', clientX: e.clientX }, e);
         }}
       >
-        {track.arcs
+        {show.arcs && track.arcs
           .filter((a) => p.visible(a.from, a.to))
           .map((a) => (
             <SpanBlock key={`${a.id}:${a.part}`} span={a} kind="arc" top={arcTop} height={m.arcBand} zoom={zoom} onClick={() => p.onSpan(a)} onContext={(e) => p.onContext({ kind: 'span', span: a, level: 'arc' }, e)} />
           ))}
-        {track.chapters
+        {show.chapters && track.chapters
           .filter((c) => p.visible(c.from, c.to))
           .map((c) => (
             <SpanBlock
@@ -168,10 +173,10 @@ export function Track(p: TrackProps) {
               onContext={(e) => p.onContext({ kind: 'span', span: c, level: 'chapter' }, e)}
             />
           ))}
-        {track.clips
+        {show.scenes && track.clips
           .filter((c) => p.visible(c.col, c.col + c.span))
           .map((clip) => (
-            <Clip key={clip.scene.id} clip={clip} top={clipTop + clip.stack * (m.clipH + m.gap)} height={m.clipH} {...p} />
+            <Clip key={clip.scene.id} clip={clip} top={clipTop + clip.stack * (m.clipH + m.gap)} height={m.clipH} address={addresses.get(clip.scene.id)} {...p} />
           ))}
         {marker && (
           <div className={`tl-drop tl-drop-${relationKey(marker.relation)}`} style={{ left: marker.col * zoom }} data-testid="tl-drop" data-relation={relationKey(marker.relation)}>
@@ -222,15 +227,13 @@ function SpanBlock({
   );
 }
 
-function Clip({ clip, top, height, zoom, ...p }: { clip: ClipModel; top: number; height: number } & TrackProps) {
+function Clip({ clip, top, height, zoom, address, ...p }: { clip: ClipModel; top: number; height: number; address: string | undefined } & TrackProps) {
   const s = clip.scene;
-  const vault = useVault();
   // While being stretched, the clip shows the span the pointer has reached.
   const span = p.resizing?.sceneId === s.id ? p.resizing.span : clip.span;
   const isHint = p.hint?.sceneId === s.id;
   const live = clip.col <= p.playhead && p.playhead < clip.col + span;
   const n = p.changeCount.get(s.id) ?? 0;
-  const ch = s.chapterId ? vault.chapters[s.chapterId] : undefined;
   const narrow = zoom < NARROW_CLIP_PX;
   const cls = [
     'tl-clip',
@@ -278,11 +281,10 @@ function Clip({ clip, top, height, zoom, ...p }: { clip: ClipModel; top: number;
             {s.title}
           </div>
           <div className="tl-clip-meta">
-            {ch && <span>{ch.title}</span>}
-            <span title="Reading order">#{s.order + 1}</span>
+            {address && <span title="Chapter.scene: the address the palette opens with :chapter.scene">{address}</span>}
             {n > 0 && (
-              <span className="tl-delta" title={`${n} state change${n === 1 ? '' : 's'}`}>
-                Δ{n}
+              <span className="tl-delta" title={`This scene changes ${n} thing${n === 1 ? '' : 's'} about the story's people and places (a ◆ on each one's row)`}>
+                ◆{n}
               </span>
             )}
             {clip.floating && <span className="tl-float">floating</span>}

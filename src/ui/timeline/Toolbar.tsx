@@ -3,18 +3,20 @@
 import { TIMELINE_SHORTCUTS } from '../shortcuts';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { addStandaloneMilestone } from '../../core/labels';
-import { useStore, useVault, type StateTime, type TimelineBehaviour } from '../../store/store';
+import { useStore, useVault, type StateTime, type TimelineBehaviour, type TimelineShow } from '../../store/store';
 import { createStory } from '../stories';
 import { HighlightPicker } from './HighlightPicker';
-import { HEADER_W } from './model';
 
 export function Toolbar({
   readout,
+  where,
   mode,
   onFit,
   nav,
 }: {
   readout: string;
+  /** The chapter and scene at the playhead, for the tooltip. */
+  where: string;
   mode: 'move' | 'constrain';
   onFit: () => void;
   /** Back and forward through the views jumped between. */
@@ -24,7 +26,7 @@ export function Toolbar({
   const s = useStore.getState();
   return (
     <div className="tl-toolbar">
-      <div className="tl-readout" title="Playhead — where you are in the story" data-testid="tl-readout">
+      <div className="tl-readout" title={`Playhead — ${where}`} data-testid="tl-readout">
         <span className="tl-readout-dot" />
         {readout}
       </div>
@@ -215,18 +217,40 @@ const HEIGHTS = [
   { id: 'fixed', fit: false, label: 'As I dragged it', hint: 'Keeps the height you gave it by dragging its top edge.' },
 ];
 
+const SHOWN: { id: keyof TimelineShow; label: string }[] = [
+  { id: 'arcs', label: 'Arcs' },
+  { id: 'chapters', label: 'Chapters' },
+  { id: 'scenes', label: 'Scenes' },
+];
+
 function BehaviourMenu() {
+  const show = useStore((s) => s.timelineShow);
+  const scrollbar = useStore((s) => s.timelineScrollbar);
   const behaviour = useStore((s) => s.timelineBehaviour);
   const stateTime = useStore((s) => s.stateTime);
   const fit = useStore((s) => s.timelineFit);
   const [open, setOpen, ref] = usePopover();
+  const [pos, setPos] = useState<React.CSSProperties>({});
   return (
     <div className="tl-pop-wrap" ref={ref}>
-      <button className="tl-btn" onClick={() => setOpen(!open)} title="Timeline behaviour while writing" data-testid="tl-settings">
+      <button
+        className="tl-btn"
+        onClick={(e) => {
+          if (!open) {
+            const r = e.currentTarget.getBoundingClientRect();
+            const below = window.innerHeight - r.bottom;
+            const right = window.innerWidth - r.right;
+            setPos(r.top > below ? { right, bottom: window.innerHeight - r.top + 4, maxHeight: r.top - 12 } : { right, top: r.bottom + 4, maxHeight: below - 12 });
+          }
+          setOpen(!open);
+        }}
+        title="Timeline behaviour while writing"
+        data-testid="tl-settings"
+      >
         ⚙
       </button>
       {open && (
-        <div className="tl-pop tl-pop-right">
+        <div className="tl-pop tl-pop-right tl-pop-fixed" style={{ ...pos, top: pos.top ?? 'auto' }}>
           <div className="tl-pop-title">While writing</div>
           {BEHAVIOURS.map((b) => (
             <button
@@ -256,6 +280,23 @@ function BehaviourMenu() {
               </span>
             </button>
           ))}
+          <div className="tl-pop-sep" />
+          <div className="tl-pop-title">Show on story tracks</div>
+          {SHOWN.map((b) => (
+            <button key={b.id} className={`tl-pop-item ${show[b.id] ? 'on' : ''}`} onClick={() => useStore.getState().setTimelineShow(b.id, !show[b.id])} data-testid={`tl-show-${b.id}`}>
+              <span className="tl-pop-check">{show[b.id] ? '☑' : '☐'}</span>
+              <span className="tl-pop-label">{b.label}</span>
+            </button>
+          ))}
+          <div className="tl-pop-sep" />
+          <div className="tl-pop-title">Scrollbar</div>
+          <button className={`tl-pop-item ${scrollbar ? 'on' : ''}`} onClick={() => useStore.getState().setTimelineScrollbar(!scrollbar)} data-testid="tl-scrollbar">
+            <span className="tl-pop-check">{scrollbar ? '☑' : '☐'}</span>
+            <span>
+              <span className="tl-pop-label">Show a scrollbar above the overview</span>
+              <span className="tl-pop-hint">The overview bar already scrolls and zooms; drag its window.</span>
+            </span>
+          </button>
           <div className="tl-pop-sep" />
           <div className="tl-pop-title">Timeline height</div>
           {HEIGHTS.map((b) => (
@@ -290,7 +331,7 @@ export function AddTrackMenu() {
     .filter((st) => hidden.includes(st.id))
     .sort((a, b) => a.order - b.order);
   return (
-    <div className="tl-addtrack" style={{ width: HEADER_W }} ref={ref}>
+    <div className="tl-addtrack" ref={ref}>
       <button
         className="tl-btn"
         onClick={(e) => {

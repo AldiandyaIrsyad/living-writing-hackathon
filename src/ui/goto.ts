@@ -245,3 +245,15 @@ function sceneNumberNav(idx: StoryIndex, i: number): NavTarget {
     texts: texts(sceneTitle(scene)),
   };
 }
+
+/** Every scene of a story as the address the palette opens it by: "2.3" is `:2.3` (chapter 2, its third scene). */
+export function sceneAddresses(vault: Vault, storyId: Id): Map<Id, string> {
+  const story = vault.stories[storyId];
+  const out = new Map<Id, string>();
+  if (!story) return out;
+  const idx = storyIndex(vault, story);
+  idx.chapters.forEach((ch, i) => {
+    idx.scenes.filter((s) => s.chapterId === ch.id).forEach((s, j) => out.set(s.id, `${i + 1}.${String(j + 1).padStart(2, '0')}`));
+  });
+  return out;
+}

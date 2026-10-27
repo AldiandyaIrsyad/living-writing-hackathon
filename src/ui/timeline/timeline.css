@@ -190,6 +190,18 @@
   position: relative;
   min-height: 100%;
 }
+/* The overview bar below scrolls and zooms, so the horizontal scrollbar is off unless asked for (still scrolls by wheel and drag). */
+.timeline.no-hscroll .tl-scroll::-webkit-scrollbar {
+  height: 0;
+  width: 10px;
+}
+.timeline.no-hscroll .tl-scroll::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border: 2px solid var(--tl-lane);
+}
+.timeline.no-hscroll .tl-scroll::-webkit-scrollbar-track {
+  background: var(--tl-lane);
+}
 
 /* ---------- ruler ---------- */
 .tl-ruler {
@@ -211,8 +223,6 @@
   border-right: 1px solid var(--border);
   z-index: 2;
   cursor: default;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 .tl-tick {
   position: absolute;
@@ -549,10 +559,7 @@
 }
 
 .tl-addtrack {
-  position: sticky;
-  left: 0;
-  padding: 6px 8px;
-  z-index: 3;
+  position: relative;
 }
 .tl-empty {
   position: sticky;

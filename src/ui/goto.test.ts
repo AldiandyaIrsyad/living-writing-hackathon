@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createDemoVault } from '../core/seed';
 import { emptyVault, type Vault } from '../core/types';
-import { navItems, parseGoto, resolveGoto } from './goto';
+import { navItems, parseGoto, resolveGoto, sceneAddresses } from './goto';
 
 const demo = createDemoVault();
 const MAIN = 'story_main';
@@ -125,5 +125,19 @@ describe('navItems', () => {
   it('matches what :N and :aN would open', () => {
     expect(items.find((t) => t.kind === 'chapter' && t.number === 3)?.sceneId).toBe(resolveGoto(demo, MAIN, ':3').targets[0].sceneId);
     expect(items.find((t) => t.kind === 'arc' && t.number === 2)?.sceneId).toBe(resolveGoto(demo, MAIN, ':a2').targets[0].sceneId);
+  });
+});
+
+describe('sceneAddresses', () => {
+  // The address shown on a scene is the query that opens it: a contract between the outline, the timeline and the palette.
+  it('is the chapter.scene the palette opens', () => {
+    for (const storyId of [MAIN, MIRA]) {
+      const addresses = sceneAddresses(demo, storyId);
+      if (storyId === MAIN) expect(addresses.size).toBeGreaterThan(0);
+      for (const [sceneId, address] of addresses) {
+        const { targets } = resolveGoto(demo, storyId, `:${address.replace('.0', '.')}`);
+        expect(targets[0].sceneId).toBe(sceneId);
+      }
+    }
   });
 });

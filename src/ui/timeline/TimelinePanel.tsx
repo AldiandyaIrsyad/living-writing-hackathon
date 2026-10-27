@@ -13,7 +13,7 @@ import { HoverPreview } from './HoverPreview';
 import { buildTimelineModel, entityKeyframes, HEADER_W, targetForColumn, type ClipModel, type TimelineModel, type TrackModel } from './model';
 import { RangeBar } from './RangeBar';
 import { Ruler } from './Ruler';
-import { Toolbar, AddTrackMenu } from './Toolbar';
+import { Toolbar } from './Toolbar';
 import { ContextMenu, type MenuItem } from './ContextMenu';
 import { buildMenu, type MenuTarget } from './menuItems';
 import { CastTrack, Track, hintKey, type Hint, type LaneContext } from './TrackLane';
@@ -76,6 +76,7 @@ export function TimelinePanel() {
   const highlightEntities = useStore((s) => s.highlightEntities);
   const reveal = useStore((s) => s.reveal);
   const maximized = useStore((s) => s.timelineMaximized);
+  const scrollbar = useStore((s) => s.timelineScrollbar);
   const activeView = useStore((s) => s.view);
   const currentStoryId = useStore((s) => s.currentStoryId);
   const [selected, setSelected] = useState<Set<Id>>(new Set());
@@ -520,11 +521,14 @@ export function TimelinePanel() {
   };
   const laneTarget = (t: LaneContext): MenuTarget => (t.kind === 'lane' ? { kind: 'lane', col: Math.max(0, Math.floor(colAtClientX(t.clientX))) } : t);
 
-  const readout = describePlayhead(vault, playhead, activeStoryId, false);
+  // The corner says when the playhead is, not which chapter: the clip under it already names that (the full place is its tooltip).
+  const moment = [...model.labels].reverse().find((l) => l.col <= playhead);
+  const readout = `Time ${Math.floor(playhead) + 1}${moment ? ` · ${moment.text}` : ''}`;
+  const where = describePlayhead(vault, playhead, activeStoryId, false);
 
   return (
-    <section className={`timeline ${maximized ? 'maximized' : ''}`} data-testid="timeline" onKeyDown={onKeyDown} tabIndex={-1}>
-      <Toolbar readout={readout} mode={mode} onFit={fit} nav={{ canBack: canGo.back, canForward: canGo.forward, onBack: () => travel(-1), onForward: () => travel(1) }} />
+    <section className={`timeline ${maximized ? 'maximized' : ''}${scrollbar ? '' : ' no-hscroll'}`} data-testid="timeline" onKeyDown={onKeyDown} tabIndex={-1}>
+      <Toolbar readout={readout} where={where} mode={mode} onFit={fit} nav={{ canBack: canGo.back, canForward: canGo.forward, onBack: () => travel(-1), onForward: () => travel(1) }} />
       <div className="tl-scroll" ref={scrollRef} onScroll={syncViewport}>
         <div className="tl-content" ref={contentRef} style={{ width: contentW }}>
           <Ruler
@@ -613,7 +617,6 @@ export function TimelinePanel() {
           {castEntities.map((e) => (
             <CastTrack key={e.id} entity={e} keyframes={entityKeyframes(getResolver(vault), e.id)} zoom={zoom} width={totalCols * zoom} visible={visible} playhead={playhead} />
           ))}
-          <AddTrackMenu />
           {!model.tracks.length && <div className="tl-empty">No story tracks on the timeline — use “+ Track” to bring one in, or load the demo world from the Vault menu.</div>}
           <div className="tl-playhead" style={{ left: HEADER_W + playhead * zoom, width: zoom }} data-testid="tl-playhead" data-x={playhead}>
             <div className="tl-playhead-cap">{playhead + 1}</div>

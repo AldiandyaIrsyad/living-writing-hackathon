@@ -249,9 +249,10 @@ export const RULER_LABEL_H = 46;
 
 export const METRICS: Metrics = { arcBand: 16, chapterBand: 20, clipH: 52, gap: 4, pad: 6 };
 
-export function trackHeight(t: TrackModel): number {
+export function trackHeight(t: TrackModel, show: { arcs: boolean; chapters: boolean; scenes: boolean }): number {
   const m = METRICS;
-  return Math.max(52, m.pad * 2 + (t.arcs.length ? m.arcBand + 3 : 0) + (t.chapters.length ? m.chapterBand + 3 : 0) + t.stacks * (m.clipH + m.gap));
+  const h = m.pad * 2 + (show.arcs && t.arcs.length ? m.arcBand + 3 : 0) + (show.chapters && t.chapters.length ? m.chapterBand + 3 : 0) + (show.scenes ? t.stacks * (m.clipH + m.gap) : 0);
+  return Math.max(show.scenes ? 52 : 44, h);
 }
 
 /** "‹ Chapter 2 ›": a mark on each side that has more of the chapter, so a split one reads as connected. */
