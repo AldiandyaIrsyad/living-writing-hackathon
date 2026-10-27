@@ -284,7 +284,7 @@ const highlight = HighlightStyle.define([
 const theme = EditorView.theme({
   '&': { backgroundColor: 'transparent', color: 'var(--fg)' },
   '&.cm-focused': { outline: 'none' },
-  '.cm-content': { fontFamily: 'var(--font-prose)', fontSize: '17px', lineHeight: '1.7', caretColor: 'var(--accent)', padding: '8px 0 120px' },
+  '.cm-content': { fontFamily: 'var(--font-read)', fontSize: '17px', lineHeight: '1.7', caretColor: 'var(--accent)', padding: '8px 0 120px' },
   '.cm-line': { padding: '0' },
   '.cm-cursor': { borderLeftColor: 'var(--accent)' },
   '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection': { backgroundColor: 'var(--accent-soft) !important' },

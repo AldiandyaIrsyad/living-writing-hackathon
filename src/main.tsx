@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './ui/styles.css';
+import './ui/look.css';
 import { startAgent } from './agent/run';
 import { watchStorage } from './store/health';
 import { startTrackingWriting } from './store/stats';

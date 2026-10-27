@@ -1,0 +1,76 @@
+/*
+ * The Timetable look: paper ground, ink rules, square corners, yellow only for "where you are" (the current scene and
+ * the playhead) and red only for what is wrong. The tokens themselves live in styles.css and timeline/timeline.css;
+ * this file is the structure the tokens cannot reach. The earlier warm look is data-look='classic' and skips all of it.
+ */
+:root:not([data-look='classic']) {
+  button,
+  input,
+  select,
+  textarea,
+  [class*='card'],
+  [class*='pop'],
+  [class*='menu'],
+  [class*='dialog'],
+  [class*='toast'],
+  [class*='chip'],
+  [class*='badge'] {
+    border-radius: 2px;
+  }
+
+  .brand {
+    letter-spacing: -0.01em;
+    color: var(--fg);
+  }
+
+  /* Outline: scenes are numbered departures; the current one sits on a yellow band. */
+  .lp-glyph {
+    display: none;
+  }
+  .lp-addr {
+    display: inline-block;
+    flex: none;
+    min-width: 30px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--fg);
+  }
+  .lp-scene.on {
+    background: var(--accent-soft);
+    color: var(--fg);
+    font-weight: 600;
+  }
+
+  /* Rows of characters and pages: a straight line through the middle, in the row's colour, level with its name. */
+  .tl-cast .tl-lane::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    height: 1px;
+    background: var(--tl-grid);
+  }
+  .tl-cast-line {
+    height: 2px;
+    background: var(--story);
+  }
+  .tl-key {
+    width: 10px;
+    height: 10px;
+    margin: -5px 0 0 -5px;
+    border-width: 2px;
+    border-radius: 0;
+  }
+
+  /* Notices are boxed in ink, not marked by a coloured edge. */
+  .toast,
+  .callout,
+  .embed {
+    border: 1px solid var(--border-strong);
+  }
+  .toast-error,
+  .callout-warning {
+    border-color: var(--danger);
+  }
+}

@@ -130,8 +130,13 @@ export function StoriesPanel() {
     requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-scene-id="${s.id}"]`)?.focus());
   };
 
+  // A scene's address in the Timetable look: chapter number, then its place in the chapter (2.03).
+  const chapterNo = new Map<string, number>();
+  [...outline.arcs.flatMap((g) => g.chapters), ...outline.chapters].forEach((c, i) => chapterNo.set(c.chapter.id, i + 1));
+
   const renderScene = (s: Scene, depth: number, siblings: Scene[]) => {
     const on = s.id === activeSceneId;
+    const no = s.chapterId ? chapterNo.get(s.chapterId) : undefined;
     const mark = dropMark?.id === s.id ? dropMark.side : null;
     return (
       <button
@@ -173,6 +178,11 @@ export function StoriesPanel() {
         <span className="lp-glyph" aria-hidden="true">
           {s.someday ? '☁' : '¶'}
         </span>
+        {no !== undefined && (
+          <span className="lp-addr" aria-hidden="true">
+            {no}.{String(siblings.findIndex((x) => x.id === s.id) + 1).padStart(2, '0')}
+          </span>
+        )}
         <span className="lp-row-name">{s.title || 'Untitled scene'}</span>
         {s.status && <span className={`status-dot status-${s.status}`} data-testid="outline-status" data-status={s.status} title={STATUS_LABELS[s.status]} />}
       </button>

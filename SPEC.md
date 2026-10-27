@@ -287,6 +287,7 @@ Stories have **chapters**; chapters can optionally be grouped into **arcs**.
 - Undo/redo for edits, timeline moves and state changes; Undo and Redo name the step they undid
   when the edit was named.
 - Light and dark theme. Calm, writer-friendly UI; keyboard-first where reasonable.
+- Two looks, stored per browser (command bar: Toggle look): Timetable (default; see DESIGN.md) numbers each scene in the outline as chapter.scene (the address the palette's go-to takes, `:4.1`), and Classic is the earlier warm design.
 
 ### Out of scope for v1
 Branching / "what if" timelines, automatic contradiction detection (beyond the Problems list, which only suggests), multiple users,

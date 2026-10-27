@@ -319,7 +319,7 @@ function Clip({ clip, top, height, zoom, ...p }: { clip: ClipModel; top: number;
 }
 
 /** Height (px) of a character's or wiki page's row. */
-export const CAST_H = 34;
+export const CAST_H = 28;
 
 /** What a keyframe stands for, one line per change: where it was made and what it did. */
 function keyTitle(vault: Vault, k: Keyframe): string {

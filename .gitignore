@@ -8,3 +8,7 @@ test-results
 *.db-wal
 .env.local
 .env
+
+.impeccable/mocks
+.impeccable/questions
+.impeccable/e2e.log

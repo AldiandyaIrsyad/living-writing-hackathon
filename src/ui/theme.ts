@@ -46,3 +46,38 @@ export function useTheme(): Theme {
     () => theme,
   );
 }
+
+// Look: the Timetable design (default) or the earlier warm one, stored per browser.
+
+export type Look = 'timetable' | 'classic';
+
+function initialLook(): Look {
+  try {
+    return localStorage.getItem('lw-look') === 'classic' ? 'classic' : 'timetable';
+  } catch {
+    return 'timetable';
+  }
+}
+
+let look: Look = initialLook();
+if (typeof document !== 'undefined') document.documentElement.dataset.look = look;
+
+export function getLook(): Look {
+  return look;
+}
+
+export function setLook(l: Look): void {
+  look = l;
+  document.documentElement.dataset.look = l;
+  try {
+    localStorage.setItem('lw-look', l);
+  } catch {
+    // ignore
+  }
+  listeners.forEach((fn) => fn());
+}
+
+export function toggleLook(): Look {
+  setLook(look === 'timetable' ? 'classic' : 'timetable');
+  return look;
+}

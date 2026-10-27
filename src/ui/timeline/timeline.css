@@ -1,6 +1,33 @@
 /* Docked timeline — an editing-suite look in both themes. */
 
 :root {
+  --tl-bg: #f3f1e9;
+  --tl-panel: #e9e6da;
+  --tl-lane: #fbfaf5;
+  --tl-lane-alt: #f6f4ec;
+  --tl-grid: rgba(22, 24, 28, 0.09);
+  --tl-text: #16181c;
+  --tl-muted: #5b5f66;
+  --tl-btn: #ffffff;
+  --tl-btn-on: #16181c;
+  --tl-btn-on-fg: #fbfaf5;
+  --tl-playhead: #ffd100;
+}
+:root[data-theme='dark'] {
+  --tl-bg: #0d0e10;
+  --tl-panel: #16171a;
+  --tl-lane: #121316;
+  --tl-lane-alt: #17181b;
+  --tl-grid: rgba(255, 255, 255, 0.06);
+  --tl-text: #f2f0e8;
+  --tl-muted: #9a9ca2;
+  --tl-btn: #1f2024;
+  --tl-btn-on: #f2f0e8;
+  --tl-btn-on-fg: #121316;
+  --tl-playhead: #ffd100;
+}
+/* The earlier warm look, kept as a setting. */
+:root[data-look='classic'] {
   --tl-bg: #efebe4;
   --tl-panel: #e6e1d8;
   --tl-lane: #f6f3ee;
@@ -13,7 +40,7 @@
   --tl-btn-on-fg: #faf8f4;
   --tl-playhead: #e5484d;
 }
-:root[data-theme='dark'] {
+:root[data-look='classic'][data-theme='dark'] {
   --tl-bg: #141210;
   --tl-panel: #1b1916;
   --tl-lane: #191714;

@@ -1,4 +1,60 @@
 :root {
+  --bg: #fbfaf5;
+  --bg-elev: #ffffff;
+  --bg-sunk: #f2f0e8;
+  --bg-hover: #ebe8dd;
+  --fg: #16181c;
+  --fg-muted: #5b5f66;
+  --fg-faint: #8f9298;
+  --border: #d9d6ca;
+  --border-strong: #16181c;
+  --accent: #16181c;
+  --accent-fg: #fbfaf5;
+  --accent-soft: #ffe566;
+  --link: #16181c;
+  --link-unresolved: #8f9298;
+  --tag: #5b5f66;
+  --danger: #d52b1e;
+  --danger-soft: #fde7e4;
+  --ok: #1f7a4a;
+  --warn: #8a5a00;
+  --warn-soft: #fff3c4;
+  --shadow: 0 0 0 1px #16181c, 4px 4px 0 rgba(22, 24, 28, 0.18);
+  --radius: 2px;
+  --font-ui: 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif;
+  --font-read: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  --font-prose: var(--font-ui);
+  --font-mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg: #121316;
+  --bg-elev: #1b1c20;
+  --bg-sunk: #0d0e10;
+  --bg-hover: #26272c;
+  --fg: #f2f0e8;
+  --fg-muted: #a5a7ac;
+  --fg-faint: #6c6e74;
+  --border: #2d2f35;
+  --border-strong: #8a8c92;
+  --accent: #f2f0e8;
+  --accent-fg: #121316;
+  --accent-soft: #4a3f00;
+  --link: #f2f0e8;
+  --link-unresolved: #6c6e74;
+  --tag: #a5a7ac;
+  --danger: #ff6b5e;
+  --danger-soft: #3b1f1c;
+  --ok: #6fcf97;
+  --warn: #ffd100;
+  --warn-soft: #3a3000;
+  --shadow: 0 0 0 1px #8a8c92, 4px 4px 0 rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
+}
+
+/* The earlier warm look, kept as a setting (Look in the command bar). */
+:root[data-look='classic'] {
   --bg: #faf8f5;
   --bg-elev: #ffffff;
   --bg-sunk: #f2efea;
@@ -27,7 +83,7 @@
   color-scheme: light;
 }
 
-:root[data-theme='dark'] {
+:root[data-look='classic'][data-theme='dark'] {
   --bg: #1a1816;
   --bg-elev: #23201d;
   --bg-sunk: #151311;
@@ -396,7 +452,7 @@ table.props th {
 /* ---------- markdown ---------- */
 
 .prose {
-  font-family: var(--font-prose);
+  font-family: var(--font-read);
   font-size: 17px;
   line-height: 1.7;
 }

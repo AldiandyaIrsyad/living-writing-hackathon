@@ -1064,3 +1064,8 @@
 .lp-row.drop-into {
   background: color-mix(in srgb, var(--accent) 18%, transparent);
 }
+
+/* A scene's address (2.03): shown by the Timetable look in place of the paragraph mark. */
+.lp-addr {
+  display: none;
+}
