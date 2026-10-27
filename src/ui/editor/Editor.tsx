@@ -1,11 +1,12 @@
 // Markdown editor on CodeMirror 6 — owns its document so typing never re-renders React.
 
 import { typewriter } from './typewriter';
-import { autocompletion, closeBrackets, completionKeymap, type Completion, type CompletionContext, type CompletionResult } from '@codemirror/autocomplete';
+import { nameCompletion, suggestionKeys } from './nameSuggest';
+import { autocompletion, closeBrackets, type Completion, type CompletionContext, type CompletionResult } from '@codemirror/autocomplete';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { markdown } from '@codemirror/lang-markdown';
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
-import { EditorState, Facet, RangeSet, RangeSetBuilder, StateEffect, type Extension } from '@codemirror/state';
+import { EditorState, Facet, Prec, RangeSet, RangeSetBuilder, StateEffect, type Extension } from '@codemirror/state';
 import { Decoration, EditorView, keymap, placeholder as cmPlaceholder, ViewPlugin, WidgetType, type DecorationSet, type ViewUpdate } from '@codemirror/view';
 import { tags as t } from '@lezer/highlight';
 import { useEffect, useRef } from 'react';
@@ -354,7 +355,6 @@ export function Editor({ value, onChange, contextSceneId, placeholder, testId, e
             { key: 'Mod-i', run: (v) => toggleInline(v, 'italic') },
             { key: 'Mod-Shift-x', run: (v) => toggleInline(v, 'strike') },
             { key: 'Mod-e', run: (v) => toggleInline(v, 'code') },
-            ...completionKeymap,
             ...defaultKeymap,
             ...historyKeymap,
           ]),
@@ -364,7 +364,8 @@ export function Editor({ value, onChange, contextSceneId, placeholder, testId, e
           selectionBubble,
           EditorView.lineWrapping,
           closeBrackets(),
-          autocompletion({ override: [wikiCompletion], icons: false }),
+          autocompletion({ override: [wikiCompletion, nameCompletion], icons: false, defaultKeymap: false }),
+          Prec.highest(keymap.of(suggestionKeys)),
           linkPlugin,
           typewriter,
           atomicNotes,

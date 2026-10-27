@@ -4,7 +4,7 @@ import { Resolver } from '../core/resolve';
 import { VaultBuilder } from '../core/testkit';
 import type { Vault } from '../core/types';
 import { commitRevision } from '../store/actions';
-import { applyAgentOutput, createHeldPage, editPage, fixNearMiss, parseAgentOutput, revertAgentOutput, type AgentOptions, type AgentOutput } from './apply';
+import { applyAgentOutput, createHeldPage, earlierVersionsLacking, editPage, fixNearMiss, parseAgentOutput, revertAgentOutput, updateFromBeginning, type AgentOptions, type AgentOutput } from './apply';
 import { buildContext, linkName, runTool } from './context';
 import { applyEdits, pageLines, type PageEdit } from './page';
 
@@ -197,6 +197,38 @@ describe('editing pages', () => {
   });
 });
 
+describe('a fact that was true from the beginning', () => {
+  /** Nora's page has a version from s1 and one from s2; s3 then tells something about her that was always so. */
+  function threeScenes(): Vault {
+    let v = new VaultBuilder().entity('nora', {}, 'Nora').scene('s1').scene('s2').scene('s3').chain('s1', 's2', 's3').build();
+    v.scenes.s1.prose = '[[Nora]] rode north.';
+    v.scenes.s2.prose = '[[Nora]] rode on.';
+    v.scenes.s3.prose = '[[Nora]] took off her glove: a scar over the right eye.';
+    v = applyAgentOutput(v, 's1', answer({ pages: [adds('Nora', 'A courier')] }), agent).vault;
+    v = applyAgentOutput(v, 's2', answer({ pages: [adds('Nora', 'Rides a grey mare')] }), agent).vault;
+    return applyAgentOutput(v, 's3', answer({ pages: [adds('Nora', 'Scar over the right eye')] }), agent).vault;
+  }
+  const scar = [{ kind: 'add', text: 'Scar over the right eye' } as PageEdit];
+
+  it('is offered for the versions before the scene that lack it, and written into all of them, the base page included', () => {
+    const v = threeScenes();
+    expect(earlierVersionsLacking(v, 's3', 'nora', scar)).toBe(3); // the base page and the versions from s1 and s2
+    const filled = updateFromBeginning(v, 's3', 'nora', scar);
+    expect(earlierVersionsLacking(filled, 's3', 'nora', scar)).toBe(0);
+    expect(v.entities.nora.note).not.toContain('Scar');
+    expect(noteAfter(filled, 'Nora', 's1')).toContain('Scar over the right eye');
+    expect(filled.entities.nora.note).toContain('Scar over the right eye');
+  });
+
+  it('is not offered for a page that begins at that scene, and "Take back" removes it from the earlier versions again', () => {
+    const v = threeScenes();
+    expect(earlierVersionsLacking(v, 's1', 'nora', [{ kind: 'add', text: 'A courier' }])).toBe(0);
+    const back = revertAgentOutput(updateFromBeginning(v, 's3', 'nora', scar), 's3');
+    expect(noteAfter(back, 'Nora', 's1')).not.toContain('Scar');
+    expect(noteAfter(back, 'Nora', 's2')).toBe('- A courier\n- Rides a grey mare\n');
+  });
+});
+
 describe('where each line of a page came from', () => {
   it('tags each line with the page version that wrote it, telling the agent’s lines from the writer’s', () => {
     let v = world('Nora quit.');
@@ -328,6 +360,21 @@ describe('what the agent is shown', () => {
     v.changes.c1 = { id: 'c1', sceneId: 's1', entityId: 'nora', op: 'set', property: 'state', value: 'grieving', order: 0 };
     expect(buildContext(v, 'flash')).toContain('Current state: (none recorded)');
     expect(buildContext(v, 's2')).not.toContain('Current state: (none recorded)');
+  });
+
+  it('tells a flashback what its characters only gain later, and flags a flashback that already shows it', () => {
+    // flash is told last but happens first: the scar comes from s2, which is later in story time.
+    let v = new VaultBuilder().entity('nora', {}, 'Nora').scene('flash').scene('s2').chain('flash', 's2').build();
+    v.scenes.s2.prose = '[[Nora]] fell, and the blade left a scar over her right eye.';
+    v.scenes.flash.prose = 'Years before, [[Nora]] laughed, a scar over her right eye.';
+    v = applyAgentOutput(v, 's2', answer({ pages: [adds('Nora', 'Scar over the right eye')] }), agent).vault;
+
+    expect(buildContext(v, 'flash')).toContain('Not true yet in this scene');
+    expect(buildContext(v, 'flash')).toContain('Scar over the right eye (added in "s2")');
+    expect(buildContext(v, 's2')).not.toContain('Not true yet');
+
+    const tooEarly = { entity: 'Nora', claim: 'She has the scar before she gets it', sceneQuote: 'a scar over her right eye', wikiQuote: 'Scar over the right eye' };
+    expect(applyAgentOutput(v, 'flash', answer({ contradictions: [tooEarly] }), agent).report.contradictions).toEqual([tooEarly]);
   });
 
   it('shows the chapter’s notes and the latest dated scene before, so the scene can be dated from it', () => {

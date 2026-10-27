@@ -113,6 +113,8 @@ YAML frontmatter, `#tags` (nested `#tag/sub`), callouts (`> [!note]`), and:
 
 - Typing `[[` opens autocomplete (entities, scenes, aliases). Unknown link targets are
   shown as "unresolved" and can be created with one click (Obsidian behaviour).
+- Typing the first letters of a page's name or alias (or of a later word of its name) suggests it, like an IDE: Tab
+  writes it as a link, Enter still starts a new line. The command "Toggle name suggestions while I type" turns this off.
 - **Hovering** a link shows a card with the entity's state at the resolved moment
   (key properties, e.g. `status: dead`, plus which scene last changed each property).
   **Clicking** opens the entity page pinned to that moment.

@@ -7,6 +7,7 @@
 import { APP_BUILD, APP_VERSION } from '../../core/appInfo';
 import { FORMAT_VERSION } from '../../core/exchange';
 import { addReviewItems } from '../../core/review';
+import { toggleNameSuggestions } from '../editor/nameSuggest';
 import { toggleTypewriter } from '../editor/typewriter';
 import { askDailyGoal } from '../TodayBadge';
 import { OPEN_CAPTURE_EVENT, OPEN_IDEA_QUEUE_EVENT } from '../CaptureBox';
@@ -864,6 +865,7 @@ function buildCommands(ctx: Ctx, withEntityCommands: boolean): Command[] {
     { id: 'timeline-max', label: 'Toggle maximised timeline', run: toggleMaximised },
     { id: 'toggle-timeline', label: 'Toggle timeline', shortcut: 'Ctrl+J', run: toggleTimeline },
     { id: 'daily-goal', label: 'Set daily word goal…', run: askDailyGoal },
+    { id: 'name-suggest', label: 'Toggle name suggestions while I type', run: () => useStore.getState().toast('info', toggleNameSuggestions() ? 'Names of your pages are suggested as you type; Tab links one.' : 'Name suggestions off. [[ still lists the pages.') },
     { id: 'typewriter', label: 'Toggle typewriter scrolling', run: () => useStore.getState().toast('info', toggleTypewriter() ? 'Typewriter scrolling on: the line you are writing stays centred.' : 'Typewriter scrolling off.') },
     { id: 'theme', label: 'Toggle theme', run: toggleTheme },
     { id: 'export-json', label: 'Export JSON', run: exportVaultJSON },

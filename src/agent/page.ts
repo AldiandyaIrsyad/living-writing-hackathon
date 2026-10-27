@@ -5,9 +5,9 @@
 
 import { diffLines } from '../core/diff';
 import type { Resolver } from '../core/resolve';
-import type { Id, StateChange } from '../core/types';
+import type { Id, PageEdit, StateChange } from '../core/types';
 
-export type PageEdit = { kind: 'add'; text: string; under?: string } | { kind: 'replace'; old: string; text: string } | { kind: 'remove'; old: string };
+export type { PageEdit };
 
 /** Lower-case letters and digits only. */
 export const squash = (s: string): string => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');

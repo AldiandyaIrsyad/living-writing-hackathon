@@ -9,6 +9,7 @@ import { TYPE_PRESETS } from '../core/presets';
 import { formatValue, Resolver } from '../core/resolve';
 import type { Id, Vault } from '../core/types';
 import { slugify } from '../core/types';
+import { pageLines, squash } from './page';
 
 export const SYSTEM_PROMPT = `You are the continuity assistant inside a writing tool. The writer writes the story; you keep the story wiki true to it, so they never have to re-read earlier chapters. You never write or suggest prose or plot.
 
@@ -34,7 +35,7 @@ Rules:
 - certainty: "stated" = the narrator or a clear action establishes it. "implied" = clearly inferable. "claimed" = something a character says that may be a lie, rumour, belief, dream or hypothetical.
 - properties: only properties the entity already has (listed under Properties), when the scene changes them for good (status alive -> dead, a new owner). A value naming another entity is written as [[Name]].
 - states is a SHORT-LIVED snapshot for each character present: where they are, their condition and mood, who they are with, what they have just learned. One short sentence each, replacing the previous state. Hunger, mood and position belong here, never in pages. A character who dies in the scene gets the state "Dead" and how.
-- contradictions: check each thing the scene says about an entity you were shown (looks, belongings, injuries and what they still allow, where they are) against its page, properties and state: someone who "walks with a cane" running unaided is a conflict. Report one only when the scene plainly conflicts with what you were shown. "sceneQuote" is copied verbatim from the scene and "wikiQuote" verbatim from what you were shown. A change the scene itself narrates (she loses the hand in this scene) is an update, not a contradiction. If the scene's time is unknown, report none. When in doubt, report nothing.
+- contradictions: check each thing the scene says about an entity you were shown (looks, belongings, injuries and what they still allow, where they are) against its page, properties and state: someone who "walks with a cane" running unaided is a conflict. Report one only when the scene plainly conflicts with what you were shown. "sceneQuote" is copied verbatim from the scene and "wikiQuote" verbatim from what you were shown. A change the scene itself narrates (she loses the hand in this scene) is an update, not a contradiction. Lines listed as "Not true yet in this scene" begin in a later scene: when this scene already shows one (the scar, before the fight that gave it), report it as too early, with that line as "wikiQuote", and do not add it to the page here. If the scene's time is unknown, report none. When in doubt, report nothing.
 - timeSkip / concrete: only when the scene says how much time passed ("three days later") or a note or the scene gives a date outright.
 - timeLabel: when the scene happens, as a date the timeline can order: "Late Autumn, 2026", "Early Winter, Year 3", "October 2026", "2026-10-25". Work it out from the scene, the writer's notes and the latest dated scene before it plus any time the scene says has passed (three weeks after late autumn is early winter). Never a time of day or an event ("morning", "the night of the fire"), and never a year nobody gave: when no year can be known, omit it. Whatever the scene's language, write it with English month or season names (Spring, Summer, Autumn, Winter) or as an ISO date, the only forms the timeline reads; a season it does not know (a dry or rainy season) is given as its months ("June 2026") or the year alone ("2026").
 - title: only when you are told the scene has no title; otherwise leave it out.
@@ -134,16 +135,44 @@ export const GALLERY_TYPES = TYPE_PRESETS.filter((p) => !['template', 'inbox', '
 
 const PAGE_LIMIT = 1800;
 
+/**
+ * The lines the page gains in story time after this scene, each with the scene that adds it. Only a scene told out of
+ * order (a flashback) has any: it must not show these yet, so the model is told, and the writer is warned if it does.
+ */
+export function laterPageLines(r: Resolver, entityId: Id, sceneId: Id): { scene: Id; line: string }[] {
+  const now = r.entityBefore(entityId, { sceneId }).revision;
+  const history = r.pageHistory(entityId);
+  const out: { scene: Id; line: string }[] = [];
+  for (const v of history.slice(now ? history.findIndex((h) => h.change?.id === now.id) + 1 : 1)) {
+    const scene = v.change?.sceneId;
+    if (!scene || scene === sceneId) continue;
+    const had = new Set(pageLines(v.prevNote).map(squash));
+    for (const line of pageLines(v.note)) if (line.trim() && !/^\s*#/.test(line) && !had.has(squash(line))) out.push({ scene, line: line.trim() });
+  }
+  return out;
+}
+
 /** An entity as of the start of a scene: its name, page, properties and current state. */
 export function describeEntity(vault: Vault, r: Resolver, entityId: Id, sceneId: Id): string {
   const e = vault.entities[entityId];
   const at = r.entityBefore(entityId, { sceneId });
+  const later = laterPageLines(r, entityId, sceneId)
+    .slice(0, 12)
+    .map((l) => `- ${l.line} (added in "${vault.scenes[l.scene]?.title ?? 'a later scene'}")`);
   const type = vault.entityTypes[e.typeId]?.name ?? '';
   const props = Object.entries(at.props).filter(([k]) => k !== 'state').map(([k, p]) => `- ${k}: ${formatValue(p.value)}`);
   const state = (at.props.state && formatValue(at.props.state.value)) || '(none recorded)';
   const aliases = e.aliases.length ? ` (also: ${e.aliases.join(', ')})` : '';
   const page = at.note.length > PAGE_LIMIT ? `${at.note.slice(0, PAGE_LIMIT)}…` : at.note;
-  return [`### ${at.name} [${type}]${aliases}`, `Current state: ${state}`, props.length ? `Properties:\n${props.join('\n')}` : '', `Page:\n${page.trim() || '(empty)'}`].filter(Boolean).join('\n');
+  return [
+    `### ${at.name} [${type}]${aliases}`,
+    `Current state: ${state}`,
+    props.length ? `Properties:\n${props.join('\n')}` : '',
+    `Page:\n${page.trim() || '(empty)'}`,
+    later.length ? `Not true yet in this scene (the page only gains these in scenes that come later in story time):\n${later.join('\n')}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 /**

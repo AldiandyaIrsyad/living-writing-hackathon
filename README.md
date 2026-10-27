@@ -102,8 +102,14 @@ cheaper, but Meta may train its models on what is sent to it, so the panel warns
   the prose leaves open (`%% Gull is dead %%` when he only "went under"), since the agent records only what it can tell.
 - **Sources:** the entity page's "Sources" button shows the page line by line, each run of lines tagged with the scene
   whose version wrote it (and "agent" when the agent did). Click a tag to open the scene.
-- **Take back** removes everything the agent wrote for a scene. Agent changes carry an `agent` field (the model that
-  wrote them) in the vault and in exports.
+- **A fact that was true all along:** what the agent writes goes into the page's later versions by itself. Under a
+  page's edits, "Update from the beginning" writes them into every version before the scene too, back to the base
+  page (offered only when the page has an earlier version that lacks them).
+- **Too early:** a flashback is shown what its characters only gain in later scenes ("Not true yet in this scene"). One
+  that already shows it (the scar, before the fight that gave it) is flagged like any contradiction, quoting the wiki
+  line that comes later.
+- **Take back** removes everything the agent wrote for a scene, including what "Update from the beginning" wrote into
+  earlier versions. Agent changes carry an `agent` field (the model that wrote them) in the vault and in exports.
 
 The browser builds the prompt and applies the answer; the server only relays one chat call (with the key) and is limited
 to 120 calls per account per 10 minutes.

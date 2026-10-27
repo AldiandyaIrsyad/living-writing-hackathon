@@ -2,11 +2,11 @@
 // writer to decide. Everything it wrote can be taken back for this scene in one click; everything it only offered can
 // be accepted one line at a time.
 
-import { createHeldPage, editPage, fixNearMiss, propValue, revertAgentOutput, type AgentReport, type Contradiction } from '../../agent/apply';
+import { createHeldPage, earlierVersionsLacking, editPage, fixNearMiss, propValue, revertAgentOutput, updateFromBeginning, type AgentReport, type Contradiction } from '../../agent/apply';
 import type { PageEdit } from '../../agent/page';
 import { enqueueScene, IDLE_CHOICES, isContributor, readChapter, readSceneNow, stopReading, tookBack, useAgent, type Effort, type LinkNames, type Trigger } from '../../agent/run';
 import { isUntitled, linkName, type SceneTitles } from '../../agent/context';
-import { linkFirstMention } from '../../core/links';
+import { findEntity, linkFirstMention } from '../../core/links';
 import type { Id, Scene, Vault } from '../../core/types';
 import { slugify } from '../../core/types';
 import { addChange, setMomentConcrete, setMomentLabel, setMomentTimeSkip, sortedTypes, updateEntity } from '../../store/actions';
@@ -218,16 +218,35 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
             </div>
           ))}
 
-          {report.pages.map((p) => (
-            <div key={p.entity}>
-              <b>{p.entity}</b>
-              <ul>
-                {p.edits.map((e, i) => (
-                  <EditLine key={i} edit={e} />
-                ))}
-              </ul>
-            </div>
-          ))}
+          {report.pages.map((p) => {
+            const id = findEntity(vault, p.entity)?.id;
+            const lacking = id ? earlierVersionsLacking(vault, scene.id, id, p.edits) : 0;
+            return (
+              <div key={p.entity}>
+                <b>{p.entity}</b>
+                <ul>
+                  {p.edits.map((e, i) => (
+                    <EditLine key={i} edit={e} />
+                  ))}
+                </ul>
+                {id && lacking > 0 && (
+                  <div className="agent-row" data-testid="agent-from-beginning">
+                    <span className="faint">
+                      {lacking === 1 ? 'An earlier version of the page lacks' : `${lacking} earlier versions of the page lack`} this.
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-ghost"
+                      title="Write these edits into every version of the page before this scene too, back to the first. Take back removes them again."
+                      onClick={() => commit(updateFromBeginning(useStore.getState().vault, scene.id, id, p.edits), 'Update a page from the beginning')}
+                    >
+                      Update from the beginning
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
           {report.properties.map((p) => (
             <div key={`${p.entity}:${p.property}`}>
               <b>{p.entity}</b> {p.property} → {p.value}

@@ -176,7 +176,12 @@ export interface StateChange extends Carries {
   rename?: string;
   /** Written by the story agent rather than the writer: the model that wrote it. The writer's own changes never carry it. */
   agent?: string;
+  /** op 'revise': the edits of this version that the writer also had written into every version before it ("Update from the beginning"), kept so "Take back" can remove them again. */
+  backfilled?: PageEdit[];
 }
+
+/** One line operation on a page: add a line (under a heading), replace a line, remove a line. */
+export type PageEdit = { kind: 'add'; text: string; under?: string } | { kind: 'replace'; old: string; text: string } | { kind: 'remove'; old: string };
 
 /** Where an edit sits in time: after a scene (it moves with the scene), or at a timeline column (it stays put). */
 export type Anchor = { sceneId: Id } | { at: number };

@@ -9,7 +9,7 @@ import { Resolver, valueEquals } from '../core/resolve';
 import type { Id, PropValue, StateChange, Vault } from '../core/types';
 import { slugify } from '../core/types';
 import { addChange, addEntity, addEntityType, commitRevision, setMomentLabel, sortedTypes, updateChange } from '../store/actions';
-import { datedNeighbours, GALLERY_TYPES, isUntitled, sceneText, unresolvedLinks, type SceneTitles } from './context';
+import { datedNeighbours, GALLERY_TYPES, isUntitled, laterPageLines, sceneText, unresolvedLinks, type SceneTitles } from './context';
 import { agentLines, applyEdits, findLine, inverseEdits, isAgentLine, pageLines, squash, type PageEdit } from './page';
 
 export type Certainty = 'stated' | 'implied' | 'claimed';
@@ -131,17 +131,61 @@ const appearsIn = (haystack: string, needle: string): boolean => squash(needle) 
 
 const STATE_LIMIT = 240;
 
-/** Each page revises the whole page, so an edit made after one scene is carried into every later version of the page. */
-function carryForward(v: Vault, entityId: Id, fromChangeId: Id, edits: PageEdit[]): Vault {
+/**
+ * Each page revises the whole page, so an edit made after one scene is carried into every later version of the page.
+ * With `direction` 'earlier' it goes into the versions before the scene instead, back to the base page ("from the
+ * beginning"), which the writer asks for when the scene tells something that was true all along.
+ */
+function carry(v: Vault, entityId: Id, fromChangeId: Id, edits: PageEdit[], direction: 'later' | 'earlier'): Vault {
   const history = new Resolver(v).pageHistory(entityId);
   const at = history.findIndex((h) => h.change?.id === fromChangeId);
-  for (const later of history.slice(at + 1)) {
-    if (later.change?.note === undefined) continue; // a rename only: it keeps the page before it
-    const next = applyEdits(later.change.note, edits);
-    // Whoever wrote the later version still did: the carried edit does not change that.
-    if (next.applied.length) v = { ...v, changes: { ...v.changes, [later.change.id]: { ...later.change, note: next.note } } };
+  for (const other of direction === 'later' ? history.slice(at + 1) : history.slice(0, at)) {
+    if (other.change === null) {
+      const next = applyEdits(other.note, edits);
+      if (next.applied.length) v = { ...v, entities: { ...v.entities, [entityId]: { ...v.entities[entityId], note: next.note } } };
+      continue;
+    }
+    if (other.change.note === undefined) continue; // a rename only: it keeps the page before it
+    const next = applyEdits(other.change.note, edits);
+    // Whoever wrote that version still did: the carried edit does not change that.
+    if (next.applied.length) v = { ...v, changes: { ...v.changes, [other.change.id]: { ...other.change, note: next.note } } };
   }
   return v;
+}
+
+const carryForward = (v: Vault, entityId: Id, fromChangeId: Id, edits: PageEdit[]): Vault => carry(v, entityId, fromChangeId, edits, 'later');
+
+/** The agent's revision of a page at a scene, if it made one. */
+const revisionAt = (v: Vault, entityId: Id, sceneId: Id) => Object.values(v.changes).find((c) => c.op === 'revise' && c.entityId === entityId && c.sceneId === sceneId && c.note !== undefined);
+
+/**
+ * The versions before a scene that an edit made there would change, when the page has any earlier revision at all
+ * (a page that starts at this scene has nothing before it to ask about).
+ */
+export function earlierVersionsLacking(vault: Vault, sceneId: Id, entityId: Id, edits: PageEdit[]): number {
+  const here = revisionAt(vault, entityId, sceneId);
+  if (!here) return 0;
+  const history = new Resolver(vault).pageHistory(entityId);
+  const before = history.slice(0, history.findIndex((h) => h.change?.id === here.id));
+  if (!before.some((h) => h.change !== null)) return 0;
+  return before.filter((h) => applyEdits(h.note, edits).applied.length > 0).length;
+}
+
+/** The edit that puts a page back as it was before the edit. */
+const undoOf = (e: PageEdit): PageEdit => (e.kind === 'add' ? { kind: 'remove', old: e.text } : e.kind === 'remove' ? { kind: 'add', text: e.old } : { kind: 'replace', old: e.text, text: e.old });
+
+/**
+ * "Update from the beginning": the edits the scene made to a page go into every version before it too. The revision
+ * remembers which ones did, so taking back the scene's output takes them out of the earlier versions again.
+ */
+export function updateFromBeginning(vault: Vault, sceneId: Id, entityId: Id, edits: PageEdit[]): Vault {
+  const here = revisionAt(vault, entityId, sceneId);
+  if (!here) return vault;
+  const history = new Resolver(vault).pageHistory(entityId);
+  const before = history.slice(0, history.findIndex((h) => h.change?.id === here.id));
+  const changing = edits.filter((e) => before.some((h) => applyEdits(h.note, [e]).applied.length > 0));
+  const v = carry(vault, entityId, here.id, changing, 'earlier');
+  return { ...v, changes: { ...v.changes, [here.id]: { ...here, backfilled: [...(here.backfilled ?? []), ...changing] } } };
 }
 
 /** Takes back what the agent wrote for a scene, including the page edits it carried into later versions. */
@@ -152,6 +196,7 @@ function undoAgentChanges(vault: Vault, sceneId: Id): { vault: Vault; entityIds:
     if (c.op === 'revise' && c.note !== undefined) {
       const before = new Resolver(v).entityBefore(c.entityId, { sceneId }).note;
       v = carryForward(v, c.entityId, c.id, inverseEdits(before, c.note));
+      if (c.backfilled?.length) v = carry(v, c.entityId, c.id, c.backfilled.map(undoOf), 'earlier');
     }
   }
   if (!mine.length) return { vault, entityIds: new Set() };
@@ -417,7 +462,7 @@ export function applyAgentOutput(vault: Vault, sceneId: Id, out: AgentOutput, op
       const e = findEntity(vault, c.entity);
       if (!e) continue;
       const at = r.entityBefore(e.id, { sceneId });
-      const shown = `${at.note}\n${Object.values(at.props).map((p) => String(p.value)).join('\n')}`;
+      const shown = `${at.note}\n${Object.values(at.props).map((p) => String(p.value)).join('\n')}\n${laterPageLines(r, e.id, sceneId).map((l) => l.line).join('\n')}`;
       if (appearsIn(text, c.sceneQuote) && appearsIn(shown, c.wikiQuote)) report.contradictions.push(c);
     }
     const moment = v.moments[scene.momentId];
