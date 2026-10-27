@@ -98,7 +98,7 @@ export function locationOf(info: ColumnInfo): string {
 /** Index of the `.tl-track` row under an element, among the rows of `content`; null outside a row. */
 function trackIndexOf(el: Element, content: HTMLElement): number | null {
   const row = el.closest('.tl-track');
-  if (!row || row.parentElement !== content) return null;
+  if (!row || row.classList.contains('tl-cast') || row.parentElement !== content) return null;
   let i = -1;
   for (let n: Element | null = row; n; n = n.previousElementSibling) if (n.classList.contains('tl-track')) i++;
   return i;

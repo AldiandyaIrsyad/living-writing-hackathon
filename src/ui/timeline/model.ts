@@ -3,7 +3,8 @@
 import type { MomentGraph } from '../../core/graph';
 import { momentRulerText } from '../../core/labels';
 import { layoutTimeline, type Relation } from '../../core/timeline';
-import type { Id, Scene, Story, Vault } from '../../core/types';
+import type { Resolver } from '../../core/resolve';
+import type { Id, Scene, StateChange, Story, Vault } from '../../core/types';
 
 export interface ClipModel {
   scene: Scene;
@@ -160,6 +161,42 @@ export function buildTimelineModel(vault: Vault, graph: MomentGraph, hidden: Id[
     });
 
   return { columns: layout.columns, tracks, colOf, byColumn, labels };
+}
+
+/** The changes that take effect together: the playhead on column `col` or later sees them. */
+export interface Keyframe {
+  col: number;
+  changes: StateChange[];
+}
+
+/** The columns where an entity changes, in order. A scene's changes take effect where its clip ends. */
+export function entityKeyframes(r: Resolver, entityId: Id): Keyframe[] {
+  const byCol = new Map<number, StateChange[]>();
+  for (const c of r.changesFor(entityId)) {
+    const col = r.effectiveFrom(c);
+    const list = byCol.get(col);
+    if (list) list.push(c);
+    else byCol.set(col, [c]);
+  }
+  return [...byCol].sort((a, b) => a[0] - b[0]).map(([col, changes]) => ({ col, changes }));
+}
+
+/** The column of the last keyframe strictly before `x` (`inclusive`: at or before), or null. */
+function lastBefore(keyframes: Keyframe[], x: number, inclusive: boolean): number | null {
+  let found: number | null = null;
+  for (const k of keyframes) if (inclusive ? k.col <= x : k.col < x) found = k.col;
+  return found;
+}
+
+/** The keyframe whose state is in force at the playhead: the last one at or before it. */
+export function keyframeInForce(keyframes: Keyframe[], playhead: number): number | null {
+  return lastBefore(keyframes, playhead, true);
+}
+
+/** The column of the nearest keyframe before or after the playhead (null past either end). */
+export function stepKeyframe(keyframes: Keyframe[], playhead: number, dir: 'prev' | 'next'): number | null {
+  if (dir === 'next') return keyframes.find((k) => k.col > playhead)?.col ?? null;
+  return lastBefore(keyframes, playhead, false);
 }
 
 /**

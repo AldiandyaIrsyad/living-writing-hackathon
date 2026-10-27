@@ -24,6 +24,9 @@
 .tl-pop-up {
   bottom: calc(100% - 2px);
   left: 8px;
+  /* Grows upward from the button: a long list of pages scrolls instead of running out of the timeline. */
+  max-height: 170px;
+  overflow-y: auto;
 }
 .tl-pop-right {
   right: 0;

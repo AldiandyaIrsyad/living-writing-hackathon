@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { hoverLink, loadDemo, openEntity, openScene, openCastCard } from './helpers';
+import { hoverLink, loadDemo, openEntity, openScene, openCastCard, useStateSlider } from './helpers';
 
 // Living pages: an entity's page and name are git-tracked over story time. A revision is a
 // 'revise' change committed at a scene; the page reads as it stands at the selected time.
@@ -11,6 +11,9 @@ async function scrubAfter(page: Page, sceneTitle: string): Promise<void> {
   if (!value) throw new Error(`no time option for “${sceneTitle}”`);
   await select.selectOption(value);
 }
+
+// These pages use the State slider (the setting), not the timeline playhead.
+test.beforeEach(({ page }) => useStateSlider(page));
 
 test.describe('living pages', () => {
   test("Mira's page lacks the haircut before Gathering Storm and has it after", async ({ page }) => {

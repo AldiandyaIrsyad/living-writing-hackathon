@@ -3,7 +3,7 @@
 import { TIMELINE_SHORTCUTS } from '../shortcuts';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { addStandaloneMilestone } from '../../core/labels';
-import { useStore, useVault, type TimelineBehaviour } from '../../store/store';
+import { useStore, useVault, type StateTime, type TimelineBehaviour } from '../../store/store';
 import { createStory } from '../stories';
 import { HighlightPicker } from './HighlightPicker';
 import { HEADER_W } from './model';
@@ -205,8 +205,14 @@ const BEHAVIOURS: { id: TimelineBehaviour; label: string; hint: string }[] = [
   { id: 'hidden', label: 'Hidden', hint: 'Only shows when you ask for it (Ctrl+J).' },
 ];
 
+const STATE_TIMES: { id: StateTime; label: string; hint: string }[] = [
+  { id: 'timeline', label: 'Follow the timeline', hint: 'A character or wiki page shows its state at the playhead; step between its changes with the arrows.' },
+  { id: 'slider', label: 'Its own slider', hint: 'Each page has a slider over every scene of every story, separate from the playhead.' },
+];
+
 function BehaviourMenu() {
   const behaviour = useStore((s) => s.timelineBehaviour);
+  const stateTime = useStore((s) => s.stateTime);
   const [open, setOpen, ref] = usePopover();
   return (
     <div className="tl-pop-wrap" ref={ref}>
@@ -233,6 +239,17 @@ function BehaviourMenu() {
               </span>
             </button>
           ))}
+          <div className="tl-pop-sep" />
+          <div className="tl-pop-title">State panel time</div>
+          {STATE_TIMES.map((b) => (
+            <button key={b.id} className={`tl-pop-item ${stateTime === b.id ? 'on' : ''}`} onClick={() => useStore.getState().setStateTime(b.id)} data-testid={`tl-state-time-${b.id}`}>
+              <span className="tl-pop-check">{stateTime === b.id ? '●' : '○'}</span>
+              <span>
+                <span className="tl-pop-label">{b.label}</span>
+                <span className="tl-pop-hint">{b.hint}</span>
+              </span>
+            </button>
+          ))}
         </div>
       )}
     </div>
@@ -243,7 +260,11 @@ function BehaviourMenu() {
 export function AddTrackMenu() {
   const vault = useVault();
   const hidden = useStore((s) => s.hiddenStories);
+  const cast = useStore((s) => s.castTracks);
   const [open, setOpen, ref] = usePopover();
+  const offTimeline = Object.values(vault.entities)
+    .filter((e) => !cast.includes(e.id))
+    .sort((a, b) => a.name.localeCompare(b.name));
   const removed = Object.values(vault.stories)
     .filter((st) => hidden.includes(st.id))
     .sort((a, b) => a.order - b.order);
@@ -271,6 +292,27 @@ export function AddTrackMenu() {
               <span className="tl-pop-label">{st.name}</span>
             </button>
           ))}
+          {offTimeline.length > 0 && (
+            <>
+              <div className="tl-pop-sep" />
+              <div className="tl-pop-title">Characters &amp; wiki pages</div>
+              {offTimeline.map((e) => (
+                <button
+                  key={e.id}
+                  className="tl-pop-item"
+                  data-testid="tl-add-cast-option"
+                  data-entity={e.name}
+                  onClick={() => {
+                    useStore.getState().toggleCastTrack(e.id);
+                    setOpen(false);
+                  }}
+                >
+                  <span className="story-swatch" style={{ background: vault.entityTypes[e.typeId]?.color ?? '#888' }} />
+                  <span className="tl-pop-label">{e.name}</span>
+                </button>
+              ))}
+            </>
+          )}
           <div className="tl-pop-sep" />
           <button
             className="tl-pop-item"

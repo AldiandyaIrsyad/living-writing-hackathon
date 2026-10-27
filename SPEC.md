@@ -179,7 +179,9 @@ so the timeline is always on screen and is the main way to move through the work
    A second tab, **Scene**, holds placement-in-time and the full State changes list.
 3. **Center document tabs**: **chapter document** (CodeMirror, live link decorations; see below),
    scene editor for a scene without a chapter, entity page (name, type, aliases, base properties, note,
-   history, backlinks, its own time scrubber), story page (chapters, **arcs**, reading
+   history, backlinks; its State follows the timeline playhead with previous/next-change buttons, or has
+   its own time scrubber under the setting "State panel time"; it can also be a row on the timeline with a
+   keyframe for each change), story page (chapters, **arcs**, reading
    order), entity type manager, search, tags.
    **Chapter document.** Opening a scene opens its whole chapter as one markdown document, scrolled
    to that scene. Scenes are the granular unit of time (cast, commits, placement on the timeline);
@@ -324,7 +326,8 @@ All must hold:
    `@before:` / `@after:` link resolution, rename refactoring, export→import round trip.
 3. `npm run test:e2e` (Playwright) passes, covering on the demo seed:
    - Hovering `[[norman]]` in chapter 1 shows `status: alive`; on the Norman entity page
-     at `latest` it shows `status: dead`; scrubbing to chapter 4 shows `alive`.
+     at `latest` it shows `status: dead`; scrubbing to chapter 4 (with the State panel time setting on
+     its own slider) shows `alive`.
    - `alice-bob` shows `friends` in chapter 2 and `enemies` in chapter 4.
    - Dragging "Mira's Road" in the timeline to after chapter 5 makes
      `sword-of-ash.owner` empty when viewed at chapter 4 (it was `mira` before the move).

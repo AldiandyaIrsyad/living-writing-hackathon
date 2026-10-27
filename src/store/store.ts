@@ -58,6 +58,7 @@ export type LeftView = 'stories' | 'wiki' | 'search' | 'notes' | 'tags';
 
 /** How the docked timeline behaves while writing. */
 export type TimelineBehaviour = 'always' | 'autohide' | 'hidden';
+export type StateTime = 'timeline' | 'slider';
 
 /** An edit that changes what other scenes see, held back until the writer has looked at what it touches. */
 export interface Proposal {
@@ -105,6 +106,10 @@ interface AppState {
   timelineHeight: number;
   timelineMaximized: boolean;
   hiddenStories: Id[];
+  /** Characters and wiki pages with a row of their own on the timeline (their changes as keyframes). */
+  castTracks: Id[];
+  /** What the entity page's State follows: the timeline playhead, or a slider of its own. */
+  stateTime: StateTime;
   /** Entities whose scenes are highlighted on the timeline (empty = no highlight). */
   highlightEntities: Id[];
   /** Show author notes inline in the editor (false = collapsed to small markers). */
@@ -172,6 +177,8 @@ interface AppState {
   setTimelineHeight(h: number): void;
   setTimelineMaximized(on: boolean): void;
   toggleStoryHidden(id: Id): void;
+  toggleCastTrack(id: Id): void;
+  setStateTime(how: StateTime): void;
   toggleHighlight(id: Id): void;
   clearHighlights(): void;
   setShowNotesInEditor(on: boolean): void;
@@ -249,6 +256,8 @@ export const useStore = create<AppState>((set, get) => ({
   timelineHeight: loadUi('timelineHeight', 300),
   timelineMaximized: false,
   hiddenStories: loadUi<Id[]>('hiddenStories', []),
+  castTracks: loadUi<Id[]>('castTracks', []),
+  stateTime: loadUi<StateTime>('stateTime', 'timeline'),
   reveal: null,
   inspectorPin: null,
   highlightEntities: [],
@@ -321,6 +330,7 @@ export const useStore = create<AppState>((set, get) => ({
       view: { kind: 'home' },
       playhead: 0,
       hiddenStories: [],
+      castTracks: [],
       currentStoryId: Object.values(next.stories).sort((a, b) => a.order - b.order)[0]?.id ?? null,
     });
   },
@@ -442,6 +452,18 @@ export const useStore = create<AppState>((set, get) => ({
     const next = h.includes(id) ? h.filter((x) => x !== id) : [...h, id];
     saveUi('hiddenStories', next);
     set({ hiddenStories: next });
+  },
+
+  toggleCastTrack(id) {
+    const t = get().castTracks;
+    const next = t.includes(id) ? t.filter((x) => x !== id) : [...t, id];
+    saveUi('castTracks', next);
+    set({ castTracks: next });
+  },
+
+  setStateTime(how) {
+    saveUi('stateTime', how);
+    set({ stateTime: how });
   },
 
   toggleHighlight(id) {

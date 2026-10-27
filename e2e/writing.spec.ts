@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { loadDemo, openEntity, openScene, typeListed, openCastCard } from './helpers';
+import { loadDemo, openEntity, openScene, typeListed, openCastCard, useStateSlider } from './helpers';
 
 // Writing features from SPEC §3b: affiliations, type gallery, author notes, manuscript export.
+
+// These pages use the State slider (the setting), not the timeline playhead.
+test.beforeEach(({ page }) => useStateSlider(page));
 
 test.describe('affiliations', () => {
   test('memberships change over time and groups list their members', async ({ page }) => {

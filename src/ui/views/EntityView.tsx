@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { atLabel, changeWhere, sameAnchor } from '../../core/anchor';
 import { diffLines, diffStats, type DiffLine } from '../../core/diff';
 import { findEntity, parseLinks } from '../../core/links';
@@ -13,6 +13,7 @@ import { AnchorNote } from '../AnchorNote';
 import { Editor, type InsertTextDetail } from '../editor/Editor';
 import { PropLines } from '../EntityState';
 import { chronologicalScenes, describeTime, playheadContext } from '../follow';
+import { entityKeyframes, stepKeyframe } from '../timeline/model';
 import { pickImageFile } from '../imageUpload';
 import { Markdown } from '../Markdown';
 import { PropsEditor } from '../props';
@@ -126,7 +127,16 @@ function EntityPage({ entity, at }: { entity: Entity; at?: TimePoint }) {
   const vault = useVault();
   const navigate = useStore((s) => s.navigate);
   const pending = useStore((s) => s.pendingRevise);
-  const [sel, setSel] = useState<TimeSel>(fromTimePoint(at));
+  const [own, setOwn] = useState<TimeSel>(fromTimePoint(at));
+  const playhead = useStore((s) => s.playhead);
+  const setPlayhead = useStore((s) => s.setPlayhead);
+  const stateTime = useStore((s) => s.stateTime);
+  const onTimeline = useStore((s) => s.castTracks.includes(entity.id));
+  const toggleCastTrack = useStore((s) => s.toggleCastTrack);
+  // Opened at a given time ("state after this scene"), the page keeps it until the playhead moves.
+  const [openedAt] = useState(playhead);
+  const following = stateTime === 'timeline' && (at === undefined || playhead !== openedAt);
+  const sel: TimeSel = following ? (playhead === 0 ? { kind: 'start' } : { kind: 'at', tp: { kind: 'position', x: playhead } }) : own;
   const [preview, setPreview] = useState(true);
   const [sources, setSources] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -139,12 +149,23 @@ function EntityPage({ entity, at }: { entity: Entity; at?: TimePoint }) {
   // The Cast's "Update page…": open straight into the draft after that scene.
   if (pending && pending !== consumed && pending.entityId === entity.id) {
     setConsumed(pending);
-    setSel({ kind: 'after', sceneId: pending.sceneId });
+    setOwn({ kind: 'after', sceneId: pending.sceneId });
     setDraft(draftAt(vault, entity.id, r.atScene(pending.sceneId, true), pending.sceneId, r.clipEnd(pending.sceneId)));
   }
   useEffect(() => {
-    if (pending && pending.entityId === entity.id) useStore.getState().clearPendingRevise();
+    if (!pending || pending.entityId !== entity.id) return;
+    const st = useStore.getState();
+    st.clearPendingRevise();
+    // Following the timeline, the draft's time is the playhead's.
+    if (st.stateTime === 'timeline') st.setPlayhead(getResolver(st.vault).clipEnd(pending.sceneId));
   }, [pending, entity.id]);
+  // Moving the playhead leaves a draft behind: it was written for the time it was opened at.
+  const lastPlayhead = useRef(playhead);
+  useEffect(() => {
+    if (lastPlayhead.current === playhead) return;
+    lastPlayhead.current = playhead;
+    if (following && draft?.at !== playhead) closeDraft();
+  });
 
   const state = stateAt(r, entity, sel);
   const revisions = r.changesFor(entity.id).filter((c) => c.op === 'revise');
@@ -176,11 +197,14 @@ function EntityPage({ entity, at }: { entity: Entity; at?: TimePoint }) {
     setProposal(null);
   };
   const pick = (next: TimeSel) => {
-    setSel(next);
+    setOwn(next);
     closeDraft();
   };
 
   const last = lastCommit(vault, state);
+  const keyframes = entityKeyframes(r, entity.id);
+  const prevKey = stepKeyframe(keyframes, playhead, 'prev');
+  const nextKey = stepKeyframe(keyframes, playhead, 'next');
   const sliderMax = scenes.length + 1;
   const sliderValue =
     sel.kind === 'start'
@@ -247,6 +271,20 @@ function EntityPage({ entity, at }: { entity: Entity; at?: TimePoint }) {
               </span>
             </div>
             <div className="panel-body stack">
+              {following ? (
+                <div className="row">
+                  <button type="button" className="btn btn-sm" disabled={prevKey === null} onClick={() => prevKey !== null && setPlayhead(prevKey)} data-testid="key-prev" title="Move the playhead to the change before this time">
+                    ◀ Previous change
+                  </button>
+                  <button type="button" className="btn btn-sm" disabled={nextKey === null} onClick={() => nextKey !== null && setPlayhead(nextKey)} data-testid="key-next" title="Move the playhead to the next change">
+                    Next change ▶
+                  </button>
+                  <span className="grow" />
+                  <button type="button" className={`btn btn-sm btn-ghost ${onTimeline ? 'active' : ''}`} aria-pressed={onTimeline} onClick={() => toggleCastTrack(entity.id)} data-testid="entity-on-timeline" title="Show this page as a row on the timeline, with a keyframe for each change">
+                    On timeline
+                  </button>
+                </div>
+              ) : (
               <div className="row">
                 <input
                   type="range"
@@ -280,6 +318,7 @@ function EntityPage({ entity, at }: { entity: Entity; at?: TimePoint }) {
                   <option value="latest">Latest</option>
                 </select>
               </div>
+              )}
               {last && (
                 <div className="entity-last-commit small" data-testid="entity-last-commit">
                   Last: <span className="commit-quote">“{last.message}”</span> — <span className="faint">{last.sceneTitle}</span>

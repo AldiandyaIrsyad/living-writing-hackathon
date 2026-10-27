@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { clip, dragToZone, hoverLink, loadDemo, openEntity, openScene, selectType, showWorld, typeListed, waitSaved } from './helpers';
+import { clip, dragToZone, hoverLink, loadDemo, openEntity, openScene, selectType, showWorld, typeListed, waitSaved, useStateSlider } from './helpers';
 
 // Every test loads the demo itself (fresh browser context => empty IndexedDB).
 // Acceptance criteria: SPEC.md section 6.3 (demo seed: section 5).
@@ -48,6 +48,9 @@ async function insertSceneAfterSupper(page: Page): Promise<void> {
   await expect(page.getByTestId('scene-editor').locator('.cm-content')).toContainText('Untitled scene');
   await expect(clip(page, 'Untitled scene')).toBeVisible();
 }
+
+// These pages use the State slider (the setting), not the timeline playhead.
+test.beforeEach(({ page }) => useStateSlider(page));
 
 test.describe('entity state in the story (SPEC 6.3)', () => {
   test('hovering [[norman]] in chapter 1 shows status: alive', async ({ page }) => {

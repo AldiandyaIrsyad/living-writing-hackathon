@@ -1,10 +1,12 @@
 // One story track of the timeline: its header, chapter and arc bands, scene clips and the drop marker.
 
+import { changeWhere } from '../../core/anchor';
+import { formatValue } from '../../core/resolve';
 import { STATUS_LABELS } from '../../core/status';
-import type { Id } from '../../core/types';
+import type { Entity, Id, Vault } from '../../core/types';
 import type { Relation } from '../../core/timeline';
 import { useStore, useVault } from '../../store/store';
-import { HEADER_W, METRICS, partTitle, shortLabel, trackHeight, type ClipModel, type Span, type TrackModel } from './model';
+import { HEADER_W, METRICS, partTitle, shortLabel, trackHeight, keyframeInForce, type ClipModel, type Keyframe, type Span, type TrackModel } from './model';
 
 /** Clips narrower than this (px) are slim coloured slivers: no title, no meta, no insert button. */
 const NARROW_CLIP_PX = 64;
@@ -312,6 +314,70 @@ function Clip({ clip, top, height, zoom, ...p }: { clip: ClipModel; top: number;
         onMouseDown={(e) => e.preventDefault()}
         onClick={(e) => e.stopPropagation()}
       />
+    </div>
+  );
+}
+
+/** Height (px) of a character's or wiki page's row. */
+export const CAST_H = 34;
+
+/** What a keyframe stands for, one line per change: where it was made and what it did. */
+function keyTitle(vault: Vault, k: Keyframe): string {
+  return k.changes
+    .map((c) => {
+      const what = c.message ?? (c.op === 'set' ? `${c.property} → ${formatValue(c.value)}` : c.op === 'revise' ? 'page revised' : c.property ? `${c.property} ${c.op}` : c.op);
+      return `${changeWhere(vault, c)}: ${what}${c.agent ? ` (by ${c.agent})` : ''}`;
+    })
+    .join('\n');
+}
+
+/**
+ * A character's or wiki page's row: a keyframe where each of its changes takes effect. The playhead sees the new state
+ * from that column on, so clicking a keyframe puts the playhead there. Keyframes the agent wrote are filled in.
+ */
+export function CastTrack({ entity, keyframes, zoom, width, visible, playhead }: { entity: Entity; keyframes: Keyframe[]; zoom: number; width: number; visible: (from: number, to: number) => boolean; playhead: number }) {
+  const vault = useVault();
+  const navigate = useStore((s) => s.navigate);
+  const toggle = useStore((s) => s.toggleCastTrack);
+  const setPlayhead = useStore((s) => s.setPlayhead);
+  const color = vault.entityTypes[entity.typeId]?.color ?? '#888';
+  const current = keyframeInForce(keyframes, playhead);
+  const first = keyframes[0]?.col ?? 0;
+  const last = keyframes[keyframes.length - 1]?.col ?? 0;
+  return (
+    <div className="tl-track tl-cast" style={{ height: CAST_H, ['--story' as string]: color }} data-testid="tl-cast" data-entity={entity.name}>
+      <div className="tl-track-head tl-cast-head" style={{ width: HEADER_W }}>
+        <div className="tl-track-color" />
+        <div className="grow tl-track-text">
+          <a href="#" className="tl-track-name" onClick={(e) => (e.preventDefault(), navigate({ kind: 'entity', id: entity.id }))}>
+            {entity.name}
+          </a>
+        </div>
+        <button className="tl-icon" title="Take off the timeline (the page is kept)" onClick={() => toggle(entity.id)} aria-label={`Remove ${entity.name} from timeline`} data-testid="tl-cast-remove">
+          ✕
+        </button>
+      </div>
+      <div className="tl-lane" style={{ width, ['--col' as string]: `${zoom}px` }}>
+        {last > first && <div className="tl-cast-line" style={{ left: first * zoom, width: (last - first) * zoom }} />}
+        {keyframes
+          .filter((k) => visible(k.col, k.col))
+          .map((k) => {
+            const byAgent = k.changes.filter((c) => c.agent).length;
+            const who = byAgent === 0 ? '' : byAgent === k.changes.length ? 'agent' : 'mixed';
+            return (
+              <button
+                key={k.col}
+                className={`tl-key ${who} ${current === k.col ? 'current' : ''}`}
+                style={{ left: k.col * zoom }}
+                title={keyTitle(vault, k)}
+                aria-label={`${entity.name}: ${k.changes.length} change${k.changes.length === 1 ? '' : 's'} at column ${k.col + 1}`}
+                onClick={() => setPlayhead(k.col)}
+                data-testid="tl-key"
+                data-column={k.col}
+              />
+            );
+          })}
+      </div>
     </div>
   );
 }

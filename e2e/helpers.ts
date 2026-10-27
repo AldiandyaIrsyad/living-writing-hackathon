@@ -99,3 +99,8 @@ export async function openCastCard(page: Page, name: string): Promise<Locator> {
 export async function expectOpenScene(page: Page, title: string): Promise<void> {
   await expect(page.locator('[data-testid="insp-scene"] .insp-scene-title')).toContainText(title);
 }
+
+/** Gives an entity page the old State slider instead of following the timeline (the "State panel time" setting). */
+export async function useStateSlider(page: Page): Promise<void> {
+  await page.addInitScript(() => localStorage.setItem('lw-ui-stateTime', '"slider"'));
+}

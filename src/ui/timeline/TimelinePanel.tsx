@@ -10,13 +10,13 @@ import { describeImpact, impactOf } from '../../store/impact';
 import { getGraph, getResolver, useStore, useVault, ZOOM_MAX, ZOOM_MIN } from '../../store/store';
 import { describePlayhead } from '../follow';
 import { HoverPreview } from './HoverPreview';
-import { buildTimelineModel, HEADER_W, targetForColumn, type ClipModel, type TimelineModel, type TrackModel } from './model';
+import { buildTimelineModel, entityKeyframes, HEADER_W, targetForColumn, type ClipModel, type TimelineModel, type TrackModel } from './model';
 import { RangeBar } from './RangeBar';
 import { Ruler } from './Ruler';
 import { Toolbar, AddTrackMenu } from './Toolbar';
 import { ContextMenu, type MenuItem } from './ContextMenu';
 import { buildMenu, type MenuTarget } from './menuItems';
-import { Track, hintKey, type Hint, type LaneContext } from './TrackLane';
+import { CastTrack, Track, hintKey, type Hint, type LaneContext } from './TrackLane';
 import { EMPTY_HISTORY, canTravel, goBack, goForward, recordJump, type ViewHistory } from './viewHistory';
 import { ZOOM_TWEEN_MS, clampView, clampZoom, fitZoom, nextStart, prefersReducedMotion, scrollForAnchor, stepZoom, tweenAt, viewForRange, zoomAnchor, zoomRange, type ViewState, type ViewTween } from './zoom';
 import './timeline.css';
@@ -72,6 +72,7 @@ export function TimelinePanel() {
   const mode = useStore((s) => s.timelineMode);
   const hidden = useStore((s) => s.hiddenStories);
   const playhead = useStore((s) => s.playhead);
+  const castTracks = useStore((s) => s.castTracks);
   const highlightEntities = useStore((s) => s.highlightEntities);
   const reveal = useStore((s) => s.reveal);
   const maximized = useStore((s) => s.timelineMaximized);
@@ -90,6 +91,7 @@ export function TimelinePanel() {
 
   const graph = getGraph(vault);
   const model = useMemo(() => buildTimelineModel(vault, graph, hidden), [vault, graph, hidden]);
+  const castEntities = castTracks.map((id) => vault.entities[id]).filter(Boolean);
   const involved = useMemo(() => involvementOfAny(vault, highlightEntities), [vault, highlightEntities]);
   const changeCount = useMemo(() => {
     const map = new Map<Id, number>();
@@ -583,6 +585,9 @@ export function TimelinePanel() {
                 insertAt(t.story.id, last ? 'after' : null, last?.scene.id ?? null);
               }}
             />
+          ))}
+          {castEntities.map((e) => (
+            <CastTrack key={e.id} entity={e} keyframes={entityKeyframes(getResolver(vault), e.id)} zoom={zoom} width={totalCols * zoom} visible={visible} playhead={playhead} />
           ))}
           <AddTrackMenu />
           {!model.tracks.length && <div className="tl-empty">No story tracks on the timeline — use “+ Track” to bring one in, or load the demo world from the Vault menu.</div>}

@@ -3,7 +3,8 @@ import { buildGraph } from '../../core/graph';
 import { VaultBuilder } from '../../core/testkit';
 import { insertColumn, insertScene, layoutTimeline } from '../../core/timeline';
 import type { Vault } from '../../core/types';
-import { buildTimelineModel, partTitle, targetForColumn } from './model';
+import { getResolver } from '../../store/store';
+import { buildTimelineModel, entityKeyframes, partTitle, stepKeyframe, targetForColumn } from './model';
 
 /** a (col 0) → b (cols 1–3, stretched) → c (col 4), plus an empty-ish side story "m" with one scene after c. */
 function stretched() {
@@ -102,5 +103,50 @@ describe('moment labels', () => {
       { col: 1, text: 'Late autumn' },
       { col: 3, text: 'Winter' },
     ]);
+  });
+});
+
+describe('entityKeyframes', () => {
+  const at = (v: Vault, x: number) => getResolver(v).entityAt('e1', { kind: 'position', x }).props.hp?.value;
+
+  it('puts a scene’s changes where its clip ends, so the playhead there sees them: two changes in a scene are one keyframe', () => {
+    const v = new VaultBuilder().entity('e1', { hp: 10 }).entity('e2').scene('a').scene('b').scene('c').chain('a', 'b', 'c').change('a', 'e1', 'hp', 8).change('a', 'e1', 'mood', 'wary').change('c', 'e1', 'hp', 3).change('b', 'e2', 'hp', 1).build();
+    const kfs = entityKeyframes(getResolver(v), 'e1');
+    expect(kfs.map((k) => [k.col, k.changes.length])).toEqual([[1, 2], [3, 1]]);
+    expect([0, 1, 2, 3].map((x) => at(v, x))).toEqual([10, 8, 8, 3]);
+  });
+
+  it('puts a stretched scene’s changes at the end of the whole clip', () => {
+    const v = new VaultBuilder().entity('e1', { hp: 10 }).scene('a').scene('b').chain('a', 'b').span('a', 3).change('a', 'e1', 'hp', 5).build();
+    expect(entityKeyframes(getResolver(v), 'e1').map((k) => k.col)).toEqual([3]);
+    expect([2, 3].map((x) => at(v, x))).toEqual([10, 5]);
+  });
+
+  it('puts a change made on the timeline itself at its own column', () => {
+    const v = new VaultBuilder().entity('e1', { hp: 10 }).scene('a').scene('b').scene('c').chain('a', 'b', 'c').change('a', 'e1', 'hp', 8).build();
+    v.changes.free = { id: 'free', at: 2, entityId: 'e1', op: 'set', property: 'hp', value: 4, order: 0 };
+    expect(entityKeyframes(getResolver(v), 'e1').map((k) => k.col)).toEqual([1, 2]);
+    expect([1, 2].map((x) => at(v, x))).toEqual([8, 4]);
+  });
+
+  it('has none for an entity nothing happens to', () => {
+    const v = new VaultBuilder().entity('e1').entity('e2').scene('a').change('a', 'e2', 'hp', 1).build();
+    expect(entityKeyframes(getResolver(v), 'e1')).toEqual([]);
+  });
+});
+
+describe('stepKeyframe', () => {
+  const kfs = [1, 3, 6].map((col) => ({ col, changes: [] }));
+
+  it('steps to the nearest keyframe before or after the playhead, from on one or between two', () => {
+    expect([3, 4].map((x) => stepKeyframe(kfs, x, 'prev'))).toEqual([1, 3]);
+    expect([3, 4].map((x) => stepKeyframe(kfs, x, 'next'))).toEqual([6, 6]);
+  });
+
+  it('says there is none past either end', () => {
+    expect(stepKeyframe(kfs, 1, 'prev')).toBeNull();
+    expect(stepKeyframe(kfs, 0, 'prev')).toBeNull();
+    expect(stepKeyframe(kfs, 6, 'next')).toBeNull();
+    expect(stepKeyframe([], 2, 'next')).toBeNull();
   });
 });
