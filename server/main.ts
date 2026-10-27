@@ -1,7 +1,7 @@
 // Starts the server: `npm start`. Configuration comes from the environment.
 //   PORT (8787), DB_PATH (living-writing.db), STATIC_DIR (dist, the built app), ALLOW_SIGNUP=false, SECURE_COOKIE=true
 //   Story agent (off without a key): AGENT_PROVIDER (meta, or gemini while there is no Meta key), then for Meta
-//   MODEL_API_KEY and META_API_BASE, for Gemini GEMINI_API_KEY and GEMINI_API_BASE; AGENT_MODELS (comma-separated, the
+//   META_API_KEY (or MODEL_API_KEY) and META_API_BASE, for Gemini GEMINI_API_KEY and GEMINI_API_BASE; AGENT_MODELS (comma-separated, the
 //   first is the default) replaces the provider's list. `npm run dev:gemini` picks Gemini; keys can sit in .env.local.
 
 import { existsSync } from 'node:fs';
@@ -14,7 +14,7 @@ import { buildApp } from './app.ts';
 const PROVIDERS = {
   meta: {
     name: 'Meta',
-    key: process.env.MODEL_API_KEY,
+    key: process.env.META_API_KEY || process.env.MODEL_API_KEY,
     baseUrl: process.env.META_API_BASE ?? 'https://api.meta.ai/v1',
     models: ['muse-spark-1.3', 'muse-spark-1.2', 'muse-spark-1.1', 'muse-wonder-1.0', 'muse-spark-1.3-contributor', 'muse-spark-1.2-contributor'],
   },

@@ -79,7 +79,7 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
       )}
 
       {enabled === false ? (
-        <div className="small faint">The server has no model key. Put MODEL_API_KEY (Meta) or GEMINI_API_KEY in .env.local and restart it (`npm run dev:gemini` for Gemini).</div>
+        <div className="small faint">The server has no model key. Put META_API_KEY (Meta) or GEMINI_API_KEY in .env.local and restart it (`npm run dev:gemini` for Gemini).</div>
       ) : (
         <div className="agent-row">
           <button type="button" className="btn btn-sm" data-testid="agent-read" title="The agent reads this scene and keeps the wiki true to it." disabled={busy || !writing || scene.prose.trim() === ''} onClick={() => readSceneNow(scene.id)}>

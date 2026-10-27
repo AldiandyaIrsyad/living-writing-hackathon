@@ -7,7 +7,7 @@ const provider = process.argv.find((a) => a.startsWith('--provider='))?.slice('-
 const env = provider ? { ...process.env, AGENT_PROVIDER: provider } : process.env;
 
 const children = [
-  spawn(process.execPath, ['--env-file-if-exists=.env.local', '--watch', 'server/main.ts'], { stdio: 'inherit', env }),
+  spawn(process.execPath, ['--env-file-if-exists=.env', '--env-file-if-exists=.env.local', '--watch', 'server/main.ts'], { stdio: 'inherit', env }),
   spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--mode', 'backend'], { stdio: 'inherit' }),
 ];
 // If either stops, stop both.

@@ -49,9 +49,9 @@ reload"). `npm run test:e2e:backend` runs the browser test for server mode.
 ### The story agent (server mode)
 
 A model reads each scene you hand in and keeps the wiki current, so you only write the story. It runs in the Inspector's
-"Story agent" section and needs the server: set `MODEL_API_KEY` (and optionally `META_API_BASE`, default
+"Story agent" section and needs the server: set `META_API_KEY` (`MODEL_API_KEY` works too; and optionally `META_API_BASE`, default
 `https://api.meta.ai/v1`, and `AGENT_MODELS`, a comma-separated list the writer picks from in the panel, the first being
-the default), then `npm run dev:full`. Keys can go in `.env.local` (copy `.env.local.example`; it is never committed).
+the default), then `npm run dev:full`. Keys can go in `.env` or `.env.local` (copy `.env.local.example`; neither is committed).
 Without a Meta key, `npm run dev:gemini` uses Google's Gemini instead (`GEMINI_API_KEY`, optional `GEMINI_API_BASE`,
 default model `gemini-3.8-flash`) through its OpenAI-compatible endpoint; the panel says which service it talks to. The default list is Meta's chat models, Standard first: a `-contributor` model is
 cheaper, but Meta may train its models on what is sent to it, so the panel warns when one is picked.
