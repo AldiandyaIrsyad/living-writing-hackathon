@@ -107,6 +107,19 @@
     display: none;
   }
 }
+/* Too narrow to hang in the middle without covering the chapter buttons: an icon-only tab in the row, still hanging from the edge. */
+@media (max-width: 1150px) {
+  .tl-minimize {
+    position: static;
+    transform: none;
+    align-self: flex-start;
+    margin-top: -6px;
+    padding: 0 10px;
+  }
+  .tl-minimize-text {
+    display: none;
+  }
+}
 .tl-toolbar .tl-readout {
   min-width: 160px;
   max-width: 340px;

@@ -56,11 +56,13 @@ export function Toolbar({
         </button>
       </div>
       {!maximized && (
-        <button className="tl-minimize" onClick={() => s.setTimelineCollapsed(true)} title="Minimize the timeline (Ctrl+J)" data-testid="tl-minimize">
+        <button className="tl-minimize" onClick={() => s.setTimelineCollapsed(true)} title="Minimize the timeline (Ctrl+J)" aria-label="Minimize the timeline" data-testid="tl-minimize">
           <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
             <path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          Minimize<span className="tl-minimize-long"> timeline</span>
+          <span className="tl-minimize-text">
+            Minimize<span className="tl-minimize-long"> timeline</span>
+          </span>
         </button>
       )}
       <span className="grow" />

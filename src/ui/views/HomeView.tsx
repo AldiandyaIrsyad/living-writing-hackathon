@@ -49,7 +49,7 @@ export function HomeView() {
             <p className="prose muted home-lede">
               A world that changes as your stories happen. Scenes sit in relative time and every scene can change the people, places and things in it.
             </p>
-            <div className="row" style={{ marginTop: 24 }}>
+            <div className="row wrap" style={{ marginTop: 24 }}>
               <button className="btn btn-primary" onClick={createStory} data-testid="home-new-story">
                 Start a story
               </button>
