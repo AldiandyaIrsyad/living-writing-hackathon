@@ -181,7 +181,12 @@ export function describeEntity(vault: Vault, r: Resolver, entityId: Id, sceneId:
  * pages too, instead of having to look each one up, or missing what the scene says about them.
  */
 export function namedEntities(vault: Vault, sceneId: Id): Id[] {
-  const text = sceneText(vault.scenes[sceneId].prose);
+  return entitiesNamedIn(vault, vault.scenes[sceneId].prose);
+}
+
+/** The entities a piece of prose names, linked or not (see namedEntities). */
+export function entitiesNamedIn(vault: Vault, prose: string): Id[] {
+  const text = sceneText(prose);
   const out: Id[] = [];
   for (const e of Object.values(vault.entities)) {
     const parts = e.name.split(/\s+/).filter((w) => /^\p{Lu}/u.test(w) && !TITLES.has(w.toLowerCase()));

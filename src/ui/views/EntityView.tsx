@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { atLabel, changeWhere, sameAnchor } from '../../core/anchor';
 import { diffLines, diffStats, type DiffLine } from '../../core/diff';
+import { useIllustrate } from '../../agent/illustrate';
+import { useAgent } from '../../agent/run';
 import { findEntity, parseLinks } from '../../core/links';
 import { applyPropagation, planPropagation, type PropagationPlan, type VersionPlan } from '../../core/pagePropagate';
 import { formatValue, type HistoryEntry, type ResolvedEntity, type Resolver } from '../../core/resolve';
@@ -546,6 +548,7 @@ function LineSources({ entityId, revision }: { entityId: Id; revision: StateChan
 function EntityHeader({ entity, shownName, renameable }: { entity: Entity; shownName: string; renameable: boolean }) {
   const vault = useVault();
   const navigate = useStore((s) => s.navigate);
+  const canMakePictures = useAgent((s) => s.images);
   const [name, setName] = useState(shownName);
   const [prevName, setPrevName] = useState(shownName);
   if (prevName !== shownName) {
@@ -582,6 +585,17 @@ function EntityHeader({ entity, shownName, renameable }: { entity: Entity; shown
         >
           {entity.image ? 'Change portrait…' : '+ Portrait'}
         </button>
+        {canMakePictures && (
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost"
+            data-testid="entity-make-portrait"
+            title="Have the image model draw a placeholder portrait from this page"
+            onClick={() => useIllustrate.getState().open({ kind: 'portrait', entityId: entity.id })}
+          >
+            Make portrait…
+          </button>
+        )}
         {entity.image && (
           <button
             type="button"
@@ -606,12 +620,14 @@ function EntityHeader({ entity, shownName, renameable }: { entity: Entity; shown
       </div>
       <div className="row" style={{ alignItems: 'center', gap: 14 }}>
         {entity.image && (
-          <img
-            src={entity.image}
-            alt={shownName}
-            data-testid="entity-portrait"
-            style={{ width: 64, height: 64, borderRadius: 10, objectFit: 'cover', border: '1px solid var(--border-strong)', flexShrink: 0 }}
-          />
+          <span className={entity.imageAi ? 'ai-mark' : undefined} style={{ flexShrink: 0, borderRadius: 10, overflow: 'hidden' }}>
+            <img
+              src={entity.image}
+              alt={shownName}
+              data-testid="entity-portrait"
+              style={{ width: 64, height: 64, borderRadius: 10, objectFit: 'cover', border: '1px solid var(--border-strong)' }}
+            />
+          </span>
         )}
         <div className="stack grow" style={{ minWidth: 0 }}>
           <input

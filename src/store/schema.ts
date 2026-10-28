@@ -12,6 +12,8 @@ export const VAULT_MIGRATIONS: Migrations<Vault> = {
   1: (vault) => ({ ...vault, reviewItems: vault.reviewItems ?? {} }),
   // 2 → 3: scene status, an optional field. Nothing to change; the bump keeps an older build from writing over it.
   2: (vault) => vault,
+  // 3 → 4: the image store. A database from before it has no such rows.
+  3: (vault) => ({ ...vault, images: vault.images ?? {} }),
 };
 
 export const SCHEMA_VERSION = currentVersion(VAULT_MIGRATIONS);

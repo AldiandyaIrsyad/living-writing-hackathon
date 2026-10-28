@@ -34,7 +34,7 @@ import type { InsertTextDetail } from '../editor/Editor';
 import { navItems, parseGoto, resolveGoto, type GotoQuery, type GotoResolution, type NavTarget } from '../goto';
 import { exportVaultJSON, exportVaultZip, loadDemo } from '../io';
 import { fullTextSearch, fuzzyScore, splitMatches } from '../search';
-import { toggleLook, toggleTheme } from '../theme';
+import { toggleAiMark, toggleLook, toggleTheme } from '../theme';
 import { buildTimelineModel, targetForColumn } from '../timeline/model';
 import './views.css';
 
@@ -868,6 +868,7 @@ function buildCommands(ctx: Ctx, withEntityCommands: boolean): Command[] {
     { id: 'name-suggest', label: 'Toggle name suggestions while I type', run: () => useStore.getState().toast('info', toggleNameSuggestions() ? 'Names of your pages are suggested as you type; Tab links one.' : 'Name suggestions off. [[ still lists the pages.') },
     { id: 'typewriter', label: 'Toggle typewriter scrolling', run: () => useStore.getState().toast('info', toggleTypewriter() ? 'Typewriter scrolling on: the line you are writing stays centred.' : 'Typewriter scrolling off.') },
     { id: 'theme', label: 'Toggle theme', run: toggleTheme },
+    { id: 'ai-mark', label: 'Toggle the "temporary" watermark on AI pictures', run: () => useStore.getState().toast('info', toggleAiMark() ? 'AI pictures show a "temporary" watermark.' : 'AI pictures show without a watermark.') },
     { id: 'look', label: 'Toggle look (Timetable / Classic)', run: () => useStore.getState().toast('info', toggleLook() === 'classic' ? 'Classic look: the earlier warm design.' : 'Timetable look.') },
     { id: 'export-json', label: 'Export JSON', run: exportVaultJSON },
     {

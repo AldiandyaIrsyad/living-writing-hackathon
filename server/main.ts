@@ -38,6 +38,7 @@ const app = await buildApp({
         provider: provider.name,
         apiKey: provider.key,
         baseUrl: provider.baseUrl,
+        imageModel: provider === PROVIDERS.meta ? 'muse-image-1.0' : undefined,
         models: process.env.AGENT_MODELS?.split(',').map((m) => m.trim()).filter(Boolean) ?? provider.models,
         timeoutMs: process.env.AGENT_TIMEOUT_SECONDS ? Number(process.env.AGENT_TIMEOUT_SECONDS) * 1000 : undefined,
       }

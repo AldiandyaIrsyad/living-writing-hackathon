@@ -51,6 +51,8 @@ export interface Entity extends Carries {
   note: string;
   /** Optional portrait / cover image (data URL or external URL). */
   image?: string;
+  /** The image above was made by an image model: it shows a "temporary" watermark until the writer replaces it. */
+  imageAi?: boolean;
   /** Base properties — state before any scene changes it. */
   props: Props;
 }
@@ -199,6 +201,19 @@ export interface ReviewItem extends Carries {
   created: number;
 }
 
+/** A picture kept apart from the text that shows it: a scene points at it as `![caption](img:ID)`. */
+export interface ImageAsset extends Carries {
+  id: Id;
+  /** The picture itself, as a data URL. */
+  src: string;
+  /** Made by an image model: shown with a "temporary" watermark until the writer replaces it. */
+  ai?: boolean;
+  /** What the model was asked, kept so the picture can be made again. */
+  prompt?: string;
+  /** Epoch ms. */
+  created: number;
+}
+
 export interface Vault {
   entityTypes: Record<Id, EntityType>;
   entities: Record<Id, Entity>;
@@ -210,6 +225,7 @@ export interface Vault {
   scenes: Record<Id, Scene>;
   changes: Record<Id, StateChange>;
   reviewItems: Record<Id, ReviewItem>;
+  images: Record<Id, ImageAsset>;
 }
 
 export const COLLECTIONS = [
@@ -223,6 +239,7 @@ export const COLLECTIONS = [
   'scenes',
   'changes',
   'reviewItems',
+  'images',
 ] as const satisfies readonly (keyof Vault)[];
 
 export type CollectionName = (typeof COLLECTIONS)[number];
@@ -239,6 +256,7 @@ export function emptyVault(): Vault {
     scenes: {},
     changes: {},
     reviewItems: {},
+    images: {},
   };
 }
 

@@ -149,7 +149,7 @@ describe('the story agent relay', () => {
     const model = await fakeModel();
     const b = browser(await newApp(true, { provider: 'Test', apiKey: 'k', baseUrl: model.baseUrl, models: ['muse-a', 'muse-b'] }));
     await b.call('POST', '/api/signup', credentials('a@example.com'));
-    expect((await b.call('GET', '/api/agent')).body).toEqual({ enabled: true, provider: 'Test', models: ['muse-a', 'muse-b'] });
+    expect((await b.call('GET', '/api/agent')).body).toEqual({ enabled: true, provider: 'Test', models: ['muse-a', 'muse-b'], images: false });
     expect((await b.call('POST', '/api/agent/chat', ask)).body.model).toBe('muse-a');
     expect((await b.call('POST', '/api/agent/chat', { ...ask, model: 'someone-elses-model' })).status).toBe(400);
   });
@@ -157,7 +157,7 @@ describe('the story agent relay', () => {
   it('says so when the server has no key, and when the model service refuses', async () => {
     const off = browser(await newApp());
     await off.call('POST', '/api/signup', credentials('a@example.com'));
-    expect((await off.call('GET', '/api/agent')).body).toEqual({ enabled: false, provider: null, models: [] });
+    expect((await off.call('GET', '/api/agent')).body).toEqual({ enabled: false, provider: null, models: [], images: false });
     expect((await off.call('POST', '/api/agent/chat', ask)).status).toBe(503);
 
     const model = await fakeModel(500);
@@ -191,5 +191,70 @@ describe('the story agent relay', () => {
     const res = await b.call('POST', '/api/agent/chat', ask);
     expect(res.status).toBe(504);
     expect(res.body.error).toContain('did not answer');
+  });
+});
+
+describe('pictures', () => {
+  const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+  /** An image service that records what it was sent and answers with a one-pixel PNG. */
+  async function fakeImageService() {
+    const seen: { path?: string; auth?: string; type?: string; body?: string } = {};
+    const server = createServer((req, res) => {
+      let raw = '';
+      req.on('data', (c) => (raw += c));
+      req.on('end', () => {
+        Object.assign(seen, { path: req.url, auth: req.headers.authorization, type: req.headers['content-type'], body: raw });
+        res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ data: [{ b64_json: PNG }] }));
+      });
+    });
+    upstreams.push(server);
+    await new Promise<void>((ready) => server.listen(0, '127.0.0.1', ready));
+    return { seen, baseUrl: `http://127.0.0.1:${(server.address() as { port: number }).port}/v1` };
+  }
+  const signedIn = async (agent?: ServerOptions['agent']) => {
+    const b = browser(await newApp(true, agent));
+    await b.call('POST', '/api/signup', credentials('a@example.com'));
+    return b;
+  };
+
+  it('makes a picture from a prompt alone, and returns it as a data URL without ever returning the key', async () => {
+    const service = await fakeImageService();
+    const b = await signedIn({ provider: 'Test', apiKey: 'secret-key', baseUrl: service.baseUrl, models: ['m'], imageModel: 'img-1' });
+    expect((await b.call('GET', '/api/agent')).body.images).toBe(true);
+
+    const res = await b.call('POST', '/api/agent/image', { prompt: 'two friends in a café, anime style' });
+    expect(res.body).toEqual({ image: `data:image/png;base64,${PNG}` });
+    expect(service.seen.path).toBe('/v1/images/generations');
+    expect(service.seen.auth).toBe('Bearer secret-key');
+    expect(JSON.parse(service.seen.body!)).toEqual({ model: 'img-1', prompt: 'two friends in a café, anime style', n: 1, size: '1024x1024' });
+    expect(JSON.stringify(res.body)).not.toContain('secret-key');
+  });
+
+  it('sends the portraits of the people in the scene as reference files to the edit call', async () => {
+    const service = await fakeImageService();
+    const b = await signedIn({ provider: 'Test', apiKey: 'k', baseUrl: service.baseUrl, models: ['m'], imageModel: 'img-1' });
+    const portrait = `data:image/png;base64,${PNG}`;
+    const res = await b.call('POST', '/api/agent/image', { prompt: 'they drink coffee', references: [portrait, portrait] });
+    expect(res.status).toBe(200);
+    expect(service.seen.path).toBe('/v1/images/edits');
+    expect(service.seen.type).toMatch(/^multipart\/form-data/);
+    expect(service.seen.body).toContain('they drink coffee');
+    expect(service.seen.body?.match(/name="image\[[01]\]"; filename="reference-\d\.png"/g)).toHaveLength(2);
+  });
+
+  it('refuses without a session, without an image model, and a request that is not a prompt with data-URL pictures', async () => {
+    const service = await fakeImageService();
+    const out = browser(await newApp(true, { provider: 'Test', apiKey: 'k', baseUrl: service.baseUrl, models: ['m'], imageModel: 'img-1' }));
+    expect((await out.call('POST', '/api/agent/image', { prompt: 'x' })).status).toBe(401);
+
+    const noImages = await signedIn({ provider: 'Test', apiKey: 'k', baseUrl: service.baseUrl, models: ['m'] });
+    expect((await noImages.call('POST', '/api/agent/image', { prompt: 'x' })).status).toBe(503);
+
+    const b = await signedIn({ provider: 'Test', apiKey: 'k', baseUrl: service.baseUrl, models: ['m'], imageModel: 'img-1' });
+    for (const bad of [{}, { prompt: '  ' }, { prompt: 'x', size: '1x1' }, { prompt: 'x', references: ['https://example.com/a.png'] }, { prompt: 'x', references: Array(5).fill(`data:image/png;base64,${PNG}`) }]) {
+      expect((await b.call('POST', '/api/agent/image', bad)).status).toBe(400);
+    }
+    expect(service.seen.path).toBeUndefined();
   });
 });

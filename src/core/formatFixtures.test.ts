@@ -6,6 +6,8 @@ import v2Files from './fixtures/format-v2.files.json';
 import v2Json from './fixtures/format-v2.json?raw';
 import v3Files from './fixtures/format-v3.files.json';
 import v3Json from './fixtures/format-v3.json?raw';
+import v4Files from './fixtures/format-v4.files.json';
+import v4Json from './fixtures/format-v4.json?raw';
 import { findEntity, findScene } from './links';
 import { Resolver } from './resolve';
 import type { Vault } from './types';
@@ -13,12 +15,13 @@ import type { Vault } from './types';
 // Contract with the writer's archive: the files below were written by released versions of the format, from the demo
 // world, and are FROZEN. Never edit them. When the format changes, add format-vN.* beside them and a migration; every
 // version stays here, and every one must keep importing as the same world. (Why: exports and sync folders outlive the
-// app version.) v1 predates the review list; v2 has two review items, one open and one done; v3 adds scene statuses.
+// app version.) v1 predates the review list; v2 has two review items, one open and one done; v3 adds scene statuses; v4 adds the image store and the AI mark on a portrait.
 
 const versions: [string, () => Vault, () => Vault][] = [
   ['v1', () => importJSON(v1Json), () => filesToVault(new Map(Object.entries(v1Files)))],
   ['v2', () => importJSON(v2Json), () => filesToVault(new Map(Object.entries(v2Files)))],
   ['v3', () => importJSON(v3Json), () => filesToVault(new Map(Object.entries(v3Files)))],
+  ['v4', () => importJSON(v4Json), () => filesToVault(new Map(Object.entries(v4Files)))],
 ];
 
 describe.each(versions.flatMap(([v, json, files]) => [[`${v} JSON export`, json] as const, [`${v} markdown files`, files] as const]))('format fixture: %s', (_name, read) => {
@@ -51,6 +54,15 @@ describe('every version of the format describes the same world', () => {
 
   it('JSON and markdown agree within each version', () => {
     for (const [, json, files] of versions) expect(json()).toStrictEqual(files());
+  });
+
+  it('v4 keeps a stored picture, its AI mark and its prompt, and the AI mark on a portrait; older archives have none', () => {
+    const [json, files] = [versions[3][1](), versions[3][2]()];
+    for (const v of [json, files]) {
+      expect(Object.values(v.images)).toEqual([expect.objectContaining({ id: 'img_supper', ai: true, prompt: 'Norman and Alice drink at the inn, anime style' })]);
+      expect(Object.values(v.entities).filter((e) => e.imageAi).map((e) => e.name)).toEqual(['Norman']);
+    }
+    expect(Object.keys(versions[2][1]().images)).toEqual([]);
   });
 
   it('a v1 archive opens with an empty review list, and a v2 one keeps the writer\'s items and their status', () => {

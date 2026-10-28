@@ -21,7 +21,7 @@ export interface ServerOptions {
    * The models behind the story agent (an OpenAI-style chat completions service); the writer picks one of `models`, and
    * the first is the default. Without it the agent is off.
    */
-  agent?: { provider: string; apiKey: string; baseUrl: string; models: string[]; timeoutMs?: number };
+  agent?: { provider: string; apiKey: string; baseUrl: string; models: string[]; timeoutMs?: number; /** An image model on the same service and key (OpenAI-style /images). Without it, picture making is off. */ imageModel?: string };
 }
 
 const AGENT_CALLS_PER_WINDOW = 120;
@@ -29,6 +29,14 @@ const AGENT_WINDOW_MS = 10 * 60 * 1000;
 const AGENT_MAX_REQUEST_CHARS = 400_000;
 /** How long one model call may take before the server gives up on it (AGENT_TIMEOUT_SECONDS replaces it). */
 const AGENT_TIMEOUT_MS = 90_000;
+const IMAGE_CALLS_PER_WINDOW = 30;
+/** A picture takes longer than a chat answer. */
+const IMAGE_TIMEOUT_MS = 120_000;
+const IMAGE_MAX_REFERENCES = 4;
+const IMAGE_MAX_REFERENCE_CHARS = 3_000_000;
+const IMAGE_MAX_PROMPT_CHARS = 4000;
+/** Sizes the service turns into an aspect ratio. */
+const IMAGE_SIZES = ['1024x1024', '1536x1024', '1024x1536'];
 /** How hard a thinking model may think before answering (OpenAI's `reasoning_effort`); left out, the model decides. */
 const REASONING_EFFORTS = ['low', 'medium', 'high'];
 
@@ -224,7 +232,7 @@ export async function buildApp(opts: ServerOptions) {
 
   app.get('/api/agent', async (req, reply) => {
     if (!sessionUser(req)) return reply.code(401).send({ error: 'Not signed in.' });
-    return { enabled: !!opts.agent, provider: opts.agent?.provider ?? null, models: opts.agent?.models ?? [] };
+    return { enabled: !!opts.agent, provider: opts.agent?.provider ?? null, models: opts.agent?.models ?? [], images: !!opts.agent?.imageModel };
   });
 
   app.post('/api/agent/chat', async (req, reply) => {
@@ -267,6 +275,67 @@ export async function buildApp(opts: ServerOptions) {
     const message = ((await upstream.json()) as { choices?: { message?: unknown }[] }).choices?.[0]?.message;
     if (!message) return reply.code(502).send({ error: 'The model service sent no answer.' });
     return { message, model };
+  });
+
+  // Pictures: the same arrangement as chat. The browser writes the prompt and picks the reference pictures (the portraits of
+  // the people in the scene); the server holds the key, makes one call, and returns the picture as a data URL.
+  const imageCalls = new Map<string, { count: number; since: number }>();
+
+  app.post('/api/agent/image', async (req, reply) => {
+    const user = sessionUser(req);
+    if (!user) return reply.code(401).send({ error: 'Not signed in.' });
+    const agent = opts.agent;
+    if (!agent?.imageModel) return reply.code(503).send({ error: 'Picture making is off: this server has no image model.' });
+    const { prompt, references = [], size = IMAGE_SIZES[0] } = (req.body ?? {}) as { prompt?: unknown; references?: unknown; size?: unknown };
+    if (typeof prompt !== 'string' || !prompt.trim() || prompt.length > IMAGE_MAX_PROMPT_CHARS) return reply.code(400).send({ error: 'Malformed picture request.' });
+    if (typeof size !== 'string' || !IMAGE_SIZES.includes(size)) return reply.code(400).send({ error: 'Malformed picture request.' });
+    if (!Array.isArray(references) || references.length > IMAGE_MAX_REFERENCES || references.some((r) => typeof r !== 'string' || !/^data:image\/[a-z+]+;base64,/.test(r) || r.length > IMAGE_MAX_REFERENCE_CHARS)) {
+      return reply.code(400).send({ error: 'Malformed picture request.' });
+    }
+
+    const now = Date.now();
+    const seen = imageCalls.get(user.id);
+    const used = seen && now - seen.since < AGENT_WINDOW_MS ? seen : { count: 0, since: now };
+    if (used.count >= IMAGE_CALLS_PER_WINDOW) return reply.code(429).send({ error: 'Too many pictures. Try again in a few minutes.' });
+    imageCalls.set(user.id, { count: used.count + 1, since: used.since });
+
+    const base = agent.baseUrl.replace(/\/$/, '');
+    const refs = references as string[];
+    let upstream: Response;
+    try {
+      if (refs.length === 0) {
+        upstream = await fetch(`${base}/images/generations`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', authorization: `Bearer ${agent.apiKey}` },
+          body: JSON.stringify({ model: agent.imageModel, prompt, n: 1, size }),
+          signal: AbortSignal.timeout(IMAGE_TIMEOUT_MS),
+        });
+      } else {
+        // With reference pictures it is an edit: the references go in as files, and the prompt says what to make of them.
+        const form = new FormData();
+        form.append('model', agent.imageModel);
+        form.append('prompt', prompt);
+        form.append('n', '1');
+        form.append('size', size);
+        refs.forEach((ref, i) => {
+          const [head, data] = ref.split(',', 2);
+          const type = head.slice(5, head.indexOf(';'));
+          // One picture is `image`; several are `image[0]`, `image[1]`… (the service refuses `image[]`).
+          form.append(refs.length === 1 ? 'image' : `image[${i}]`, new Blob([Buffer.from(data, 'base64')], { type }), `reference-${i}.${type.split('/')[1]}`);
+        });
+        upstream = await fetch(`${base}/images/edits`, { method: 'POST', headers: { authorization: `Bearer ${agent.apiKey}` }, body: form, signal: AbortSignal.timeout(IMAGE_TIMEOUT_MS) });
+      }
+    } catch (e) {
+      const timedOut = e instanceof Error && e.name === 'TimeoutError';
+      return reply.code(timedOut ? 504 : 502).send({ error: timedOut ? `The image model did not answer within ${IMAGE_TIMEOUT_MS / 1000} seconds.` : 'The image service could not be reached.' });
+    }
+    if (upstream.status === 429 || upstream.status === 503) return reply.code(503).send({ error: `The image service is busy (${upstream.status}).`, retryAfter: 10 });
+    if (!upstream.ok) return reply.code(502).send({ error: `The image service answered ${upstream.status}: ${(await upstream.text()).slice(0, 300)}` });
+    const b64 = ((await upstream.json()) as { data?: { b64_json?: unknown }[] }).data?.[0]?.b64_json;
+    if (typeof b64 !== 'string') return reply.code(502).send({ error: 'The image service sent no picture.' });
+    // The service does not say which format it sent; the first bytes do.
+    const type = b64.startsWith('/9j/') ? 'image/jpeg' : b64.startsWith('UklGR') ? 'image/webp' : 'image/png';
+    return { image: `data:${type};base64,${b64}` };
   });
 
   if (opts.staticDir) await app.register(fastifyStatic, { root: opts.staticDir });

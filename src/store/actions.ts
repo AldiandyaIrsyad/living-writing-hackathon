@@ -58,6 +58,8 @@ export function updateEntity(v: Vault, id: Id, patch: Partial<Omit<Entity, 'id' 
   if (!e) return v;
   const next: Entity = { ...e, ...patch };
   if ('image' in patch && !patch.image) delete next.image;
+  // A new picture is a real one unless the same patch says a model made it: the "temporary" mark never outlives its picture.
+  if (('image' in patch && !('imageAi' in patch)) || !next.imageAi) delete next.imageAi;
   return put(v, 'entities', next);
 }
 

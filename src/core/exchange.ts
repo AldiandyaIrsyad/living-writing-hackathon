@@ -14,6 +14,7 @@ import type {
   Entity,
   EntityType,
   Id,
+  ImageAsset,
   Moment,
   Props,
   PropValue,
@@ -39,6 +40,8 @@ const MIGRATIONS: Migrations<Rec> = {
   },
   // 2 → 3: scene status. An optional field, so nothing to change; the bump makes an older app refuse the file instead of dropping the statuses.
   2: (doc) => doc,
+  // 3 → 4: the image store, and `imageAi` on an entity. Absent means none; the bump makes an older app refuse the file instead of dropping the pictures.
+  3: (doc) => doc,
 };
 
 export const FORMAT_VERSION = currentVersion(MIGRATIONS);
@@ -76,6 +79,12 @@ function str(r: Rec, key: string, where: string): string {
 function num(r: Rec, key: string, where: string): number {
   const v = r[key];
   if (typeof v !== 'number') fail(where, `"${key}" must be a number`);
+  return v;
+}
+
+function bool(r: Rec, key: string, where: string): boolean {
+  const v = r[key];
+  if (typeof v !== 'boolean') fail(where, `"${key}" must be true or false`);
   return v;
 }
 
@@ -169,6 +178,7 @@ function checkEntity(v: unknown, where: string): Entity {
     props: propsOf(r, 'props', where),
   };
   if (r.image !== undefined) entity.image = str(r, 'image', where);
+  if (r.imageAi !== undefined) entity.imageAi = bool(r, 'imageAi', where);
   return entity;
 }
 
@@ -225,6 +235,14 @@ function checkReviewItem(v: unknown, where: string): ReviewItem {
   const status = str(r, 'status', where);
   if (status !== 'open' && status !== 'done' && status !== 'dismissed') fail(where, `"status" must be open, done or dismissed (found "${status}")`);
   return { id: str(r, 'id', where), sceneId: str(r, 'sceneId', where), cause: str(r, 'cause', where), status, created: num(r, 'created', where) };
+}
+
+function checkImage(v: unknown, where: string): ImageAsset {
+  const r = asRecord(v, where);
+  const image: ImageAsset = { id: str(r, 'id', where), src: str(r, 'src', where), created: num(r, 'created', where) };
+  if (r.ai !== undefined) image.ai = bool(r, 'ai', where);
+  if (r.prompt !== undefined) image.prompt = str(r, 'prompt', where);
+  return image;
 }
 
 function checkChapter(v: unknown, where: string): Chapter {
@@ -307,7 +325,7 @@ function checkChange(v: unknown, where: string): StateChange {
 }
 
 const readEntityType = carrying(checkEntityType, ['id', 'name', 'color', 'icon', 'defaultProps', 'group', 'description', 'template', 'parentLabel', 'childrenLabel']);
-const readEntity = carrying(checkEntity, ['id', 'typeId', 'name', 'aliases', 'note', 'props', 'image']);
+const readEntity = carrying(checkEntity, ['id', 'typeId', 'name', 'aliases', 'note', 'props', 'image', 'imageAi']);
 const readMoment = carrying(checkMoment, ['id', 'timelineId', 'label', 'concrete', 'labels', 'timeSkip']);
 const readConstraint = carrying(checkConstraint, ['id', 'before', 'after', 'timelineId', 'offset', 'gap']);
 const readStory = carrying(checkStory, ['id', 'name', 'color', 'order']);
@@ -316,6 +334,7 @@ const readChapter = carrying(checkChapter, ['id', 'storyId', 'title', 'order', '
 const readScene = carrying(checkScene, ['id', 'storyId', 'chapterId', 'title', 'prose', 'synopsis', 'momentId', 'order', 'cast', 'span', 'status', 'labels', 'someday']);
 const readChange = carrying(checkChange, ['id', 'sceneId', 'at', 'entityId', 'op', 'property', 'value', 'order', 'message', 'note', 'rename', 'agent']);
 const readReviewItem = carrying(checkReviewItem, ['id', 'sceneId', 'cause', 'status', 'created']);
+const readImage = carrying(checkImage, ['id', 'src', 'ai', 'prompt', 'created']);
 
 /** Validates a `{ id: record }` map; every record's own id must match its key. */
 function parseCollection<T extends { id: string }>(
@@ -378,6 +397,7 @@ function vaultFromRecord(raw: Rec): Vault {
     scenes: parseCollection(raw.scenes, 'scenes', readScene),
     changes: parseCollection(raw.changes, 'changes', readChange),
     reviewItems: parseCollection(raw.reviewItems, 'reviewItems', readReviewItem),
+    images: parseCollection(raw.images, 'images', readImage),
   };
 }
 
@@ -484,6 +504,7 @@ export function vaultToFiles(vault: Vault): Map<string, string> {
     if (text === undefined) {
       const fm: Rec = { id: entity.id, name: entity.name, type: entity.typeId, aliases: entity.aliases, props: entity.props };
       if (entity.image !== undefined) fm.image = entity.image;
+      if (entity.imageAi !== undefined) fm.imageAi = entity.imageAi;
       text = frontmatterFile(withExtra(fm, entity.extra), entity.note);
       entityTexts.set(entity, text);
     }
@@ -545,6 +566,7 @@ export function vaultToFiles(vault: Vault): Map<string, string> {
   };
   if (orphanChanges.length > 0) index.orphanChanges = orphanChanges;
   if (Object.keys(vault.reviewItems).length > 0) index.reviewItems = Object.values(vault.reviewItems);
+  if (Object.keys(vault.images).length > 0) index.images = Object.values(vault.images);
 
   const doc = new Document(index);
   doc.commentBefore = ' Living Writing vault. Entities are in Entities/, scenes in Stories/.';
@@ -579,6 +601,7 @@ export function filesToVault(files: ReadonlyMap<string, string>): Vault {
     scenes: {},
     changes: parseCollection(keyById(index.orphanChanges, 'orphanChanges'), 'orphanChanges', readChange),
     reviewItems: parseCollection(keyById(index.reviewItems, 'reviewItems'), 'reviewItems', readReviewItem),
+    images: parseCollection(keyById(index.images, 'images'), 'images', readImage),
   };
 
   for (const [name, text] of files) {
@@ -593,7 +616,8 @@ export function filesToVault(files: ReadonlyMap<string, string>): Vault {
           note: body,
           props: fm.props ?? {},
           ...(fm.image !== undefined ? { image: fm.image } : {}),
-          ...fileExtras(fm, ['id', 'name', 'type', 'aliases', 'props', 'image'], name),
+          ...(fm.imageAi !== undefined ? { imageAi: fm.imageAi } : {}),
+          ...fileExtras(fm, ['id', 'name', 'type', 'aliases', 'props', 'image', 'imageAi'], name),
         },
         name,
       );

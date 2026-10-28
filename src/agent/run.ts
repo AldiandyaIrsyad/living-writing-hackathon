@@ -50,6 +50,8 @@ interface AgentStore {
   setIdleSeconds: (s: number) => void;
   /** Null until the server has said whether it has a model key. */
   enabled: boolean | null;
+  /** Does the server have an image model too? Pictures (/addillustration, portraits) are offered only then. */
+  images: boolean;
   /** The model service the server talks to, by name (Meta, or Google Gemini as a stand-in). */
   provider: string | null;
   /** The models the server offers, its default first. */
@@ -125,6 +127,7 @@ export const useAgent = create<AgentStore>((set) => ({
     set({ idleSeconds });
   },
   enabled: null,
+  images: false,
   provider: null,
   models: [],
   model: null,
@@ -340,7 +343,7 @@ function readEdited(): void {
 export function startAgent(): void {
   if (!BACKEND) return;
   void fetch('/api/agent')
-    .then((r) => r.json() as Promise<{ enabled: boolean; provider: string | null; models: string[] }>)
+    .then((r) => r.json() as Promise<{ enabled: boolean; images?: boolean; provider: string | null; models: string[] }>)
     .then((a) => {
       // A model remembered from before is kept only while the server still offers it.
       const saved = recall(MODEL_KEY);
@@ -350,6 +353,7 @@ export function startAgent(): void {
       const effort = recall(EFFORT_KEY) as Effort | null;
       useAgent.setState({
         enabled: a.enabled,
+        images: a.images === true,
         provider: a.provider,
         models: a.models,
         model: saved && a.models.includes(saved) ? saved : (a.models[0] ?? null),

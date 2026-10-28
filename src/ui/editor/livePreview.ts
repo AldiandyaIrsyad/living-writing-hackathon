@@ -2,8 +2,13 @@
 // the cursor or selection is on. The document text never changes; this is decoration only.
 
 import { syntaxTree } from '@codemirror/language';
-import type { EditorState, Extension } from '@codemirror/state';
+import { IMAGE_REF } from '../../core/markdown';
+import { Facet, type EditorState, type Extension } from '@codemirror/state';
 import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet, type ViewUpdate } from '@codemirror/view';
+
+/** Where a stored picture (`![caption](img:ID)`) comes from: the editor is given the vault's image store. */
+export type ImageLookup = (id: string) => { src: string; ai?: boolean } | undefined;
+export const imageLookup = Facet.define<ImageLookup, ImageLookup>({ combine: (all) => all[0] ?? (() => undefined) });
 
 type LiveKind = 'hide' | 'bullet' | 'quote-line' | 'link';
 
@@ -95,11 +100,12 @@ class InlineImageWidget extends WidgetType {
   constructor(
     readonly alt: string,
     readonly src: string,
+    readonly ai = false,
   ) {
     super();
   }
   eq(other: InlineImageWidget): boolean {
-    return this.alt === other.alt && this.src === other.src;
+    return this.alt === other.alt && this.src === other.src && this.ai === other.ai;
   }
   toDOM(view: EditorView): HTMLElement {
     const wrap = document.createElement('span');
@@ -117,7 +123,14 @@ class InlineImageWidget extends WidgetType {
       view.dispatch({ selection: { anchor: pos + 2 }, scrollIntoView: true });
       view.focus();
     });
-    wrap.append(img);
+    if (this.ai) {
+      const mark = document.createElement('span');
+      mark.className = 'ai-mark';
+      mark.append(img);
+      wrap.append(mark);
+    } else {
+      wrap.append(img);
+    }
 
     if (this.alt) {
       const cap = document.createElement('span');
@@ -184,19 +197,26 @@ function build(view: EditorView): DecorationSet {
       seenImagePositions.add(from);
       const to = from + match[0].length;
       const alt = match[1] ?? '';
-      const src = match[2] ?? '';
-      if (!src) continue;
+      const raw = match[2] ?? '';
+      if (!raw) continue;
       if (isActive(from)) {
-        if (src.startsWith('data:') && src.length > 64) {
+        if (raw.startsWith('data:') && raw.length > 64) {
           const urlStart = from + 4 + alt.length;
           const urlEnd = to - 1;
           if (urlEnd > urlStart) {
-            decos.push(Decoration.replace({ widget: new CompactDataUrlWidget(src.length) }).range(urlStart, urlEnd));
+            decos.push(Decoration.replace({ widget: new CompactDataUrlWidget(raw.length) }).range(urlStart, urlEnd));
           }
         }
         continue;
       }
-      decos.push(Decoration.replace({ widget: new InlineImageWidget(alt, src) }).range(from, to));
+      let src = raw;
+      let ai = false;
+      if (raw.startsWith(IMAGE_REF)) {
+        const stored = state.facet(imageLookup)(raw.slice(IMAGE_REF.length));
+        if (!stored) continue; // an unknown id stays as text rather than a broken picture
+        ({ src, ai = false } = stored);
+      }
+      decos.push(Decoration.replace({ widget: new InlineImageWidget(alt, src, ai) }).range(from, to));
     }
   }
   return Decoration.set(decos, true);

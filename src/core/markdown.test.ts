@@ -615,3 +615,21 @@ describe('author notes: frontmatter', () => {
     expect(r.html).toContain('<p>body</p>');
   });
 });
+
+describe('stored pictures: ![caption](img:ID)', () => {
+  const images: Record<string, { src: string; ai?: boolean }> = {
+    plain: { src: 'data:image/png;base64,AAAA' },
+    made: { src: 'data:image/png;base64,BBBB', ai: true },
+  };
+  const ctx: RenderContext = { ...plainCtx, resolveImage: (id) => images[id] };
+
+  it('shows the stored picture, and wraps one made by a model so it can carry the watermark', () => {
+    expect(renderMarkdown('![A cup](img:plain)', ctx).html).toBe('<p><img src="data:image/png;base64,AAAA" alt="A cup"></p>\n');
+    expect(renderMarkdown('![A cup](img:made)', ctx).html).toBe('<p><span class="ai-mark"><img src="data:image/png;base64,BBBB" alt="A cup"></span></p>\n');
+  });
+
+  it('renders nothing for a picture it cannot resolve, so an export never carries a broken image', () => {
+    expect(renderMarkdown('before ![x](img:gone) after', ctx).html).toBe('<p>before  after</p>\n');
+    expect(renderMarkdown('before ![x](img:plain) after', plainCtx).html).toBe('<p>before  after</p>\n');
+  });
+});

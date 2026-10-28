@@ -15,6 +15,7 @@ import { CaptureBox, IdeaQueueDialog, InboxBadge, OPEN_CAPTURE_EVENT } from './C
 import { ImportNotesDialog } from './ImportNotesDialog';
 import { ProblemsBadge, ProblemsDialog } from './ProblemsDialog';
 import { ReplaceDialog } from './ReplaceDialog';
+import { IllustrateDialog } from './IllustrateDialog';
 import { ReviewBadge, ReviewDialog } from './ReviewDialog';
 import { TodayBadge } from './TodayBadge';
 import { ShortcutsDialog } from './ShortcutsDialog';
@@ -279,6 +280,7 @@ export function App() {
       <ProblemsDialog />
       {!BACKEND && <FolderSyncBanner />}
       <ReviewDialog />
+      <IllustrateDialog />
       <ReplaceDialog />
       <CaptureBox />
       <IdeaQueueDialog />

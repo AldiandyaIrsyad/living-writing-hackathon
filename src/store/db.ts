@@ -52,11 +52,16 @@ class LivingWritingDB extends Dexie {
     const v1 = { ...schema };
     delete v1.arcs;
     delete v1.reviewItems;
+    delete v1.images;
     const v2 = { ...schema };
     delete v2.reviewItems;
+    delete v2.images;
+    const v3 = { ...schema };
+    delete v3.images;
     this.version(1).stores(v1);
     this.version(2).stores(v2); // + arcs
-    this.version(3).stores(schema); // + reviewItems
+    this.version(3).stores(v3); // + reviewItems
+    this.version(4).stores(schema); // + images
   }
   coll(name: CollectionName | 'meta'): Table<{ id: string } & Record<string, unknown>, string> {
     return this.table(name);

@@ -1,0 +1,65 @@
+/* The picture-making dialog. Shares the dialog frame in impact.css. */
+
+.illustrate-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  overflow-y: auto;
+  min-height: 120px;
+}
+.illustrate-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--fg-muted);
+}
+.illustrate-field textarea {
+  resize: vertical;
+  font: inherit;
+  color: var(--fg);
+  line-height: 1.45;
+}
+.illustrate-style select {
+  align-self: flex-start;
+}
+.illustrate-error {
+  margin: 0;
+  color: var(--danger);
+}
+.illustrate-people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+}
+.illustrate-people legend {
+  padding: 0 4px;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+.illustrate-people label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.illustrate-people img {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+.illustrate-preview {
+  display: flex;
+  justify-content: center;
+}
+.illustrate-preview img {
+  max-width: 100%;
+  max-height: 46vh;
+  border: 1px solid var(--border);
+}

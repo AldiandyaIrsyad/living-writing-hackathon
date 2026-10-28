@@ -23,6 +23,11 @@ export interface RenderContext {
    * `<span class="author-note">` with its text escaped (no links or formatting inside).
    */
   showNotes?: boolean;
+  /**
+   * The picture behind `![caption](img:ID)`. Without it (or when the id is unknown) such an image renders as nothing,
+   * so an export never carries a broken picture. An `ai` picture is wrapped in `<span class="ai-mark">` for the watermark.
+   */
+  resolveImage?(id: string): { src: string; ai?: boolean } | undefined;
 }
 
 /** Maximum nesting depth for embeds (`![[x]]` inside an embed inside an embed ...). */
@@ -332,6 +337,23 @@ function renderTaskBox(tokens: Token[], idx: number): string {
   return `<input type="checkbox" disabled${checked ? ' checked' : ''}> `;
 }
 
+/** A scene points at a picture kept in the vault's image store as `![caption](img:ID)`. */
+export const IMAGE_REF = 'img:';
+
+type ImageRenderer = { renderToken(tokens: Token[], idx: number, options: unknown): string; renderInlineAsText(tokens: Token[], options: unknown, env: unknown): string };
+
+function renderImage(tokens: Token[], idx: number, options: unknown, env: MdEnv, self: ImageRenderer): string {
+  const token = tokens[idx];
+  const src = String(token.attrGet('src') ?? '');
+  if (!src.startsWith(IMAGE_REF)) return self.renderToken(tokens, idx, options);
+  const image = env.ctx.resolveImage?.(src.slice(IMAGE_REF.length));
+  if (!image) return '';
+  token.attrSet('src', image.src);
+  token.attrSet('alt', self.renderInlineAsText(token.children ?? [], options, env));
+  const img = self.renderToken(tokens, idx, options);
+  return image.ai ? `<span class="ai-mark">${img}</span>` : img;
+}
+
 function createMarkdownIt() {
   const md = new MarkdownIt({ html: false, linkify: true, breaks: false });
   md.inline.ruler.before('link', 'lw_wikilink', wikilinkRule);
@@ -344,6 +366,7 @@ function createMarkdownIt() {
   md.renderer.rules[CALLOUT_OPEN] = renderCalloutOpen;
   md.renderer.rules[CALLOUT_CLOSE] = renderCalloutClose;
   md.renderer.rules[TASK_BOX] = renderTaskBox;
+  md.renderer.rules.image = renderImage as never;
   return md;
 }
 

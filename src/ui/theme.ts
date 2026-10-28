@@ -81,3 +81,27 @@ export function toggleLook(): Look {
   setLook(look === 'timetable' ? 'classic' : 'timetable');
   return look;
 }
+
+// The "temporary" watermark over pictures a model made: on unless the writer turns it off, stored per browser.
+
+function initialAiMark(): boolean {
+  try {
+    return localStorage.getItem('lw-ai-mark') !== 'off';
+  } catch {
+    return true;
+  }
+}
+
+let aiMark = initialAiMark();
+if (typeof document !== 'undefined') document.documentElement.dataset.aiMark = aiMark ? 'on' : 'off';
+
+export function toggleAiMark(): boolean {
+  aiMark = !aiMark;
+  document.documentElement.dataset.aiMark = aiMark ? 'on' : 'off';
+  try {
+    localStorage.setItem('lw-ai-mark', aiMark ? 'on' : 'off');
+  } catch {
+    // ignore
+  }
+  return aiMark;
+}

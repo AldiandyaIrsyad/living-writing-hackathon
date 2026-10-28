@@ -15,13 +15,15 @@ import type { AuthorNote } from '../../core/notes';
 import { installPreset, TYPE_PRESETS, type TypePreset } from '../../core/presets';
 import type { Id, Vault } from '../../core/types';
 import { addEntity, sortedTypes } from '../../store/actions';
+import { useIllustrate } from '../../agent/illustrate';
+import { useAgent } from '../../agent/run';
 import { useStore } from '../../store/store';
 import { followLink } from '../follow';
 import { fileToImageMarkdown } from '../imageUpload';
 import '../notes/notes.css';
 import { selectionBubble } from './bubble';
 import { toggleAuthorNote, toggleInline } from './format';
-import { livePreview } from './livePreview';
+import { imageLookup, livePreview } from './livePreview';
 
 /** Ask the editor to rebuild its link decorations (an entity or scene was created or renamed). */
 export const refreshLinks = StateEffect.define<null>();
@@ -267,6 +269,43 @@ function wikiCompletion(ctx: CompletionContext): CompletionResult | null {
   return { from: before.from + before.text.indexOf('[[') + 2, options, validFor: /^[^\]\n|@#]*$/ };
 }
 
+/**
+ * `/addillustration` at the end of a passage: the text before it is what gets illustrated. Offered only in scene text, and
+ * only when the server has an image model. Choosing it removes the command and opens the picture dialog.
+ */
+function illustrationCommand(sceneId: () => string | undefined): (ctx: CompletionContext) => CompletionResult | null {
+  return (ctx) => {
+    if (!useAgent.getState().images) return null;
+    const typed = ctx.matchBefore(/(?:^|\s)\/[a-z]*/);
+    if (!typed) return null;
+    const from = typed.from + typed.text.indexOf('/');
+    return {
+      from,
+      options: [
+        {
+          label: '/addillustration',
+          detail: 'a picture of the moment above',
+          type: 'function',
+          apply: (view, _c, applyFrom, applyTo) => {
+            const before = view.state.doc.sliceString(0, applyFrom);
+            view.dispatch({ changes: { from: applyFrom, to: applyTo, insert: '' } });
+            useIllustrate.getState().open({
+              kind: 'scene',
+              sceneId: view.state.facet(sceneContext)?.(view.state, applyFrom) ?? sceneId(),
+              before,
+              insert: (markdown) => {
+                view.dispatch({ changes: { from: applyFrom, insert: markdown }, selection: { anchor: applyFrom + markdown.length } });
+                view.focus();
+              },
+            });
+          },
+        },
+      ],
+      validFor: /^\/[a-z]*$/,
+    };
+  };
+}
+
 const highlight = HighlightStyle.define([
   { tag: t.heading1, fontSize: '1.55em', fontWeight: '700' },
   { tag: t.heading2, fontSize: '1.3em', fontWeight: '700' },
@@ -361,10 +400,11 @@ export function Editor({ value, onChange, contextSceneId, placeholder, testId, e
           markdown(),
           syntaxHighlighting(highlight),
           livePreview,
+          imageLookup.of((id) => useStore.getState().vault.images[id]),
           selectionBubble,
           EditorView.lineWrapping,
           closeBrackets(),
-          autocompletion({ override: [wikiCompletion, nameCompletion], icons: false, defaultKeymap: false }),
+          autocompletion({ override: [wikiCompletion, nameCompletion, ...(editorId === 'manuscript-editor' ? [illustrationCommand(() => ctxRef.current)] : [])], icons: false, defaultKeymap: false }),
           Prec.highest(keymap.of(suggestionKeys)),
           linkPlugin,
           typewriter,

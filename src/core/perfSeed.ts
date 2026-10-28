@@ -210,5 +210,5 @@ export function createPerfVault(opts: PerfOptions = {}): Vault {
     }
   }
 
-  return { entityTypes, entities, moments, constraints, stories, arcs, chapters, scenes, changes, reviewItems: {} };
+  return { entityTypes, entities, moments, constraints, stories, arcs, chapters, scenes, changes, reviewItems: {}, images: {} };
 }

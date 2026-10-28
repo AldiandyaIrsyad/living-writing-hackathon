@@ -292,5 +292,6 @@ export function createDemoVault(): Vault {
     scenes: byId(scenes),
     changes: byId(changes),
     reviewItems: {},
+    images: {},
   };
 }

@@ -41,7 +41,7 @@ function readFileAsDataUrl(file: Blob): Promise<string> {
   });
 }
 
-function resizeDataUrl(dataUrl: string, maxDim: number, quality: number): Promise<string> {
+export function resizeDataUrl(dataUrl: string, maxDim: number, quality: number): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {

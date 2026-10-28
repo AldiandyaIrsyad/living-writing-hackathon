@@ -15,6 +15,7 @@ function esc(s: string): string {
 export function makeRenderContext(vault: Vault, contextSceneId?: Id, depth = 0): RenderContext {
   return {
     depth,
+    resolveImage: (id) => vault.images[id],
     resolveLink(link: ParsedLink) {
       const e = findEntity(vault, link.target);
       if (e) return { resolved: true, kind: 'entity', id: e.id, display: link.alias ?? e.name };
