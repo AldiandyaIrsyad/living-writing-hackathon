@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildManuscript } from './manuscript';
-import { moveChapterBeside, moveScene, moveSceneBeside, moveSceneToChapterEnd } from './reorder';
+import { moveChapterBeside, moveScene, moveSceneBeside, moveSceneToChapterEnd, moveStoryBeside } from './reorder';
 import { VaultBuilder } from './testkit';
 import type { Id, Vault } from './types';
 
@@ -127,5 +127,28 @@ describe('moveChapterBeside', () => {
     expect(into.chapters.C.arcId).toBe('x');
     const out = moveChapterBeside(into, 'C', 'B', 'after');
     expect(out.chapters.C).not.toHaveProperty('arcId');
+  });
+});
+
+describe('moveStoryBeside', () => {
+  const stories = (ids: Id[]): Vault => {
+    const v = world();
+    v.stories = {};
+    ids.forEach((id, i) => (v.stories[id] = { id, name: id, color: '#888', order: i }));
+    return v;
+  };
+  const listed = (v: Vault) => Object.values(v.stories).sort((a, b) => a.order - b.order).map((x) => x.id);
+
+  it('puts a story before or after another, and leaves the scenes alone', () => {
+    const v = stories(['A', 'B', 'C']);
+    expect(listed(moveStoryBeside(v, 'A', 'C', 'after'))).toEqual(['B', 'C', 'A']);
+    expect(listed(moveStoryBeside(v, 'C', 'A', 'before'))).toEqual(['C', 'A', 'B']);
+    expect(moveStoryBeside(v, 'A', 'C', 'after').scenes).toBe(v.scenes);
+  });
+
+  it('is a no-op when the story is already there or dropped on itself', () => {
+    const v = stories(['A', 'B', 'C']);
+    expect(moveStoryBeside(v, 'B', 'A', 'after')).toBe(v);
+    expect(moveStoryBeside(v, 'B', 'B', 'before')).toBe(v);
   });
 });

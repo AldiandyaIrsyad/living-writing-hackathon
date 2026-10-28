@@ -1,6 +1,6 @@
 // One story track of the timeline: its header, chapter and arc bands, scene clips and the drop marker.
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { changeWhere } from '../../core/anchor';
 import { formatValue } from '../../core/resolve';
 import { STATUS_LABELS } from '../../core/status';
@@ -9,6 +9,9 @@ import type { Relation } from '../../core/timeline';
 import { useStore, useVault } from '../../store/store';
 import { sceneAddresses } from '../goto';
 import { HEADER_W, METRICS, partTitle, shortLabel, trackHeight, keyframeInForce, type ClipModel, type Keyframe, type Span, type TrackModel } from './model';
+
+/** Set on a drag that carries a story's header, so another header knows it may take the drop. */
+export const STORY_DRAG = 'application/x-lw-story';
 
 /** Clips narrower than this (px) are slim coloured slivers: no title, no meta, no insert button. */
 const NARROW_CLIP_PX = 64;
@@ -79,6 +82,8 @@ export interface TrackProps {
   onSpan: (span: Span) => void;
   onContext: (target: LaneContext, e: React.MouseEvent) => void;
   onStoryDragStart: (e: React.DragEvent) => void;
+  /** A story's header was dropped on this track's header: put it before or after this track. */
+  onStoryDrop: (storyId: Id, side: 'before' | 'after') => void;
   onNewSceneAtEnd: () => void;
 }
 
@@ -87,6 +92,7 @@ export function Track(p: TrackProps) {
   const m = METRICS;
   const color = track.story.color;
   const show = useStore((s) => s.timelineShow);
+  const [headDrop, setHeadDrop] = useState<'before' | 'after' | null>(null);
   const h = trackHeight(track, show);
   const navigate = useStore((s) => s.navigate);
   const toggleHidden = useStore((s) => s.toggleStoryHidden);
@@ -104,14 +110,28 @@ export function Track(p: TrackProps) {
   return (
     <div className="tl-track" style={{ height: h, ['--story' as string]: color }} data-testid="tl-track" data-story={track.story.name}>
       <div
-        className="tl-track-head"
         style={{ width: HEADER_W }}
+        className={`tl-track-head${headDrop ? ` drop-${headDrop}` : ''}`}
         draggable
         onDragStart={p.onStoryDragStart}
         onDragEnd={p.onDragEnd}
+        onDragOver={(e) => {
+          if (!e.dataTransfer.types.includes(STORY_DRAG)) return;
+          e.preventDefault();
+          const r = e.currentTarget.getBoundingClientRect();
+          setHeadDrop(e.clientY < r.top + r.height / 2 ? 'before' : 'after');
+        }}
+        onDragLeave={() => setHeadDrop(null)}
+        onDrop={(e) => {
+          const id = e.dataTransfer.getData(STORY_DRAG);
+          if (!id || !headDrop) return;
+          e.preventDefault();
+          p.onStoryDrop(id, headDrop);
+          setHeadDrop(null);
+        }}
         data-testid="tl-story"
         data-story={track.story.name}
-        title="Drag onto a scene to move the whole story"
+        title="Drag onto another story's name to reorder the tracks, or onto a scene to move the whole story in time"
       >
         <div className="tl-track-color" />
         <div className="grow tl-track-text">

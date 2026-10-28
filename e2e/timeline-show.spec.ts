@@ -35,3 +35,19 @@ test.describe('timeline show settings', () => {
     await expect(c.locator('.tl-clip-meta')).not.toContainText('Chapter 2');
   });
 });
+
+test.describe('story track order', () => {
+  test('dragging a story onto the lower half of another story puts it below, and undo puts it back', async ({ page }) => {
+    await loadDemo(page);
+    const tracks = page.getByTestId('tl-track');
+    await expect(tracks.first()).toHaveAttribute('data-story', 'The Ashford Chronicle');
+
+    const mira = page.getByTestId('tl-story').filter({ hasText: "Mira's Road" });
+    const box = (await mira.boundingBox())!;
+    await page.getByTestId('tl-story').filter({ hasText: 'The Ashford Chronicle' }).dragTo(mira, { targetPosition: { x: 60, y: box.height - 4 } });
+    await expect(tracks.first()).toHaveAttribute('data-story', "Mira's Road");
+
+    await page.keyboard.press('Control+z');
+    await expect(tracks.first()).toHaveAttribute('data-story', 'The Ashford Chronicle');
+  });
+});

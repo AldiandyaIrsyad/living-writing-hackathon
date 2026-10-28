@@ -4,7 +4,7 @@
 // `order` numbers are shared by a whole story, but only the order inside one chapter (or arc) is ever read, so a move
 // hands out the numbers the moved group already had. Everything outside the group keeps its object and its number.
 
-import type { Chapter, Id, Scene, Vault } from './types';
+import type { Chapter, Id, Scene, Story, Vault } from './types';
 
 const byOrder = <T extends { order: number }>(a: T, b: T) => a.order - b.order;
 
@@ -81,4 +81,16 @@ export function moveChapterBeside(vault: Vault, chapterId: Id, targetId: Id, sid
   chapters[chapterId] = moved;
   for (const [id, order] of changed) if (id !== chapterId) chapters[id] = { ...chapters[id], order };
   return { ...vault, chapters };
+}
+
+/** Moves a story's track to just before or after another story's, the order the timeline and the story picker list them in. */
+export function moveStoryBeside(vault: Vault, storyId: Id, targetId: Id, side: 'before' | 'after'): Vault {
+  const story = vault.stories[storyId];
+  if (!story || !vault.stories[targetId] || storyId === targetId) return vault;
+  const others = Object.values(vault.stories).filter((x) => x.id !== storyId).sort(byOrder);
+  const changed = reassign(others, story, others.findIndex((x) => x.id === targetId) + (side === 'after' ? 1 : 0));
+  if (changed.length === 0) return vault;
+  const stories: Record<Id, Story> = { ...vault.stories };
+  for (const [id, order] of changed) stories[id] = { ...stories[id], order };
+  return { ...vault, stories };
 }

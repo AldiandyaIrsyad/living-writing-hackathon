@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { findEntity, parseLinks } from '../../core/links';
+import { moveStoryBeside } from '../../core/reorder';
 import { constrainScenes, insertScene, moveScenes, setSceneSpan, type Relation } from '../../core/timeline';
 import { addChapterAfter, chapterForNewScene } from '../../store/actions';
 import type { Id, Scene, Vault } from '../../core/types';
@@ -16,7 +17,7 @@ import { Ruler } from './Ruler';
 import { Toolbar } from './Toolbar';
 import { ContextMenu, type MenuItem } from './ContextMenu';
 import { buildMenu, type MenuTarget } from './menuItems';
-import { CastTrack, Track, hintKey, type Hint, type LaneContext } from './TrackLane';
+import { CastTrack, STORY_DRAG, Track, hintKey, type Hint, type LaneContext } from './TrackLane';
 import { EMPTY_HISTORY, canTravel, goBack, goForward, recordJump, type ViewHistory } from './viewHistory';
 import { ZOOM_TWEEN_MS, clampView, clampZoom, fitZoom, nextStart, prefersReducedMotion, scrollForAnchor, stepZoom, tweenAt, viewForRange, zoomAnchor, zoomRange, type ViewState, type ViewTween } from './zoom';
 import './timeline.css';
@@ -606,7 +607,14 @@ export function TimelinePanel() {
               onStoryDragStart={(e) => {
                 dragPayload = { kind: 'story', id: t.story.id };
                 e.dataTransfer.setData('text/plain', `story:${t.story.id}`);
+                e.dataTransfer.setData(STORY_DRAG, t.story.id);
                 e.dataTransfer.effectAllowed = 'move';
+              }}
+              onStoryDrop={(id, side) => {
+                dragPayload = null;
+                const s = useStore.getState();
+                const next = moveStoryBeside(s.vault, id, t.story.id, side);
+                if (next !== s.vault) s.commit(next, undefined, 'Move story track');
               }}
               onNewSceneAtEnd={() => {
                 const last = [...t.clips].sort((a, b) => b.col + b.span - (a.col + a.span))[0];
