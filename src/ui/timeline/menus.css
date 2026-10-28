@@ -17,6 +17,7 @@
   padding: 4px;
   display: flex;
   flex-direction: column;
+  animation: lw-settle 0.14s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .tl-pop-up {
   /* Fixed above the button (position set where it opens), so it is not cut off by the timeline; a long list scrolls. */

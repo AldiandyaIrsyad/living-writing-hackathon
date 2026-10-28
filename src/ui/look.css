@@ -39,6 +39,8 @@
     background: var(--accent-soft);
     color: var(--fg);
     font-weight: 600;
+    /* The same yellow landing as the playhead when you arrive at a scene. */
+    animation: here-lands 0.45s ease-out;
   }
 
   /* Rows of characters and pages: a straight line through the middle, in the row's colour, level with its name. */
@@ -72,5 +74,12 @@
   .toast-error,
   .callout-warning {
     border-color: var(--danger);
+  }
+}
+
+/* Keyframes cannot nest in the rule above. */
+@keyframes here-lands {
+  from {
+    background: color-mix(in srgb, var(--tl-playhead) 70%, var(--accent-soft));
   }
 }

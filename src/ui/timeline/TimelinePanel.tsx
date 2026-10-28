@@ -626,7 +626,7 @@ export function TimelinePanel() {
             <CastTrack key={e.id} entity={e} keyframes={entityKeyframes(getResolver(vault), e.id)} zoom={zoom} width={totalCols * zoom} visible={visible} playhead={playhead} />
           ))}
           {!model.tracks.length && <div className="tl-empty">No story tracks on the timeline — use “+ Track” to bring one in, or load the demo world from the Vault menu.</div>}
-          <div className="tl-playhead" style={{ left: HEADER_W + playhead * zoom, width: zoom }} data-testid="tl-playhead" data-x={playhead}>
+          <div key={playhead} className="tl-playhead" style={{ left: HEADER_W + playhead * zoom, width: zoom }} data-testid="tl-playhead" data-x={playhead}>
             <div className="tl-playhead-cap">{playhead + 1}</div>
           </div>
         </div>

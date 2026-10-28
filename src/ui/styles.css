@@ -600,6 +600,43 @@ li.task {
   padding-bottom: 45vh;
 }
 
+/* ---------- motion ---------- */
+/* Feedback only, and quick: a control answers the pointer, and what opens (menus, dialogs, toasts) settles in rather than
+   snapping. Nothing runs on load or on its own. The one authored moment is the yellow landing on a new "here"
+   (look.css for the outline, timeline.css for the playhead). */
+@keyframes lw-settle {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+@keyframes lw-fade {
+  from {
+    opacity: 0;
+  }
+}
+.btn,
+.input,
+.select {
+  transition:
+    background-color 0.12s,
+    border-color 0.12s,
+    color 0.12s;
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.menu,
+.toast {
+  animation: lw-settle 0.14s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.modal-backdrop {
+  animation: lw-fade 0.16s ease-out;
+}
+.modal {
+  animation: lw-settle 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 /* People who ask their system for less motion get none: no transitions, animations or smooth scrolling anywhere. */
 @media (prefers-reduced-motion: reduce) {
   *,

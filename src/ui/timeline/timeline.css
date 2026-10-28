@@ -555,6 +555,13 @@
   border-right: 1px solid var(--tl-playhead);
   pointer-events: none;
   z-index: 5;
+  /* Keyed on the column in TimelinePanel, so it runs each time "here" moves: the band lands bright and settles. */
+  animation: tl-arrive 0.45s ease-out;
+}
+@keyframes tl-arrive {
+  from {
+    background: color-mix(in srgb, var(--tl-playhead) 55%, transparent);
+  }
 }
 .tl-playhead-cap {
   position: sticky;
@@ -711,6 +718,9 @@
 }
 .tl-key.current {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--story) 35%, transparent);
+}
+.tl-key {
+  transition: transform 0.12s;
 }
 .tl-key:hover {
   transform: rotate(45deg) scale(1.25);
