@@ -51,3 +51,22 @@ test.describe('story track order', () => {
     await expect(tracks.first()).toHaveAttribute('data-story', 'The Ashford Chronicle');
   });
 });
+
+test.describe('cancelling a drag', () => {
+  test('dropping a scene back on itself changes nothing and shows no error', async ({ page }) => {
+    await loadDemo(page);
+    const supper = clip(page, 'Supper at the Inn');
+    const column = await supper.getAttribute('data-column');
+    // Pick it up, carry it over another scene, then bring it back and let go on itself.
+    const from = (await supper.boundingBox())!;
+    const away = (await clip(page, 'The Stranger').boundingBox())!;
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(away.x + away.width / 2, away.y + away.height / 2, { steps: 8 });
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2, { steps: 8 });
+    await page.mouse.up();
+    await expect(page.getByTestId('toast-error')).toHaveCount(0);
+    await expect(supper).toHaveAttribute('data-column', column!);
+    await expect(page.locator('.tl-drop')).toHaveCount(0);
+  });
+});

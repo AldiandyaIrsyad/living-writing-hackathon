@@ -434,9 +434,9 @@ export function TimelinePanel() {
   const apply = (payload: DragPayload, relation: Relation, targetSceneId: Id) => {
     const s = useStore.getState();
     const ids = payload.kind === 'story' ? Object.values(s.vault.scenes).filter((x) => x.storyId === payload.id).map((x) => x.id) : payload.ids;
-    if (!ids.length) return;
-    if (payload.kind === 'story' && s.vault.scenes[targetSceneId]?.storyId === payload.id) {
-      s.toast('error', 'Drop a story onto a scene from a different story.');
+    // Dropped back where it came from (on itself, or a story on its own scene): the writer cancelled, so nothing happens.
+    if (!ids.length || ids.every((id) => id === targetSceneId) || (payload.kind === 'story' && s.vault.scenes[targetSceneId]?.storyId === payload.id)) {
+      setSelected(new Set());
       return;
     }
     const res = (s.timelineMode === 'move' ? moveScenes : constrainScenes)(s.vault, ids, relation, targetSceneId);
