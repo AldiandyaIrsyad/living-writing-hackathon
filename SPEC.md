@@ -288,6 +288,7 @@ Stories have **chapters**; chapters can optionally be grouped into **arcs**.
   when the edit was named.
 - Light and dark theme. Calm, writer-friendly UI; keyboard-first where reasonable.
 - Timeline settings (⚙): arcs, chapters and scenes can each be hidden on story tracks; the scrollbar above the overview bar is off by default (the overview scrolls and zooms). A scene clip shows its address and ◆n, the number of changes it makes to pages. The corner reads "Time n · label"; + Track is in the ruler corner. Dragging a story's name onto another story's name reorders the tracks (upper or lower half = before or after); dropping it on a scene still moves the whole story in time.
+- The open scene's details (what happens, When, Changes, status; chapter and delete under ⋯) are in a bar above the text. The quick panel is the scene's name and Pin, the agent, the notes left in the text (this chapter, this scene, or everything) and the cast (a find box from 8 members). The timeline and its collapsed strip step between chapters (← Chapter / Chapter →). An auto-hidden timeline stays hidden until its strip is clicked, Esc or Ctrl+J; "Comes back by itself" (⚙) restores returning on click-away and strip hover.
 - Two looks, stored per browser (command bar: Toggle look): Timetable (default; see DESIGN.md) numbers each scene in the outline as chapter.scene (the address the palette's go-to takes, `:4.1`), and Classic is the earlier warm design.
 
 ### Out of scope for v1

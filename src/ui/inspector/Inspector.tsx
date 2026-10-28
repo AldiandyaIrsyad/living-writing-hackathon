@@ -1,28 +1,23 @@
-// Inspector, the right panel: one scrolling column, no tabs. The scene comes first (the open scene, or the
-// one under the playhead), then the cast of that scene. A scene being written folds out its placement,
-// commits and author notes from chips under its title.
+// Inspector, the quick panel on the right: one scrolling column, no tabs. The scene's name, the agent, the notes
+// left in the text, then the cast. What a scene says about itself (when, status, what it changes) is above the text.
 
 import { useMemo, useState } from 'react';
-import { momentConcrete } from '../../core/concrete';
-import { findAuthorNotesOutsideCode } from '../../core/links';
 import { formatValue } from '../../core/resolve';
-import type { Id, PropValue, Scene, StateChange, TimePoint, Vault } from '../../core/types';
-import { formatCount, sceneWordCount } from '../../core/wordcount';
+import type { Id, PropValue, Scene, StateChange, TimePoint } from '../../core/types';
 import { atLabel, changeWhere } from '../../core/anchor';
-import { deleteScene } from '../../core/timeline';
-import { addChange, chaptersOfStory, parseQuickCommit, setSceneChapter, updateSceneSynopsis } from '../../store/actions';
+import { addChange, parseQuickCommit } from '../../store/actions';
 import { addToCast, groupCast, removeFromCast, sceneCast, type GroupCastMember } from '../../store/cast';
-import { getResolver, update, useStore, useVault } from '../../store/store';
+import { getResolver, useStore, useVault } from '../../store/store';
 import { AffiliationChips } from '../affiliations/Affiliations';
 import { AgentSection } from './AgentSection';
 import { AnchorNote } from '../AnchorNote';
+import type { RevealTextDetail } from '../editor/Editor';
 import { PropLines } from '../EntityState';
 import { playheadContext } from '../follow';
-import { AuthorNotesPanel } from '../notes/AuthorNotesPanel';
+import { sceneAddresses } from '../goto';
+import { collectNoteGroups, type NoteRow } from '../left/panelData';
 import { ValueInput } from '../props';
-import { StatusSelect } from '../StatusSelect';
 import { chooseTarget, pinLabel } from './target';
-import { ChangesPanel, PlacementPanel } from '../views/SceneView';
 import './inspector.css';
 
 /** Which scene the Inspector describes, and at what point in time its cast is read. */
@@ -57,6 +52,7 @@ export function Inspector() {
         <>
           <SceneSection target={target} />
           <AgentSection scene={target.scene} writing={target.writing} />
+          <NotesSection scene={target.scene} />
           <CastSection target={target} />
         </>
       ) : (
@@ -66,81 +62,18 @@ export function Inspector() {
   );
 }
 
-/** Titles of the scenes at a moment, or the moment's concrete date / label when none has a scene. */
-function titlesAt(vault: Vault, momentId: Id, except?: Id): string {
-  const titles = Object.values(vault.scenes)
-    .filter((s) => s.momentId === momentId && s.id !== except)
-    .map((s) => s.title);
-  return titles.join(', ') || momentConcrete(vault.moments[momentId]) || 'an unnamed moment';
-}
-
-/** Short placement of a scene: concrete date if set, plus "after The Betrayal", "before Crossroads", "same time as Fall", or "floating". */
-function placementPhrase(vault: Vault, scene: Scene): string {
-  const m = scene.momentId;
-  const concrete = momentConcrete(vault.moments[m]);
-  const incoming = Object.values(vault.constraints).find((c) => c.after === m);
-  let rel = 'floating';
-  if (incoming) rel = `after ${titlesAt(vault, incoming.before)}`;
-  else {
-    const outgoing = Object.values(vault.constraints).find((c) => c.before === m);
-    if (outgoing) rel = `before ${titlesAt(vault, outgoing.after)}`;
-    else if (Object.values(vault.scenes).some((s) => s.momentId === m && s.id !== scene.id)) {
-      rel = `same time as ${titlesAt(vault, m, scene.id)}`;
-    }
-  }
-  return concrete ? (rel === 'floating' ? concrete : `${concrete} · ${rel}`) : rel;
-}
-
-type DrawerKey = 'when' | 'commits' | 'notes';
-type Drawers = Record<DrawerKey, boolean>;
-
-const DRAWERS_KEY = 'lw.inspector.drawers';
-const CLOSED: Drawers = { when: false, commits: false, notes: false };
-
-/** Which scene drawers were left open. Browser storage may be blocked, so every access is guarded. */
-function loadDrawers(): Drawers {
-  try {
-    const raw = window.localStorage.getItem(DRAWERS_KEY);
-    if (!raw) return CLOSED;
-    const parsed: unknown = JSON.parse(raw);
-    if (typeof parsed !== 'object' || parsed === null) return CLOSED;
-    const rec = parsed as Partial<Record<DrawerKey, unknown>>;
-    return { when: rec.when === true, commits: rec.commits === true, notes: rec.notes === true };
-  } catch {
-    // Unavailable or corrupt: start closed.
-    return CLOSED;
-  }
-}
-
-function saveDrawers(d: Drawers): void {
-  try {
-    window.localStorage.setItem(DRAWERS_KEY, JSON.stringify(d));
-  } catch {
-    // Remembering the drawers is a convenience only.
-  }
-}
-
 function SceneSection({ target: { scene, writing, pinned } }: { target: Target }) {
   const vault = useVault();
   const navigate = useStore((s) => s.navigate);
-  const [drawers, setDrawers] = useState<Drawers>(loadDrawers);
-  const notes = useMemo(() => findAuthorNotesOutsideCode(scene.prose).length, [scene.prose]);
-  const commits = Object.values(vault.changes).filter((c) => c.sceneId === scene.id).length;
-  const words = sceneWordCount(scene);
-  const story = vault.stories[scene.storyId]?.name;
-  const chapter = (scene.chapterId && vault.chapters[scene.chapterId]?.title) || 'No chapter';
-  const meta = [story, chapter, placementPhrase(vault, scene)].filter(Boolean).join(' · ');
-  const toggle = (key: DrawerKey) => {
-    const next = { ...drawers, [key]: !drawers[key] };
-    setDrawers(next);
-    saveDrawers(next);
-  };
+  const address = sceneAddresses(vault, scene.storyId).get(scene.id);
 
   return (
     <section className="insp-section insp-scene" data-testid="insp-scene">
       <div className={`insp-time ${writing ? 'is-writing' : 'is-playhead'}`} data-testid="cast-time">
-        <div className="insp-time-label">
-          {pinned ? 'Pinned' : writing ? 'Scene' : 'Playhead'}
+        <div className="insp-scene-line">
+          <span className="insp-scene-title" title={writing ? 'The scene you are writing in' : pinned ? 'Pinned scene' : 'The scene under the playhead'}>
+            {address && <span className="insp-addr">{address}</span>} {scene.title || 'Untitled scene'}
+          </span>
           <button
             type="button"
             className={`insp-pin${pinned ? ' on' : ''}`}
@@ -157,86 +90,11 @@ function SceneSection({ target: { scene, writing, pinned } }: { target: Target }
             as of {pinLabel(vault, scene.id)}
           </div>
         )}
-        <div className="insp-scene-title">
-          <span className="insp-glyph" aria-hidden="true">
-            ¶
-          </span>{' '}
-          {scene.title}
-        </div>
-        <div className="insp-time-sub">{meta}</div>
-        {writing ? (
-          <input
-            className="input small"
-            style={{ marginTop: 4 }}
-            placeholder="Beat / synopsis (optional 1-line summary)"
-            aria-label="Scene synopsis"
-            data-testid="insp-scene-synopsis"
-            defaultValue={scene.synopsis ?? ''}
-            key={`${scene.id}:${scene.synopsis ?? ''}`}
-            onBlur={(e) => e.target.value.trim() !== (scene.synopsis ?? '') && update((v) => updateSceneSynopsis(v, scene.id, e.target.value))}
-            onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()}
-          />
-        ) : (
-          scene.synopsis && <div className="small muted" style={{ marginTop: 4 }}>{scene.synopsis}</div>
+        {!writing && (
+          <div className="insp-time-sub">{pinned ? 'Pinned' : 'Playhead'}</div>
         )}
-        <div className="insp-time-stat">
-          {formatCount(words)} {words === 1 ? 'word' : 'words'}
-        </div>
       </div>
-
-      {writing ? (
-        <>
-          <div className="insp-chips" role="group" aria-label="Scene details">
-            <SceneChip testId="insp-chip-when" label="When" open={drawers.when} onToggle={() => toggle('when')} />
-            <SceneChip testId="insp-chip-commits" label={`Commits (${commits})`} open={drawers.commits} onToggle={() => toggle('commits')} />
-            <SceneChip testId="insp-chip-notes" label={`Notes (${notes})`} open={drawers.notes} onToggle={() => toggle('notes')} />
-          </div>
-          {drawers.when && (
-            <div className="insp-drawer" data-testid="insp-drawer-when">
-              <PlacementPanel scene={scene} />
-            </div>
-          )}
-          {drawers.commits && (
-            <div className="insp-drawer" data-testid="insp-drawer-commits">
-              <ChangesPanel scene={scene} />
-            </div>
-          )}
-          {drawers.notes && (
-            <div className="insp-drawer" data-testid="insp-drawer-notes">
-              <AuthorNotesPanel scene={scene} />
-            </div>
-          )}
-          <div className="insp-scene-tools">
-            <StatusSelect scene={scene} className="tl-select" testId="insp-status" />
-            <select
-              className="tl-select grow"
-              aria-label="Chapter"
-              value={scene.chapterId ?? ''}
-              onChange={(e) => update((v) => setSceneChapter(v, scene.id, e.target.value || null))}
-            >
-              <option value="">No chapter</option>
-              {chaptersOfStory(vault, scene.storyId).map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.title || 'Untitled chapter'}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className="btn btn-sm btn-ghost btn-danger"
-              data-testid="insp-delete-scene"
-              title="Delete this scene and its commits. To fold it into the scene above instead, delete its # heading."
-              onClick={() => {
-                if (!window.confirm(`Delete scene “${scene.title}”?`)) return;
-                update((v) => deleteScene(v, scene.id));
-                navigate({ kind: 'home' });
-              }}
-            >
-              Delete scene
-            </button>
-          </div>
-        </>
-      ) : (
+      {!writing && (
         <button type="button" className="btn btn-sm insp-open" data-testid="insp-open-scene" onClick={() => navigate({ kind: 'scene', id: scene.id })}>
           Open scene
         </button>
@@ -245,13 +103,75 @@ function SceneSection({ target: { scene, writing, pinned } }: { target: Target }
   );
 }
 
-function SceneChip({ testId, label, open, onToggle }: { testId: string; label: string; open: boolean; onToggle: () => void }) {
+/** Which author notes to list: the open chapter's (the usual), just this scene's, or the whole vault's. */
+type NotesScope = 'chapter' | 'scene' | 'all';
+const NOTES_SCOPE_KEY = 'lw.inspector.notesScope';
+
+function loadNotesScope(): NotesScope {
+  try {
+    const raw = window.localStorage.getItem(NOTES_SCOPE_KEY);
+    return raw === 'scene' || raw === 'all' ? raw : 'chapter';
+  } catch {
+    return 'chapter';
+  }
+}
+
+/** The author notes the writer left in the text, where they are needed: this chapter first, any scene, or everything. */
+function NotesSection({ scene }: { scene: Scene }) {
+  const vault = useVault();
+  const navigate = useStore((s) => s.navigate);
+  const [scope, setScope] = useState<NotesScope>(loadNotesScope);
+  const groups = useMemo(() => collectNoteGroups(vault), [vault]);
+  const chapterSceneIds = useMemo(() => new Set(Object.values(vault.scenes).filter((s) => scene.chapterId && s.chapterId === scene.chapterId).map((s) => s.id)), [vault.scenes, scene.chapterId]);
+  const rows = groups
+    .flatMap((g) => g.rows)
+    .filter((r) => (scope === 'all' ? true : r.kind === 'scene' && (scope === 'scene' ? r.id === scene.id : chapterSceneIds.has(r.id) || r.id === scene.id)));
+
+  const choose = (value: NotesScope) => {
+    setScope(value);
+    try {
+      window.localStorage.setItem(NOTES_SCOPE_KEY, value);
+    } catch {
+      // Remembering the choice is a convenience only.
+    }
+  };
+  const open = (row: NoteRow) => {
+    if (row.kind === 'entity') {
+      navigate({ kind: 'entity', id: row.id });
+      return;
+    }
+    navigate({ kind: 'scene', id: row.id });
+    const detail: RevealTextDetail = { sceneId: row.id, from: row.from, to: row.to };
+    // Let the scene mount (and its editor start listening) before revealing the note.
+    window.setTimeout(() => window.dispatchEvent(new CustomEvent('lw:reveal-text', { detail })), 0);
+  };
+
   return (
-    <button type="button" className={`insp-chip ${open ? 'on' : ''}`} aria-expanded={open} data-testid={testId} onClick={onToggle}>
-      {label} <span className="insp-caret" aria-hidden="true">{open ? '▾' : '▸'}</span>
-    </button>
+    <section className="insp-section insp-notes" data-testid="insp-notes">
+      <div className="insp-sec-head">
+        <span>Notes</span>
+        <select className="tl-select insp-scope" aria-label="Notes cover" data-testid="notes-scope" value={scope} onChange={(e) => choose(e.target.value as NotesScope)}>
+          <option value="chapter">This chapter</option>
+          <option value="scene">This scene</option>
+          <option value="all">Everything</option>
+        </select>
+        <span className="insp-count" data-testid="notes-count">
+          {rows.length}
+        </span>
+      </div>
+      {rows.length === 0 && <div className="insp-empty">No notes here. Press Ctrl+/ in the text to leave yourself one.</div>}
+      {rows.map((row) => (
+        <button key={row.key} type="button" className="insp-note" data-testid="insp-note" onClick={() => open(row)}>
+          <span className="insp-note-where">{row.where}</span>
+          <span className="insp-note-text">{row.text === '' ? 'Empty note' : row.text}</span>
+        </button>
+      ))}
+    </section>
   );
 }
+
+/** A cast this long gets a find box. */
+const FIND_FROM = 8;
 
 /** What the Cast covers: every scene of the open scene's chapter, just the open scene, or one chosen scene of that chapter. */
 type CastScope = 'chapter' | 'current' | Id;
@@ -269,6 +189,7 @@ function CastSection({ target: { scene, tp, writing } }: { target: Target }) {
   const vault = useVault();
   const [scope, setScope] = useState<CastScope>(loadScope);
   const [adding, setAdding] = useState('');
+  const [find, setFind] = useState('');
   /** Cards are one line each until clicked; the ones opened so far. */
   const [opened, setOpened] = useState<Set<Id>>(() => new Set());
 
@@ -287,6 +208,7 @@ function CastSection({ target: { scene, tp, writing } }: { target: Target }) {
   const scopeIds = useMemo(() => new Set(shown.map((x) => x.id)), [shown]);
   const cast = useMemo(() => groupCast(vault, shown), [vault, shown]);
   const inAnchor = useMemo(() => sceneCast(vault, anchor), [vault, anchor]);
+  const castShown = cast.length >= FIND_FROM && find.trim() ? cast.filter((m) => vault.entities[m.entityId].name.toLowerCase().includes(find.trim().toLowerCase())) : cast;
   const others = Object.values(vault.entities)
     .filter((e) => !inAnchor.some((c) => c.entityId === e.id))
     .sort((a, b) => a.name.localeCompare(b.name));
@@ -336,7 +258,10 @@ function CastSection({ target: { scene, tp, writing } }: { target: Target }) {
           Nobody here yet. Type <code>[[name]]</code> in the scene and they will appear — or add someone below.
         </div>
       )}
-      {cast.map((m) => {
+      {cast.length >= FIND_FROM && (
+        <input className="input small insp-cast-find" placeholder="Find in the cast" aria-label="Find in the cast" data-testid="cast-find" value={find} onChange={(e) => setFind(e.target.value)} />
+      )}
+      {castShown.map((m) => {
         const open = opened.has(m.entityId);
         return (
           <CastCard

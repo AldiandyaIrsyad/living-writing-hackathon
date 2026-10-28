@@ -67,7 +67,7 @@ class NoteMarker extends WidgetType {
   }
 }
 
-/** Event asking an editor to select and show a range of its scene's text (see AuthorNotesPanel). */
+/** Event asking an editor to select and show a range of its scene's text (the quick panel's Notes and the notes list use it). */
 /** Detail of `lw:insert-text`: text to put at the caret of the editor being written in (replacing a selection). */
 export interface InsertTextDetail {
   text: string;

@@ -136,6 +136,51 @@ test.describe('timeline tracks and focus mode', () => {
     await expect(page.getByTestId('timeline')).toBeVisible();
   });
 
+  test('a hidden timeline stays hidden while clicking around the panels or hovering its strip, and a click on the strip brings it back', async ({ page }) => {
+    await loadDemo(page);
+    await openScene(page, 'Supper at the Inn');
+    await page.getByTestId('scene-editor').locator('.cm-content').click();
+    await page.keyboard.type(' The fire crackles.');
+    await expect(page.getByTestId('tl-strip')).toBeVisible();
+
+    await page.getByTestId('insp-pin').click();
+    await page.getByTestId('tl-strip').hover();
+    await page.waitForTimeout(700);
+    await expect(page.getByTestId('timeline')).toHaveCount(0);
+
+    await page.getByTestId('tl-strip').click();
+    await expect(page.getByTestId('timeline')).toBeVisible();
+  });
+
+  test('Minimize stays minimized even when the editor still had focus', async ({ page }) => {
+    await loadDemo(page);
+    await openScene(page, 'Supper at the Inn');
+    await page.getByTestId('tl-settings').click();
+    await page.getByTestId('tl-comes-back').click(); // the old behaviour is where the bounce-back lived
+    await page.keyboard.press('Escape');
+    await page.getByTestId('scene-editor').locator('.cm-content').click();
+    await page.keyboard.press('End');
+    await page.getByTestId('tl-minimize').click();
+    await page.waitForTimeout(700);
+    await expect(page.getByTestId('tl-strip')).toBeVisible();
+    await expect(page.getByTestId('timeline')).toHaveCount(0);
+  });
+
+  test('the timeline and its strip step between chapters', async ({ page }) => {
+    await loadDemo(page);
+    await openScene(page, 'Supper at the Inn');
+    await expect(page.getByTestId('tl-chapter-prev')).toBeDisabled();
+    await page.getByTestId('tl-chapter-next').click();
+    await expectOpenScene(page, 'The Stranger');
+
+    await page.getByTestId('tl-minimize').click();
+    await page.getByTestId('tl-strip').getByTestId('tl-chapter-next').click();
+    await expectOpenScene(page, 'The Betrayal');
+    await expect(page.getByTestId('tl-strip')).toBeVisible();
+    await page.getByTestId('tl-strip').getByTestId('tl-chapter-prev').click();
+    await expectOpenScene(page, 'The Stranger');
+  });
+
   test('the "Always show" behaviour keeps the timeline while typing', async ({ page }) => {
     await loadDemo(page);
     await page.getByTestId('tl-settings').click();
@@ -187,7 +232,7 @@ test.describe('empty chapters', () => {
 
     await page.getByTestId('add-scene-in-chapter').click();
     await expect(page.getByTestId('scene-editor')).toBeVisible();
-    await expect(page.getByTestId('insp-scene')).toContainText('Prologue');
+    await expect(page.getByTestId('chapter-title')).toHaveValue('Prologue');
     await expect(page.getByTestId('add-scene-in-chapter')).toHaveCount(0);
   });
 });

@@ -5,10 +5,10 @@ import { clip, loadDemo, openCastCard, openEntity, openScene } from './helpers';
 test.describe('retcon preview', () => {
   const statusCommit = (page: Page) => page.locator('[data-testid="change-row"]').filter({ has: page.locator('[data-testid="change-prop"][value="status"]') });
 
-  /** Opens The Fall of Ashford's commits and presses × on Norman's death (the one that sets "status"). */
+  /** Opens The Fall of Ashford's changes and presses × on Norman's death (the one that sets "status"). */
   async function deleteNormansDeath(page: Page) {
     await openScene(page, 'The Fall of Ashford');
-    await page.getByTestId('insp-chip-commits').click();
+    await page.getByTestId('scene-chip-changes').click();
     await expect(statusCommit(page).first()).toBeVisible();
     await statusCommit(page).first().getByRole('button', { name: 'Delete change' }).click();
   }

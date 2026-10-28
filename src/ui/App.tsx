@@ -132,17 +132,21 @@ export function App() {
       const st = useStore.getState();
       if (st.timelineBehaviour === 'autohide' && !st.timelineCollapsed && !st.timelineMaximized) st.setTimelineCollapsed(true);
     };
+    // Out of the way until asked for (click its strip, Esc, Ctrl+J). Clicking around the side panels is not a request,
+    // unless the writer chose the timeline that comes back by itself.
     const reveal = () => {
       const st = useStore.getState();
-      if (st.timelineBehaviour === 'autohide' && st.timelineCollapsed) st.setTimelineCollapsed(false);
+      if (st.timelineBehaviour === 'autohide' && st.timelineComesBack && st.timelineCollapsed) st.setTimelineCollapsed(false);
     };
     // Clicking away from the editor blurs it on the mouse press. The timeline coming back then resizes the page
     // under the pointer (a button at the bottom of the side bar jumps up), and the click is lost. So with a button
     // held down, wait until it is released and the click has happened.
     let pressed = false;
+    let pressedOnTimeline = false;
     let pending: ReturnType<typeof setTimeout> | null = null;
-    const onDown = () => {
+    const onDown = (e: PointerEvent) => {
       pressed = true;
+      pressedOnTimeline = !!(e.target as HTMLElement | null)?.closest?.('.timeline, .tl-strip');
     };
     const onUp = () => {
       pressed = false;
@@ -152,6 +156,8 @@ export function App() {
       }
     };
     const onBlur = () => {
+      // Pressing Minimize (or anything in the timeline) takes focus from the editor too: that is not "clicking away".
+      if (pressedOnTimeline) return;
       if (!pressed) reveal();
       else if (pending === null) pending = setTimeout(reveal, 5000);
     };

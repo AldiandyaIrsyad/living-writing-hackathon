@@ -91,3 +91,67 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* The open scene's details, above the text. */
+.scene-bar {
+  position: sticky;
+  top: -24px;
+  z-index: 5;
+  margin: 0 0 12px;
+  padding: 8px 0 6px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.scene-bar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.scene-bar-name {
+  font-weight: 600;
+  margin-right: 6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.scene-bar-addr {
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-muted);
+  margin-right: 4px;
+}
+.scene-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 2px 10px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elev);
+  color: var(--fg-muted);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.6;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.scene-chip:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+.scene-chip.on {
+  background: var(--accent-soft);
+  color: var(--fg);
+  border-color: var(--accent);
+}
+.scene-bar-drawer {
+  min-width: 0;
+}
+.scene-bar-more {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

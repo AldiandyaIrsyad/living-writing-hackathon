@@ -13,6 +13,7 @@ import { anchorsOf, chapterExtensions, sceneAtPos, sceneStart, setAnchors } from
 import { Editor, refreshLinks, sceneContext, type InsertTextDetail } from '../editor/Editor';
 import { pickImageFile } from '../imageUpload';
 import { Markdown } from '../Markdown';
+import { SceneBar } from './SceneBar';
 import './scene.css';
 
 interface ChapterViewProps {
@@ -115,6 +116,7 @@ export function ChapterView({ chapterId, activeSceneId }: ChapterViewProps) {
               />
             )}
           </div>
+          {vault.scenes[activeSceneId] && <SceneBar scene={vault.scenes[activeSceneId]} withMore />}
           {preview ? <ChapterPreview scenes={scenes} /> : <ChapterEditor chapterId={chapterId} activeSceneId={activeSceneId} addScene={addScene} />}
           <ChapterFooterNav chapterId={chapterId} />
         </div>

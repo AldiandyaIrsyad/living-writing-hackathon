@@ -22,16 +22,15 @@ import {
   shiftSceneOrder,
   updateChange,
   updateSceneProse,
-  updateSceneSynopsis,
 } from '../../store/actions';
 import { flushEditors, getResolver, update, useStore, useVault } from '../../store/store';
 import { Editor, type InsertTextDetail } from '../editor/Editor';
 import { pickImageFile } from '../imageUpload';
 import { ChapterView } from './ChapterView';
+import { SceneBar } from './SceneBar';
 import { chronologicalScenes } from '../follow';
 import { Markdown } from '../Markdown';
 import { ValueInput } from '../props';
-import { StatusSelect } from '../StatusSelect';
 import { formatCount, readingMinutes, sceneWordCount } from '../../core/wordcount';
 import './scene.css';
 
@@ -57,6 +56,7 @@ function SingleSceneView({ id }: { id: Id }) {
       <div className="view">
         <div className="view-narrow">
           <SceneHeader scene={scene} preview={preview} setPreview={setPreview} />
+          <SceneBar scene={scene} withMore={false} />
           {preview ? (
             <Markdown text={scene.prose} contextSceneId={scene.id} testId="scene-preview" />
           ) : (
@@ -175,7 +175,6 @@ function SceneHeader({ scene, preview, setPreview }: { scene: Scene; preview: bo
             </option>
           ))}
         </select>
-        <StatusSelect scene={scene} className="select" testId="scene-status" />
         <span className="grow" />
         <span className="faint" data-testid="scene-words" title="Words in this scene and estimated reading time">
           {formatCount(words)} {words === 1 ? 'word' : 'words'}
@@ -239,16 +238,6 @@ function SceneHeader({ scene, preview, setPreview }: { scene: Scene; preview: bo
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         onBlur={commitTitle}
-        onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()}
-      />
-      <input
-        className="input small"
-        placeholder="Beat / synopsis (optional 1-line summary — excluded from manuscript word count)"
-        aria-label="Scene synopsis"
-        data-testid="scene-synopsis"
-        defaultValue={scene.synopsis ?? ''}
-        key={`${scene.id}:${scene.synopsis ?? ''}`}
-        onBlur={(e) => e.target.value.trim() !== (scene.synopsis ?? '') && update((v) => updateSceneSynopsis(v, scene.id, e.target.value))}
         onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget as HTMLInputElement).blur()}
       />
     </div>
@@ -570,7 +559,7 @@ export function ChangesPanel({ scene }: { scene: Scene }) {
   return (
     <section className="panel" data-testid="changes-panel">
       <div className="panel-head">
-        State changes <span className="grow" />
+        Changes <span className="grow" />
         <button className="btn btn-sm" onClick={addRow} data-testid="add-change">
           + Change
         </button>

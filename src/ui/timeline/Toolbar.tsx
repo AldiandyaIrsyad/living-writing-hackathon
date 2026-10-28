@@ -5,6 +5,7 @@ import { Fragment, useEffect, useRef, useState } from 'react';
 import { addStandaloneMilestone } from '../../core/labels';
 import { useStore, useVault, type StateTime, type TimelineBehaviour, type TimelineShow } from '../../store/store';
 import { createStory } from '../stories';
+import { ChapterStep } from './ChapterStep';
 import { HighlightPicker } from './HighlightPicker';
 
 export function Toolbar({
@@ -63,6 +64,7 @@ export function Toolbar({
         </button>
       )}
       <span className="grow" />
+      <ChapterStep />
       <MilestoneMenu />
       <HighlightPicker />
       <ShortcutsMenu />
@@ -203,7 +205,7 @@ function usePopover(): [boolean, (open: boolean) => void, React.RefObject<HTMLDi
 
 const BEHAVIOURS: { id: TimelineBehaviour; label: string; hint: string }[] = [
   { id: 'always', label: 'Always show', hint: 'The timeline stays put while you write.' },
-  { id: 'autohide', label: 'Auto-hide while typing', hint: 'Collapses when you type in an editor; hover the strip or press Esc to bring it back.' },
+  { id: 'autohide', label: 'Auto-hide while typing', hint: 'Collapses when you type in an editor and stays out of the way; click its strip, press Esc or Ctrl+J to bring it back.' },
   { id: 'hidden', label: 'Hidden', hint: 'Only shows when you ask for it (Ctrl+J).' },
 ];
 
@@ -226,6 +228,7 @@ const SHOWN: { id: keyof TimelineShow; label: string }[] = [
 function BehaviourMenu() {
   const show = useStore((s) => s.timelineShow);
   const scrollbar = useStore((s) => s.timelineScrollbar);
+  const comesBack = useStore((s) => s.timelineComesBack);
   const behaviour = useStore((s) => s.timelineBehaviour);
   const stateTime = useStore((s) => s.stateTime);
   const fit = useStore((s) => s.timelineFit);
@@ -269,6 +272,15 @@ function BehaviourMenu() {
               </span>
             </button>
           ))}
+          {behaviour === 'autohide' && (
+            <button className={`tl-pop-item ${comesBack ? 'on' : ''}`} onClick={() => useStore.getState().setTimelineComesBack(!comesBack)} data-testid="tl-comes-back">
+              <span className="tl-pop-check">{comesBack ? '☑' : '☐'}</span>
+              <span>
+                <span className="tl-pop-label">Comes back by itself</span>
+                <span className="tl-pop-hint">When you click away from the text or hover over its strip.</span>
+              </span>
+            </button>
+          )}
           <div className="tl-pop-sep" />
           <div className="tl-pop-title">State panel time</div>
           {STATE_TIMES.map((b) => (

@@ -5,7 +5,7 @@ test.describe('scene status', () => {
   test('a status shows as a dot on the clip and the outline, rolls up on the chapter, and filters the export', async ({ page }) => {
     await loadDemo(page);
     await openScene(page, 'Supper at the Inn');
-    await page.getByTestId('insp-status').selectOption('done');
+    await page.getByTestId('scene-status').selectOption('done');
 
     await expect(page.getByTestId('clip-status')).toHaveCount(1);
     await page.getByRole('button', { name: 'Expand all' }).click();

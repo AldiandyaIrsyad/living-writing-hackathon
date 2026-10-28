@@ -19,6 +19,7 @@ test('a scene saved as a template can be inserted into another scene with its pl
   await runCommand(page, 'save this scene as a template');
   await expect(page.getByText('Saved as the template').first()).toBeVisible();
 
+  await page.keyboard.press('Control+j'); // typing hid the timeline, and it stays hidden until asked for
   await openScene(page, 'The Betrayal');
   await editor.click();
   await page.keyboard.press('Control+End');

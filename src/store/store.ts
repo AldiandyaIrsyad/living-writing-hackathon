@@ -115,6 +115,8 @@ interface AppState {
   timelineShow: TimelineShow;
   /** The scrollbar above the overview bar (the overview bar scrolls and zooms too). */
   timelineScrollbar: boolean;
+  /** An auto-hidden timeline returns by itself (clicking away from the text, hovering its strip), not only when asked for. */
+  timelineComesBack: boolean;
   /** Height its tracks need, reported by the timeline itself. */
   timelineNatural: number;
   timelineMaximized: boolean;
@@ -191,6 +193,7 @@ interface AppState {
   setTimelineFit(on: boolean): void;
   setTimelineShow(part: keyof TimelineShow, on: boolean): void;
   setTimelineScrollbar(on: boolean): void;
+  setTimelineComesBack(on: boolean): void;
   setTimelineNatural(h: number): void;
   setTimelineMaximized(on: boolean): void;
   toggleStoryHidden(id: Id): void;
@@ -274,6 +277,7 @@ export const useStore = create<AppState>((set, get) => ({
   timelineFit: loadUi('timelineFit', true),
   timelineShow: { arcs: true, chapters: true, scenes: true, ...loadUi<Partial<TimelineShow>>('timelineShow', {}) },
   timelineScrollbar: loadUi('timelineScrollbar', false),
+  timelineComesBack: loadUi('timelineComesBack', false),
   timelineNatural: 300,
   timelineMaximized: false,
   hiddenStories: loadUi<Id[]>('hiddenStories', []),
@@ -478,6 +482,11 @@ export const useStore = create<AppState>((set, get) => ({
   setTimelineScrollbar(on) {
     saveUi('timelineScrollbar', on);
     set({ timelineScrollbar: on });
+  },
+
+  setTimelineComesBack(on) {
+    saveUi('timelineComesBack', on);
+    set({ timelineComesBack: on });
   },
 
   setTimelineNatural(h) {
