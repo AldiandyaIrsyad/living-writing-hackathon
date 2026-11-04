@@ -123,10 +123,62 @@ test('logging out forgets the agent’s reports, which quote the manuscript, fro
   await page.getByTestId('agent-read').click();
   await expect(page.getByTestId('agent-report')).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem('lw-agent-reports-v2'))).toContain('Norman');
+  await page.getByTestId('flow-read').click();
+  await expect(page.getByTestId('flow-reading')).toBeVisible();
 
   await waitSaved(page);
   await page.getByTestId('vault-menu').click();
   await page.getByTestId('log-out').click();
   await expect(page.getByTestId('login-form')).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem('lw-agent-reports-v2'))).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem('lw-flow-readings-v1'))).toBeNull();
+});
+
+test('the flow reading places the scene in the whole story, and goes out of date when the scene is written', async ({ page }) => {
+  await page.goto('/');
+  await page.getByTestId('login-switch').click();
+  await page.getByTestId('login-email').fill(`flow-${Date.now()}@example.com`);
+  await page.getByTestId('login-password').fill('correct horse');
+  await page.getByTestId('login-submit').click();
+  await page.getByTestId('vault-menu').click();
+  await page.getByTestId('load-demo').click();
+  await openScene(page, 'The Stranger');
+
+  await page.getByTestId('flow-read').click();
+  await expect(page.getByTestId('flow-role')).toHaveText('turn');
+  // The stand-in echoes where the outline put the scene: it was given the whole story, not just this scene.
+  await expect(page.getByTestId('flow-position')).toHaveText(/^Scene 2 of \d+ in reading order$/);
+  await expect(page.getByTestId('flow-stale')).toHaveCount(0);
+
+  const editor = page.getByTestId('scene-editor').locator('.cm-content');
+  await editor.click();
+  await page.keyboard.press('Control+End');
+  await page.keyboard.type(' A bell rang.');
+  await expect(page.getByTestId('flow-stale')).toBeVisible();
+});
+
+test('with the setting on, a Check also reads the flow, and a mood that does not fit the wiki can be dismissed', async ({ page }) => {
+  await page.goto('/');
+  await page.getByTestId('login-switch').click();
+  await page.getByTestId('login-email').fill(`flowcheck-${Date.now()}@example.com`);
+  await page.getByTestId('login-password').fill('correct horse');
+  await page.getByTestId('login-submit').click();
+  await page.getByTestId('vault-menu').click();
+  await page.getByTestId('load-demo').click();
+  await openScene(page, 'Supper at the Inn');
+  await page.getByTestId('agent-flow-with-check').check();
+
+  // Checking the first scene gives Norman a state; the flow is read right after, unasked.
+  await page.getByTestId('agent-read').click();
+  await expect(page.getByTestId('agent-report')).toBeVisible();
+  await expect(page.getByTestId('flow-reading')).toBeVisible();
+
+  // The next scene begins with Norman in that state, and the reading flags how the scene shows him.
+  await openScene(page, 'The Stranger');
+  await page.getByTestId('flow-read').click();
+  const mood = page.getByTestId('flow-mood');
+  await expect(mood).toContainText('Norman');
+  await expect(mood).toContainText('surprised by a late guest');
+  await mood.getByRole('button', { name: 'It fits' }).click();
+  await expect(mood).toHaveCount(0);
 });

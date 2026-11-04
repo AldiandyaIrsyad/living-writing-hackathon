@@ -49,7 +49,7 @@ const commit = (next: Vault, label: string) => useStore.getState().commit(next, 
 
 export function AgentSection({ scene, writing }: { scene: Scene; writing: boolean }) {
   const vault = useVault();
-  const { trigger, setTrigger, idleSeconds, setIdleSeconds, enabled, provider, models, model, setModel, allowOverwrite, setAllowOverwrite, effort, setEffort, linkNames, setLinkNames, sceneTitles, setSceneTitles, settingsOpen, setSettingsOpen, running, waiting, progress, errors, reports, setReport } = useAgent();
+  const { trigger, setTrigger, idleSeconds, setIdleSeconds, enabled, provider, models, model, setModel, allowOverwrite, setAllowOverwrite, flowWithCheck, setFlowWithCheck, effort, setEffort, linkNames, setLinkNames, sceneTitles, setSceneTitles, settingsOpen, setSettingsOpen, running, waiting, progress, errors, reports, setReport } = useAgent();
   const error = errors[scene.id];
   const dismissed = useDismissed();
   if (!BACKEND) return null;
@@ -553,6 +553,10 @@ export function AgentSection({ scene, writing }: { scene: Scene; writing: boolea
         <label className="agent-row small" title="Off: the agent changes only what it wrote itself (page lines, property values), and offers changes to yours instead.">
           <input type="checkbox" checked={allowOverwrite} onChange={(e) => setAllowOverwrite(e.target.checked)} data-testid="agent-overwrite" />
           <span>Allow overwriting what I wrote in the wiki</span>
+        </label>
+        <label className="agent-row small" title="Each reading of a scene, by Check or on its own, then reads where it sits in the story and how it feels. Off: only when you press Read the flow.">
+          <input type="checkbox" checked={flowWithCheck} onChange={(e) => setFlowWithCheck(e.target.checked)} data-testid="agent-flow-with-check" />
+          <span>Also read the flow with each Check</span>
         </label>
       </details>
     </section>

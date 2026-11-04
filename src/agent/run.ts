@@ -7,6 +7,7 @@ import { BACKEND } from '../store/server';
 import { flushEditors, useStore } from '../store/store';
 import { chapterScenes } from '../core/chapterDoc';
 import { applyAgentOutput, parseAgentOutput, type AgentReport } from './apply';
+import { readFlow, stopFlow } from './flow';
 import { SYSTEM_PROMPT, TOOLS, buildContext, runTool, type SceneTitles } from './context';
 import type { Id } from '../core/types';
 
@@ -30,6 +31,7 @@ const LINK_NAMES_KEY = 'lw-agent-link-names';
 const TITLES_KEY = 'lw-agent-titles';
 const SETTINGS_OPEN_KEY = 'lw-agent-settings-open';
 const OVERWRITE_KEY = 'lw-agent-overwrite';
+const FLOW_KEY = 'lw-agent-flow-with-check';
 const REPORTS_KEY = 'lw-agent-reports-v2';
 const IDLE_KEY = 'lw-agent-idle-seconds';
 /** How long "After I stop typing" waits, in seconds: a writer who stops to think may want longer than one who stops to check. */
@@ -60,6 +62,9 @@ interface AgentStore {
   model: string | null;
   /** May the agent rewrite or remove lines the writer wrote on a wiki page? Off: it only offers those edits. */
   allowOverwrite: boolean;
+  /** Does each reading of a scene also read its place in the story's flow (src/agent/flow.ts)? Off: only when asked. */
+  flowWithCheck: boolean;
+  setFlowWithCheck: (on: boolean) => void;
   /** Null until the server has said which service it is: the default depends on it. */
   effort: Effort | null;
   linkNames: LinkNames;
@@ -132,6 +137,11 @@ export const useAgent = create<AgentStore>((set) => ({
   models: [],
   model: null,
   allowOverwrite: recall(OVERWRITE_KEY) === 'true',
+  flowWithCheck: recall(FLOW_KEY) === 'true',
+  setFlowWithCheck: (flowWithCheck) => {
+    remember(FLOW_KEY, String(flowWithCheck));
+    set({ flowWithCheck });
+  },
   effort: null,
   linkNames: recall(LINK_NAMES_KEY) === 'link' ? 'link' : 'list',
   sceneTitles: ((t) => (t === 'leave' || t === 'set' ? t : 'suggest'))(recall(TITLES_KEY)),
@@ -266,22 +276,25 @@ const queued = new Set<Id>();
 /** Bumped by Stop: readings queued before it are dropped. */
 let generation = 0;
 
-/** `asked`: the writer asked for this reading (a button), rather than the agent reading on its own. */
-async function readScene(sceneId: Id, asked: boolean): Promise<void> {
+/**
+ * `asked`: the writer asked for this reading (a button), rather than the agent reading on its own. True when the
+ * answer was applied.
+ */
+async function readScene(sceneId: Id, asked: boolean): Promise<boolean> {
   flushEditors();
   const start = useStore.getState().vault.scenes[sceneId];
-  if (!start || start.prose.trim() === '') return;
+  if (!start || start.prose.trim() === '') return false;
   useAgent.setState((a) => ({ running: sceneId, progress: null, errors: without(a.errors, sceneId) }));
   stopper = new AbortController();
   try {
     const { text, model } = await askModel(sceneId, stopper.signal);
     const s = useStore.getState();
     // Deleted while it was read: there is nothing to apply the answer to, and nothing went wrong.
-    if (!s.vault.scenes[sceneId]) return;
+    if (!s.vault.scenes[sceneId]) return false;
     // The writer kept typing while the model read: its answer is about text that no longer exists.
     if (s.vault.scenes[sceneId]?.prose !== start.prose) {
       // Reading on its own, the agent reads it again when the writer next pauses or leaves: no need to say anything.
-      if (!asked) return;
+      if (!asked) return false;
       throw new Error('The scene changed while the agent was reading it.');
     }
     const { allowOverwrite, linkNames, sceneTitles } = useAgent.getState();
@@ -291,9 +304,11 @@ async function readScene(sceneId: Id, asked: boolean): Promise<void> {
     read.set(sceneId, [start.prose, vault.scenes[sceneId].prose]);
     edited.delete(sceneId);
     useAgent.getState().setReport(sceneId, report);
+    return true;
   } catch (e) {
     // Stopped by the writer: nothing went wrong.
     if (!stopper?.signal.aborted) useAgent.setState((a) => ({ errors: { ...a.errors, [sceneId]: e instanceof Error ? e.message : String(e) } }));
+    return false;
   } finally {
     stopper = null;
     useAgent.setState({ running: null, progress: null });
@@ -304,6 +319,7 @@ async function readScene(sceneId: Id, asked: boolean): Promise<void> {
 export function stopReading(): void {
   generation++;
   stopper?.abort();
+  stopFlow();
 }
 
 /** Reads a scene after any reading already under way. A scene already waiting is not queued twice. */
@@ -314,7 +330,9 @@ export function enqueueScene(sceneId: Id, asked = true): void {
   const at = generation;
   queue = queue
     // Stop drops what was waiting too.
-    .then(() => (at === generation ? readScene(sceneId, asked) : undefined))
+    .then(() => (at === generation ? readScene(sceneId, asked) : false))
+    // The flow is read after the Check, in the same queue, so the two calls never overlap.
+    .then((applied) => (applied && at === generation && useAgent.getState().flowWithCheck ? readFlow(sceneId) : undefined))
     .finally(() => {
       queued.delete(sceneId);
       useAgent.setState({ waiting: queued.size });

@@ -447,6 +447,32 @@
   text-transform: none;
 }
 
+/* The flow reading: the part the scene plays as a chip, its tone beside it. */
+.flow-reading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.flow-stale > :not(.faint:first-child) {
+  opacity: 0.55;
+}
+.flow-role-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.flow-role {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.flow-tone {
+  font-style: italic;
+}
+
 /* The scene's name, its address and Pin, on one line. */
 .insp-scene-line {
   display: flex;

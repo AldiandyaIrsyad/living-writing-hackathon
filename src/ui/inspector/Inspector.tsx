@@ -10,6 +10,7 @@ import { addToCast, groupCast, removeFromCast, sceneCast, type GroupCastMember }
 import { getResolver, useStore, useVault } from '../../store/store';
 import { AffiliationChips } from '../affiliations/Affiliations';
 import { AgentSection } from './AgentSection';
+import { FlowSection } from './FlowSection';
 import { AnchorNote } from '../AnchorNote';
 import type { RevealTextDetail } from '../editor/Editor';
 import { PropLines } from '../EntityState';
@@ -52,6 +53,7 @@ export function Inspector() {
         <>
           <SceneSection target={target} />
           <AgentSection scene={target.scene} writing={target.writing} />
+          <FlowSection scene={target.scene} writing={target.writing} />
           <NotesSection scene={target.scene} />
           <CastSection target={target} />
         </>
