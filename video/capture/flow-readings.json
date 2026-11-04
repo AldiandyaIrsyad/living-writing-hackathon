@@ -1,0 +1,52 @@
+{
+  "Supper at the Inn": "Setup\nquiet, domestic, faintly foreboding\nthe first scene of the story, opening Arc I and its Chapter 1\nBefore 'The Stranger' and later 'The Betrayal', it simply places Norman, Alice and Bob together at the inn and notes the Sword of Ash.",
+  "The Betrayal": "Turn\nsomber, bitter, quietly final\nmidway through the story, the last scene of Arc I closing its third chapter\nAfter 'The Stranger' leaves Alice and Bob laughing together, this breaks their friendship, reversing their bond before 'Gathering Storm'.\ndarker than the two scenes before it.",
+  "Gathering Storm": "Escalation\nquiet, tense, foreboding\nearly in Arc II, opening Chapter 4\nAfter 'The Betrayal' breaks the friendship, this shows pressure building over Ashford before 'The Fall of Ashford' destroys it.\nquieter than 'The Betrayal', trading heartbreak for foreboding.",
+  "The Fall of Ashford": "Climax\nbleak, violent, final\nthe last scene of Arc II, closing Chapter 5 and the whole story\nAfter 'Gathering Storm' foreshadows the coming storm and 'The Betrayal' breaks bonds at the inn, 'The Fall of Ashford' enacts the town's destruction that resolves the arc.\ndarker and more final than 'The Betrayal' and 'Gathering Storm'.",
+  "stored": {
+    "sc_1": {
+      "position": "the first scene of the story, opening Arc I and its Chapter 1",
+      "role": "setup",
+      "why": "Before 'The Stranger' and later 'The Betrayal', it simply places Norman, Alice and Bob together at the inn and notes the Sword of Ash.",
+      "tone": "quiet, domestic, faintly foreboding",
+      "shift": "",
+      "moodChecks": [],
+      "thin": false,
+      "model": "muse-spark-1.3",
+      "prose": "200:udojnr"
+    },
+    "sc_3": {
+      "position": "midway through the story, the last scene of Arc I closing its third chapter",
+      "role": "turn",
+      "why": "After 'The Stranger' leaves Alice and Bob laughing together, this breaks their friendship, reversing their bond before 'Gathering Storm'.",
+      "tone": "somber, bitter, quietly final",
+      "shift": "darker than the two scenes before it.",
+      "moodChecks": [],
+      "thin": false,
+      "model": "muse-spark-1.3",
+      "prose": "128:1cl4j5q"
+    },
+    "sc_4": {
+      "position": "early in Arc II, opening Chapter 4",
+      "role": "escalation",
+      "why": "After 'The Betrayal' breaks the friendship, this shows pressure building over Ashford before 'The Fall of Ashford' destroys it.",
+      "tone": "quiet, tense, foreboding",
+      "shift": "quieter than 'The Betrayal', trading heartbreak for foreboding.",
+      "moodChecks": [],
+      "thin": false,
+      "model": "muse-spark-1.3",
+      "prose": "133:12xbwq3"
+    },
+    "sc_5": {
+      "position": "the last scene of Arc II, closing Chapter 5 and the whole story",
+      "role": "climax",
+      "why": "After 'Gathering Storm' foreshadows the coming storm and 'The Betrayal' breaks bonds at the inn, 'The Fall of Ashford' enacts the town's destruction that resolves the arc.",
+      "tone": "bleak, violent, final",
+      "shift": "darker and more final than 'The Betrayal' and 'Gathering Storm'.",
+      "moodChecks": [],
+      "thin": false,
+      "model": "muse-spark-1.3",
+      "prose": "159:1gko6kf"
+    }
+  }
+}

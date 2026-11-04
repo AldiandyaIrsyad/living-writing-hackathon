@@ -1,0 +1,86 @@
+{
+  "provider": "freesound",
+  "query": "keyboard typing",
+  "license_policy": "cc0",
+  "ordering": "relevance; popularity is supporting evidence only",
+  "results": [
+    {
+      "id": "fs:517762",
+      "title": "Keyboard Typing",
+      "author": "danlucaz",
+      "duration_seconds": 5.3412,
+      "preview_url": "https://cdn.freesound.org/previews/517/517762_9996727-hq.mp3",
+      "downloads": 298,
+      "page_url": "https://freesound.org/people/danlucaz/sounds/517762/",
+      "license_label": "Creative Commons 0",
+      "description": "Typing on a keyboard. You can use my sounds freely. It would be great if you credit me. Leave a comment and tell me for which project you used it. Daniel Lucas, danlucaz. 2020.",
+      "rating": 4.2,
+      "rating_count": 5
+    },
+    {
+      "id": "fs:468096",
+      "title": "Typing on Keyboard",
+      "author": "sarooptech",
+      "duration_seconds": 7.71215,
+      "preview_url": "https://cdn.freesound.org/previews/468/468096_7949809-hq.mp3",
+      "downloads": 305,
+      "page_url": "https://freesound.org/people/sarooptech/sounds/468096/",
+      "license_label": "Creative Commons 0",
+      "description": "Typing Sound on keyboard",
+      "rating": null,
+      "rating_count": null
+    },
+    {
+      "id": "fs:422712",
+      "title": "typing on keyboard.wav",
+      "author": "niamhd00145229",
+      "duration_seconds": 4.77694,
+      "preview_url": "https://cdn.freesound.org/previews/422/422712_8457618-hq.mp3",
+      "downloads": 99,
+      "page_url": "https://freesound.org/people/niamhd00145229/sounds/422712/",
+      "license_label": "Creative Commons 0",
+      "description": "Sound of someone typing fast on a keyboard.",
+      "rating": 1.7,
+      "rating_count": 6
+    },
+    {
+      "id": "fs:152887",
+      "title": "Typing with a keyboard ",
+      "author": "davidkyoku",
+      "duration_seconds": 7.05624,
+      "preview_url": "https://cdn.freesound.org/previews/152/152887_1960341-hq.mp3",
+      "downloads": 368,
+      "page_url": "https://freesound.org/people/davidkyoku/sounds/152887/",
+      "license_label": "Creative Commons 0",
+      "description": "This sound was recorded at the Campus of Poblenou of the Pompeu Fabra University, in the area of Tallers in the classroom 54.030 .It was recorded between 14:00-14:20 with a Zoom H2 recorder. The sound consist into multiple percussive sounds produced by typing a sentence into the keyboard at high speed",
+      "rating": 3.0,
+      "rating_count": 3
+    },
+    {
+      "id": "fs:587777",
+      "title": "Typing on Keyboard and Confirming an Action.wav",
+      "author": "collieryouthservices",
+      "duration_seconds": 4.12215,
+      "preview_url": "https://cdn.freesound.org/previews/587/587777_4275266-hq.mp3",
+      "downloads": 92,
+      "page_url": "https://freesound.org/people/collieryouthservices/sounds/587777/",
+      "license_label": "Creative Commons 0",
+      "description": "one of my students typing on a keyboard. recorded in collier middle school.",
+      "rating": 2.8,
+      "rating_count": 4
+    },
+    {
+      "id": "fs:551182",
+      "title": "keyboard Typing",
+      "author": "SubwaySandwitch420",
+      "duration_seconds": 7.59494,
+      "preview_url": "https://cdn.freesound.org/previews/551/551182_10953720-hq.mp3",
+      "downloads": 111,
+      "page_url": "https://freesound.org/people/SubwaySandwitch420/sounds/551182/",
+      "license_label": "Creative Commons 0",
+      "description": "Recorded audio of me, typing on a keyboard. And edit the audio in Audacity . Well kinda.",
+      "rating": null,
+      "rating_count": null
+    }
+  ]
+}

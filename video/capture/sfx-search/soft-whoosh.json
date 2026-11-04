@@ -1,0 +1,86 @@
+{
+  "provider": "freesound",
+  "query": "soft whoosh",
+  "license_policy": "cc0",
+  "ordering": "relevance; popularity is supporting evidence only",
+  "results": [
+    {
+      "id": "fs:843665",
+      "title": "StuffedCreatureFur6",
+      "author": "Huglex",
+      "duration_seconds": 0.712063,
+      "preview_url": "https://cdn.freesound.org/previews/843/843665_12419669-hq.mp3",
+      "downloads": 157,
+      "page_url": "https://freesound.org/people/Huglex/sounds/843665/",
+      "license_label": "Creative Commons 0",
+      "description": "The sound of my hand rubbing agaisnt the fur of a stuffed creature. I'm going to be posting new sounds every week for the foreseeable future, so feel free to come back next week for more random sound!",
+      "rating": 4.6,
+      "rating_count": 7
+    },
+    {
+      "id": "fs:71852",
+      "title": "digital_whoosh_soft.wav",
+      "author": "ludvique",
+      "duration_seconds": 0.95254,
+      "preview_url": "https://cdn.freesound.org/previews/71/71852_1062668-hq.mp3",
+      "downloads": 7703,
+      "page_url": "https://freesound.org/people/ludvique/sounds/71852/",
+      "license_label": "Creative Commons 0",
+      "description": "The sound of a soft digital/electrical whoosh or buzz",
+      "rating": 4.5,
+      "rating_count": 61
+    },
+    {
+      "id": "fs:485279",
+      "title": "Wooden Stick Swing 1_4",
+      "author": "Joao_Janz",
+      "duration_seconds": 0.556937,
+      "preview_url": "https://cdn.freesound.org/previews/485/485279_9961300-hq.mp3",
+      "downloads": 228,
+      "page_url": "https://freesound.org/people/Joao_Janz/sounds/485279/",
+      "license_label": "Creative Commons 0",
+      "description": "Recorded and processed at 24bit 48kHz using the Tascam DR-40 Linear PCM Recorder. Processing: Gain-staging and soft high and low frequency filtering. No EQ boost or cuts anywhere else. Also De-noised.",
+      "rating": 4.3,
+      "rating_count": 4
+    },
+    {
+      "id": "fs:816261",
+      "title": "Broomstick whoosh 2 - Soft low OKM1",
+      "author": "Sadiquecat",
+      "duration_seconds": 0.474198,
+      "preview_url": "https://cdn.freesound.org/previews/816/816261_5287430-hq.mp3",
+      "downloads": 239,
+      "page_url": "https://freesound.org/people/Sadiquecat/sounds/816261/",
+      "license_label": "Creative Commons 0",
+      "description": "Subject : Recording a whoosh from a Broomstick (without the broom, just the plastic stick) Date YMD : 2025 July 12 Location : Indoor, Espéraza, France. Hardware : Tascam FR-AV2 in 32bit 192khz. Soundman OKM1 Weather : Processing : Trimmed in Audacity fade in/out. Maybe some denoise. Notes : Tips : Attribution is greatly appreciated but not required. Recommendation : X sound by Sadiquecat on Freesound.org in CC0 licence. Hope you enjoy :) PS: Id love to hear how you use this sound, feel free to link your creations or share how/why you listen to this :)",
+      "rating": 3.4,
+      "rating_count": 5
+    },
+    {
+      "id": "fs:876167",
+      "title": "Soft Magic Spell Cast Whoosh (Fantasy RPG)",
+      "author": "Assetsmith",
+      "duration_seconds": 1.23345,
+      "preview_url": "https://cdn.freesound.org/previews/876/876167_19429311-hq.mp3",
+      "downloads": 24,
+      "page_url": "https://freesound.org/people/Assetsmith/sounds/876167/",
+      "license_label": "Creative Commons 0",
+      "description": "Gentle magical cast whoosh for spell casting, ability use, or cozy fantasy games. License: CC0. Procedurally synthesized with code (no AI audio models, no recordings). AI assisted in writing the generator code (GenAI-assisted). Full packs (more variations): - Fantasy RPG SFX Bundle ($4.79 Halloween sale): https://assetsmithpixels.itch.io/fantasy-rpg-sfx-bundle - Halloween sale (20% off): https://itch.io/s/207572 - Fantasy RPG Combat SFX: https://assetsmithpixels.itch.io/fantasy-rpg-combat-sfx",
+      "rating": null,
+      "rating_count": null
+    },
+    {
+      "id": "fs:623709",
+      "title": "soft_swoosh_with_noisy_ambience.wav",
+      "author": "mediatheksuche",
+      "duration_seconds": 0.970136,
+      "preview_url": "https://cdn.freesound.org/previews/623/623709_13793250-hq.mp3",
+      "downloads": 380,
+      "page_url": "https://freesound.org/people/mediatheksuche/sounds/623709/",
+      "license_label": "Creative Commons 0",
+      "description": "Softer version of a punch. Punches and impacts, the staple of film and movie sfx sounds. here is a swishing swoosh whoosh sound for film, video or games.",
+      "rating": 4.5,
+      "rating_count": 6
+    }
+  ]
+}

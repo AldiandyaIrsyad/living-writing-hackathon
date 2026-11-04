@@ -1,0 +1,34 @@
+{
+  "provider": "freesound",
+  "query": "soft cinematic impact",
+  "license_policy": "cc0",
+  "ordering": "relevance; popularity is supporting evidence only",
+  "results": [
+    {
+      "id": "fs:877234",
+      "title": "Soft Impact Accent",
+      "author": "zenosounds",
+      "duration_seconds": 2.97215,
+      "preview_url": "https://cdn.freesound.org/previews/877/877234_19476164-hq.mp3",
+      "downloads": 4,
+      "page_url": "https://freesound.org/people/zenosounds/sounds/877234/",
+      "license_label": "Creative Commons 0",
+      "description": "A short, soft impact accent with a subtle and clean sound. Suitable for UI animations, gentle transitions, motion graphics, games, and minimal cinematic sound design. Duration: 2 seconds. AI Model: Stable Audio 3 Medium Created by Zeno Sounds.",
+      "rating": null,
+      "rating_count": null
+    },
+    {
+      "id": "fs:728515",
+      "title": "Impact Hit at soft but big material",
+      "author": "doudar41",
+      "duration_seconds": 1.34475,
+      "preview_url": "https://cdn.freesound.org/previews/728/728515_2393492-hq.mp3",
+      "downloads": 141,
+      "page_url": "https://freesound.org/people/doudar41/sounds/728515/",
+      "license_label": "Creative Commons 0",
+      "description": "You can use it anyway you want it's a CC0. Credits will be cool though",
+      "rating": null,
+      "rating_count": null
+    }
+  ]
+}

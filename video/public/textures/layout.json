@@ -1,0 +1,493 @@
+{
+  "desk": {
+    "pageH": 1080,
+    "editor": {
+      "x": 535,
+      "y": 326,
+      "w": 820,
+      "h": 648
+    },
+    "inspector": {
+      "x": 1590,
+      "y": 75,
+      "w": 330,
+      "h": 519
+    },
+    "timeline": {
+      "x": 0,
+      "y": 595,
+      "w": 1920,
+      "h": 485
+    },
+    "outline": {
+      "x": 44,
+      "y": 44,
+      "w": 256,
+      "h": 550
+    }
+  },
+  "type-00": {
+    "pageH": 1080,
+    "editor": {
+      "x": 535,
+      "y": 326,
+      "w": 820,
+      "h": 648
+    }
+  },
+  "typing": {
+    "frames": 13
+  },
+  "typed": {
+    "pageH": 1080,
+    "editor": {
+      "x": 535,
+      "y": 326,
+      "w": 820,
+      "h": 648
+    },
+    "check": {
+      "x": 1603,
+      "y": 163,
+      "w": 50,
+      "h": 21
+    },
+    "nora": {
+      "x": 539,
+      "y": 496,
+      "w": 61,
+      "h": 24
+    }
+  },
+  "checking": {
+    "pageH": 1080,
+    "check": {
+      "x": 1603,
+      "y": 163,
+      "w": 78,
+      "h": 21
+    },
+    "agent": {
+      "x": 1591,
+      "y": 121,
+      "w": 329,
+      "h": 108
+    }
+  },
+  "report": {
+    "pageH": 1080,
+    "agent": {
+      "x": 1591,
+      "y": 121,
+      "w": 329,
+      "h": 465
+    },
+    "report": {
+      "x": 1603,
+      "y": 191,
+      "w": 305,
+      "h": 349
+    },
+    "contradiction": {
+      "x": 1603,
+      "y": 427,
+      "w": 305,
+      "h": 113
+    },
+    "takeBack": {
+      "x": 1725,
+      "y": 163,
+      "w": 129,
+      "h": 21
+    },
+    "nora": {
+      "x": 539,
+      "y": 496,
+      "w": 61,
+      "h": 24
+    }
+  },
+  "cut-report-filed": {
+    "cutout": true,
+    "x": 1603,
+    "y": 191,
+    "w": 305,
+    "h": 18
+  },
+  "cut-contradiction": {
+    "cutout": true,
+    "x": 1603,
+    "y": 427,
+    "w": 305,
+    "h": 113
+  },
+  "cut-agent": {
+    "cutout": true,
+    "x": 1591,
+    "y": 121,
+    "w": 329,
+    "h": 465
+  },
+  "takeback-hover": {
+    "pageH": 1080,
+    "takeBack": {
+      "x": 1725,
+      "y": 163,
+      "w": 129,
+      "h": 21
+    },
+    "agent": {
+      "x": 1591,
+      "y": 121,
+      "w": 329,
+      "h": 465
+    }
+  },
+  "takeback-after": {
+    "pageH": 1080,
+    "agent": {
+      "x": 1591,
+      "y": 121,
+      "w": 329,
+      "h": 108
+    },
+    "nora": {
+      "x": 539,
+      "y": 496,
+      "w": 61,
+      "h": 24
+    }
+  },
+  "tracks": {
+    "pageH": 1080,
+    "timeline": {
+      "x": 0,
+      "y": 765,
+      "w": 1920,
+      "h": 315
+    }
+  },
+  "cast-ch1-norman": {
+    "cutout": true,
+    "x": 1603,
+    "y": 444,
+    "w": 305,
+    "h": 190
+  },
+  "cast-ch3-alice": {
+    "cutout": true,
+    "x": 1603,
+    "y": 476,
+    "w": 305,
+    "h": 143
+  },
+  "cast-ch4-mira": {
+    "cutout": true,
+    "x": 1603,
+    "y": 476,
+    "w": 305,
+    "h": 273
+  },
+  "cast-ch5-norman": {
+    "cutout": true,
+    "x": 1603,
+    "y": 476,
+    "w": 305,
+    "h": 212
+  },
+  "cast-ch5-ashford": {
+    "cutout": true,
+    "x": 1603,
+    "y": 444,
+    "w": 305,
+    "h": 143
+  },
+  "mira-ch2": {
+    "pageH": 1080,
+    "page": {
+      "x": 345,
+      "y": 532,
+      "w": 840,
+      "h": 195
+    },
+    "time": {
+      "x": 943,
+      "y": 231,
+      "w": 229,
+      "h": 18
+    }
+  },
+  "mira-ch4": {
+    "pageH": 1080,
+    "page": {
+      "x": 345,
+      "y": 532,
+      "w": 840,
+      "h": 195
+    },
+    "time": {
+      "x": 943,
+      "y": 231,
+      "w": 229,
+      "h": 18
+    }
+  },
+  "state-end-norman": {
+    "cutout": true,
+    "x": 345,
+    "y": 222,
+    "w": 840,
+    "h": 212
+  },
+  "state-start-norman": {
+    "cutout": true,
+    "x": 345,
+    "y": 222,
+    "w": 840,
+    "h": 178
+  },
+  "state-end-alice-bob": {
+    "cutout": true,
+    "x": 345,
+    "y": 222,
+    "w": 840,
+    "h": 166
+  },
+  "state-start-alice-bob": {
+    "cutout": true,
+    "x": 345,
+    "y": 222,
+    "w": 840,
+    "h": 132
+  },
+  "state-end-ashford": {
+    "cutout": true,
+    "x": 345,
+    "y": 222,
+    "w": 840,
+    "h": 143
+  },
+  "state-start-ashford": {
+    "cutout": true,
+    "x": 345,
+    "y": 222,
+    "w": 840,
+    "h": 109
+  },
+  "mira-after": {
+    "pageH": 1080,
+    "page": {
+      "x": 345,
+      "y": 532,
+      "w": 840,
+      "h": 195
+    },
+    "time": {
+      "x": 943,
+      "y": 231,
+      "w": 229,
+      "h": 18
+    },
+    "state": {
+      "x": 345,
+      "y": 222,
+      "w": 840,
+      "h": 189
+    }
+  },
+  "cut-mira-after": {
+    "cutout": true,
+    "x": 345,
+    "y": 532,
+    "w": 840,
+    "h": 195
+  },
+  "mira-before": {
+    "pageH": 1080,
+    "page": {
+      "x": 345,
+      "y": 475,
+      "w": 840,
+      "h": 149
+    },
+    "time": {
+      "x": 955,
+      "y": 231,
+      "w": 217,
+      "h": 18
+    },
+    "state": {
+      "x": 345,
+      "y": 222,
+      "w": 840,
+      "h": 132
+    }
+  },
+  "cut-mira-before": {
+    "cutout": true,
+    "x": 345,
+    "y": 475,
+    "w": 840,
+    "h": 149
+  },
+  "flashback-typed": {
+    "pageH": 1080,
+    "editor": {
+      "x": 535,
+      "y": 277,
+      "w": 820,
+      "h": 648
+    }
+  },
+  "peek": {
+    "pageH": 1080
+  },
+  "flashback-report": {
+    "pageH": 1080,
+    "agent": {
+      "x": 1591,
+      "y": 121,
+      "w": 329,
+      "h": 170
+    },
+    "contradiction": null,
+    "editor": {
+      "x": 535,
+      "y": 277,
+      "w": 820,
+      "h": 648
+    }
+  },
+  "fall-closed": {
+    "pageH": 1080,
+    "changes": {
+      "x": 891,
+      "y": 247,
+      "w": 88,
+      "h": 25
+    }
+  },
+  "fall-changes": {
+    "pageH": 1080,
+    "changes": {
+      "x": 891,
+      "y": 247,
+      "w": 88,
+      "h": 25
+    }
+  },
+  "flow-betrayal": {
+    "pageH": 1080,
+    "flow": {
+      "x": 1591,
+      "y": 229,
+      "w": 329,
+      "h": 228
+    },
+    "reading": {
+      "x": 1603,
+      "y": 300,
+      "w": 305,
+      "h": 146
+    },
+    "role": {
+      "x": 1603,
+      "y": 300,
+      "w": 42,
+      "h": 20
+    }
+  },
+  "cut-flow": {
+    "cutout": true,
+    "x": 1591,
+    "y": 229,
+    "w": 329,
+    "h": 228
+  },
+  "cut-flow-role": {
+    "cutout": true,
+    "x": 1603,
+    "y": 300,
+    "w": 42,
+    "h": 20
+  },
+  "norman-page": {
+    "pageH": 1080,
+    "portrait": {
+      "x": 548,
+      "y": 105,
+      "w": 98,
+      "h": 21
+    }
+  },
+  "portrait-draft": {
+    "pageH": 1080,
+    "dialog": {
+      "x": 640,
+      "y": 130,
+      "w": 640,
+      "h": 353
+    },
+    "make": {
+      "x": 1161,
+      "y": 442,
+      "w": 102,
+      "h": 30
+    }
+  },
+  "portrait-made": {
+    "pageH": 1080,
+    "dialog": {
+      "x": 640,
+      "y": 130,
+      "w": 640,
+      "h": 648
+    },
+    "picture": {
+      "x": 712,
+      "y": 215,
+      "w": 497,
+      "h": 497
+    }
+  },
+  "portrait-kept": {
+    "pageH": 1080,
+    "portrait": {
+      "x": 345,
+      "y": 143,
+      "w": 64,
+      "h": 64
+    }
+  },
+  "cut-portrait": {
+    "cutout": true,
+    "x": 345,
+    "y": 143,
+    "w": 64,
+    "h": 64
+  },
+  "palette": {
+    "pageH": 1080
+  },
+  "dark": {
+    "pageH": 1080
+  },
+  "vault-menu": {
+    "pageH": 1080,
+    "exportZip": {
+      "x": 1609,
+      "y": 236,
+      "w": 200,
+      "h": 33
+    }
+  },
+  "large": {
+    "pageH": 1080,
+    "timeline": {
+      "x": 0,
+      "y": 595,
+      "w": 1920,
+      "h": 485
+    }
+  }
+}

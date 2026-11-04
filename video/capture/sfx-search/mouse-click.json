@@ -1,0 +1,86 @@
+{
+  "provider": "freesound",
+  "query": "mouse click",
+  "license_policy": "cc0",
+  "ordering": "relevance; popularity is supporting evidence only",
+  "results": [
+    {
+      "id": "fs:687107",
+      "title": "Mouse 2 Button Fast Click",
+      "author": "aphom000",
+      "duration_seconds": 0.240907,
+      "preview_url": "https://cdn.freesound.org/previews/687/687107_11545182-hq.mp3",
+      "downloads": 3205,
+      "page_url": "https://freesound.org/people/aphom000/sounds/687107/",
+      "license_label": "Creative Commons 0",
+      "description": "Audio of a mouse's right button being clicked quickly.",
+      "rating": 4.8,
+      "rating_count": 64
+    },
+    {
+      "id": "fs:534104",
+      "title": "mouse-click-double-00.flac",
+      "author": "pbimal",
+      "duration_seconds": 0.470295,
+      "preview_url": "https://cdn.freesound.org/previews/534/534104_11830391-hq.mp3",
+      "downloads": 7728,
+      "page_url": "https://freesound.org/people/pbimal/sounds/534104/",
+      "license_label": "Creative Commons 0",
+      "description": "Double click mouse button.",
+      "rating": 4.8,
+      "rating_count": 108
+    },
+    {
+      "id": "fs:596879",
+      "title": "AA Foley Mouse Click Central.wav",
+      "author": "Pepe827",
+      "duration_seconds": 0.334146,
+      "preview_url": "https://cdn.freesound.org/previews/596/596879_10068370-hq.mp3",
+      "downloads": 152,
+      "page_url": "https://freesound.org/people/Pepe827/sounds/596879/",
+      "license_label": "Creative Commons 0",
+      "description": "click central de raton / mouse center click",
+      "rating": 3.8,
+      "rating_count": 4
+    },
+    {
+      "id": "fs:503275",
+      "title": "Mouse Click",
+      "author": "Bratish",
+      "duration_seconds": 0.165986,
+      "preview_url": "https://cdn.freesound.org/previews/503/503275_9995328-hq.mp3",
+      "downloads": 250,
+      "page_url": "https://freesound.org/people/Bratish/sounds/503275/",
+      "license_label": "Creative Commons 0",
+      "description": "This is sound of Mouse Click. It is created using \"White Noise\" and various effects in Audacity. You can use this sound in any game where there is various explosive means. For example, mods for various Computer Role-Playing Games.",
+      "rating": 3.5,
+      "rating_count": 11
+    },
+    {
+      "id": "fs:423958",
+      "title": "Mouse Click",
+      "author": "pillwave",
+      "duration_seconds": 0.313479,
+      "preview_url": "https://cdn.freesound.org/previews/423/423958_6164481-hq.mp3",
+      "downloads": 433,
+      "page_url": "https://freesound.org/people/pillwave/sounds/423958/",
+      "license_label": "Creative Commons 0",
+      "description": "Recorded by left-clicking my mouse close to a microphone.",
+      "rating": 4.4,
+      "rating_count": 9
+    },
+    {
+      "id": "fs:773604",
+      "title": "SmallClick",
+      "author": "kreha",
+      "duration_seconds": 0.0152834,
+      "preview_url": "https://cdn.freesound.org/previews/773/773604_11351541-hq.mp3",
+      "downloads": 391,
+      "page_url": "https://freesound.org/people/kreha/sounds/773604/",
+      "license_label": "Creative Commons 0",
+      "description": "A Computer Mouse Click Sounds Light Pressure",
+      "rating": 5.0,
+      "rating_count": 9
+    }
+  ]
+}

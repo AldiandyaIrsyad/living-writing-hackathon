@@ -1,0 +1,86 @@
+{
+  "provider": "freesound",
+  "query": "typewriter typing",
+  "license_policy": "cc0",
+  "ordering": "relevance; popularity is supporting evidence only",
+  "results": [
+    {
+      "id": "fs:380137",
+      "title": "Typewriter - single key - type 2.wav",
+      "author": "yottasounds",
+      "duration_seconds": 0.274667,
+      "preview_url": "https://cdn.freesound.org/previews/380/380137_3249786-hq.mp3",
+      "downloads": 3402,
+      "page_url": "https://freesound.org/people/yottasounds/sounds/380137/",
+      "license_label": "Creative Commons 0",
+      "description": "Single key stroke sound of a classic old typewriter. Sound #2",
+      "rating": 4.8,
+      "rating_count": 25
+    },
+    {
+      "id": "fs:856165",
+      "title": "Vintage Typewriter Key Press Sound Effect",
+      "author": "brktkrgll",
+      "duration_seconds": 5.0,
+      "preview_url": "https://cdn.freesound.org/previews/856/856165_18901108-hq.mp3",
+      "downloads": 120,
+      "page_url": "https://freesound.org/people/brktkrgll/sounds/856165/",
+      "license_label": "Creative Commons 0",
+      "description": "Pristine vintage mechanical typewriter key press clicks. Perfect for ASMR typing, vlog overlays, document writing animations, and cinematic edit transitions. Generated using AI sound design tools, then manually EQ'd, compressed, and mastered for clear, drop-in ready use. AI Generation Details: Service used: ElevenLabs Model used: ElevenLabs Sound Effects (Text-to-SFX) Query/Prompt used: \"Pristine vintage mechanical typewriter key press clicks, close-mic, foley\" Post-processing: Manually EQ'd, compressed, and mastered.",
+      "rating": 4.0,
+      "rating_count": 6
+    },
+    {
+      "id": "fs:752747",
+      "title": "Toy Electronic Typewriter Key Press 3",
+      "author": "sprinkleCipher",
+      "duration_seconds": 0.360771,
+      "preview_url": "https://cdn.freesound.org/previews/752/752747_14222278-hq.mp3",
+      "downloads": 134,
+      "page_url": "https://freesound.org/people/sprinkleCipher/sounds/752747/",
+      "license_label": "Creative Commons 0",
+      "description": "The sound of a single character being typed on a Barbie model e115c toy electronic typewriter",
+      "rating": null,
+      "rating_count": null
+    },
+    {
+      "id": "fs:752746",
+      "title": "Toy Electronic Typewriter Key Press 2",
+      "author": "sprinkleCipher",
+      "duration_seconds": 0.361542,
+      "preview_url": "https://cdn.freesound.org/previews/752/752746_14222278-hq.mp3",
+      "downloads": 114,
+      "page_url": "https://freesound.org/people/sprinkleCipher/sounds/752746/",
+      "license_label": "Creative Commons 0",
+      "description": "The sound of a single character being typed on a Barbie model e115c toy electronic typewriter",
+      "rating": 4.8,
+      "rating_count": 4
+    },
+    {
+      "id": "fs:752745",
+      "title": "Toy Electronic Typewriter Key Press 1",
+      "author": "sprinkleCipher",
+      "duration_seconds": 0.356032,
+      "preview_url": "https://cdn.freesound.org/previews/752/752745_14222278-hq.mp3",
+      "downloads": 117,
+      "page_url": "https://freesound.org/people/sprinkleCipher/sounds/752745/",
+      "license_label": "Creative Commons 0",
+      "description": "The sound of a single character being typed on a Barbie model e115c toy electronic typewriter",
+      "rating": null,
+      "rating_count": null
+    },
+    {
+      "id": "fs:360602",
+      "title": "Typewriter snippet 02",
+      "author": "cabled_mess",
+      "duration_seconds": 0.223875,
+      "preview_url": "https://cdn.freesound.org/previews/360/360602_5450487-hq.mp3",
+      "downloads": 2904,
+      "page_url": "https://freesound.org/people/cabled_mess/sounds/360602/",
+      "license_label": "Creative Commons 0",
+      "description": "Processed recording of a portable mechanical typewriter. Captured using a Clippy EM172 microphone and a Zoom H5 recorder. Edited and processed in ocenaudio. It's always nice to hear what projects you use these sounds for. Let me know. One more thing. Maybe check out my links, perhaps you'll find something you like. :o)",
+      "rating": 4.6,
+      "rating_count": 29
+    }
+  ]
+}

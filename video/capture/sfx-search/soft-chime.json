@@ -1,0 +1,86 @@
+{
+  "provider": "freesound",
+  "query": "soft chime",
+  "license_policy": "cc0",
+  "ordering": "relevance; popularity is supporting evidence only",
+  "results": [
+    {
+      "id": "fs:851185",
+      "title": "Message Received",
+      "author": "Okello2020",
+      "duration_seconds": 1.86882,
+      "preview_url": "https://cdn.freesound.org/previews/851/851185_18722914-hq.mp3",
+      "downloads": 159,
+      "page_url": "https://freesound.org/people/Okello2020/sounds/851185/",
+      "license_label": "Creative Commons 0",
+      "description": "A quick, bright chime with a soft echo, giving a clean “ding” sound that feels modern, friendly, and easy to recognize.",
+      "rating": 4.8,
+      "rating_count": 5
+    },
+    {
+      "id": "fs:876011",
+      "title": "Starry_UI_Click_64",
+      "author": "SignatureSoundsOrg",
+      "duration_seconds": 1.0,
+      "preview_url": "https://cdn.freesound.org/previews/876/876011_19205925-hq.mp3",
+      "downloads": 39,
+      "page_url": "https://freesound.org/people/SignatureSoundsOrg/sounds/876011/",
+      "license_label": "Creative Commons 0",
+      "description": "Unused sound effect from a project",
+      "rating": null,
+      "rating_count": null
+    },
+    {
+      "id": "fs:876010",
+      "title": "Starry_UI_Click_63",
+      "author": "SignatureSoundsOrg",
+      "duration_seconds": 1.0,
+      "preview_url": "https://cdn.freesound.org/previews/876/876010_19205925-hq.mp3",
+      "downloads": 26,
+      "page_url": "https://freesound.org/people/SignatureSoundsOrg/sounds/876010/",
+      "license_label": "Creative Commons 0",
+      "description": "Unused sound effect from a project",
+      "rating": null,
+      "rating_count": null
+    },
+    {
+      "id": "fs:876009",
+      "title": "Starry_UI_Click_62",
+      "author": "SignatureSoundsOrg",
+      "duration_seconds": 1.0,
+      "preview_url": "https://cdn.freesound.org/previews/876/876009_19205925-hq.mp3",
+      "downloads": 18,
+      "page_url": "https://freesound.org/people/SignatureSoundsOrg/sounds/876009/",
+      "license_label": "Creative Commons 0",
+      "description": "Unused sound effect from a project",
+      "rating": null,
+      "rating_count": null
+    },
+    {
+      "id": "fs:876012",
+      "title": "Starry_UI_Click_65",
+      "author": "SignatureSoundsOrg",
+      "duration_seconds": 1.0,
+      "preview_url": "https://cdn.freesound.org/previews/876/876012_19205925-hq.mp3",
+      "downloads": 27,
+      "page_url": "https://freesound.org/people/SignatureSoundsOrg/sounds/876012/",
+      "license_label": "Creative Commons 0",
+      "description": "Unused sound effect from a project",
+      "rating": null,
+      "rating_count": null
+    },
+    {
+      "id": "fs:876169",
+      "title": "Healing Spell Chime (Fantasy RPG)",
+      "author": "Assetsmith",
+      "duration_seconds": 2.73435,
+      "preview_url": "https://cdn.freesound.org/previews/876/876169_19429311-hq.mp3",
+      "downloads": 16,
+      "page_url": "https://freesound.org/people/Assetsmith/sounds/876169/",
+      "license_label": "Creative Commons 0",
+      "description": "Soft rising heal chime for restoring health, potions, or buffs. License: CC0. Procedurally synthesized with code (no AI audio models, no recordings). AI assisted in writing the generator code (GenAI-assisted). Full packs (more variations): - Fantasy RPG SFX Bundle ($4.79 Halloween sale): https://assetsmithpixels.itch.io/fantasy-rpg-sfx-bundle - Halloween sale (20% off): https://itch.io/s/207572 - Fantasy RPG Combat SFX: https://assetsmithpixels.itch.io/fantasy-rpg-combat-sfx",
+      "rating": null,
+      "rating_count": null
+    }
+  ]
+}

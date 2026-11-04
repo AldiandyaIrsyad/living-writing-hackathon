@@ -1,0 +1,86 @@
+{
+  "provider": "freesound",
+  "query": "card flip",
+  "license_policy": "cc0",
+  "ordering": "relevance; popularity is supporting evidence only",
+  "results": [
+    {
+      "id": "fs:793598",
+      "title": "card-flipping-75622 (1)-[AudioTrimmer.com]",
+      "author": "ajaysingh318",
+      "duration_seconds": 0.850045,
+      "preview_url": "https://cdn.freesound.org/previews/793/793598_12482097-hq.mp3",
+      "downloads": 370,
+      "page_url": "https://freesound.org/people/ajaysingh318/sounds/793598/",
+      "license_label": "Creative Commons 0",
+      "description": "card flipping sound",
+      "rating": 4.5,
+      "rating_count": 11
+    },
+    {
+      "id": "fs:84322",
+      "title": "flipCard.wav",
+      "author": "Splashdust",
+      "duration_seconds": 0.940408,
+      "preview_url": "https://cdn.freesound.org/previews/84/84322_754949-hq.mp3",
+      "downloads": 11114,
+      "page_url": "https://freesound.org/people/Splashdust/sounds/84322/",
+      "license_label": "Creative Commons 0",
+      "description": "The sound of flipping a card on a table.",
+      "rating": 4.8,
+      "rating_count": 124
+    },
+    {
+      "id": "fs:638697",
+      "title": "Card.wav",
+      "author": "CaptainYulef",
+      "duration_seconds": 0.963356,
+      "preview_url": "https://cdn.freesound.org/previews/638/638697_13383190-hq.mp3",
+      "downloads": 354,
+      "page_url": "https://freesound.org/people/CaptainYulef/sounds/638697/",
+      "license_label": "Creative Commons 0",
+      "description": "Picking up a card.",
+      "rating": 3.7,
+      "rating_count": 7
+    },
+    {
+      "id": "fs:554208",
+      "title": "cardsound32562",
+      "author": "memes_hodachy",
+      "duration_seconds": 0.753764,
+      "preview_url": "https://cdn.freesound.org/previews/554/554208_12395540-hq.mp3",
+      "downloads": 687,
+      "page_url": "https://freesound.org/people/memes_hodachy/sounds/554208/",
+      "license_label": "Creative Commons 0",
+      "description": "flip card playing sound",
+      "rating": 4.5,
+      "rating_count": 11
+    },
+    {
+      "id": "fs:651514",
+      "title": "paper",
+      "author": "1bob",
+      "duration_seconds": 0.509342,
+      "preview_url": "https://cdn.freesound.org/previews/651/651514_11611892-hq.mp3",
+      "downloads": 678,
+      "page_url": "https://freesound.org/people/1bob/sounds/651514/",
+      "license_label": "Creative Commons 0",
+      "description": "Can be used as a page flip or some sort of paper sound",
+      "rating": 4.8,
+      "rating_count": 19
+    },
+    {
+      "id": "fs:828802",
+      "title": "Paper Page Flip",
+      "author": "OnlyOz",
+      "duration_seconds": 0.6,
+      "preview_url": "https://cdn.freesound.org/previews/828/828802_16800499-hq.mp3",
+      "downloads": 353,
+      "page_url": "https://freesound.org/people/OnlyOz/sounds/828802/",
+      "license_label": "Creative Commons 0",
+      "description": "Paper page of a large book (fitting for a storybook tutorial/transition) recorded by me on my RØDE microphone with a sketchbook for a game jam :) thought it came out nice and others may like to use it",
+      "rating": 4.8,
+      "rating_count": 10
+    }
+  ]
+}

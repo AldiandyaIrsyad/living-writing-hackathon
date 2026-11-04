@@ -1,0 +1,86 @@
+{
+  "provider": "freesound",
+  "query": "pen writing paper",
+  "license_policy": "cc0",
+  "ordering": "relevance; popularity is supporting evidence only",
+  "results": [
+    {
+      "id": "fs:751055",
+      "title": "pen (marker pen) writes on paper",
+      "author": "SSkiba88",
+      "duration_seconds": 5.99469,
+      "preview_url": "https://cdn.freesound.org/previews/751/751055_9977365-hq.mp3",
+      "downloads": 431,
+      "page_url": "https://freesound.org/people/SSkiba88/sounds/751055/",
+      "license_label": "Creative Commons 0",
+      "description": "Pen (marker pen) writes on paper, original sound, unamplified Recording devices used: Zoom H5 with SSH-6 stereo shotgun mic",
+      "rating": 4.3,
+      "rating_count": 12
+    },
+    {
+      "id": "fs:468056",
+      "title": "paper and pen done _mixdown.wav",
+      "author": "12060135",
+      "duration_seconds": 2.28744,
+      "preview_url": "https://cdn.freesound.org/previews/468/468056_9897865-hq.mp3",
+      "downloads": 71,
+      "page_url": "https://freesound.org/people/12060135/sounds/468056/",
+      "license_label": "Creative Commons 0",
+      "description": "pen and paper like a school thing.",
+      "rating": null,
+      "rating_count": null
+    },
+    {
+      "id": "fs:632478",
+      "title": "Pencil writing on paper (3 strokes, Take B)",
+      "author": "ani_music",
+      "duration_seconds": 0.77805,
+      "preview_url": "https://cdn.freesound.org/previews/632/632478_3008343-hq.mp3",
+      "downloads": 222,
+      "page_url": "https://freesound.org/people/ani_music/sounds/632478/",
+      "license_label": "Creative Commons 0",
+      "description": "Writing on paper",
+      "rating": 4.7,
+      "rating_count": 3
+    },
+    {
+      "id": "fs:538714",
+      "title": "Writing with a pen.wav",
+      "author": "JoshvanHansen",
+      "duration_seconds": 5.66522,
+      "preview_url": "https://cdn.freesound.org/previews/538/538714_10740496-hq.mp3",
+      "downloads": 435,
+      "page_url": "https://freesound.org/people/JoshvanHansen/sounds/538714/",
+      "license_label": "Creative Commons 0",
+      "description": "Writting with a pen on paper.",
+      "rating": 4.0,
+      "rating_count": 6
+    },
+    {
+      "id": "fs:277312",
+      "title": "Pencil Writing on Paper",
+      "author": "elliotlp",
+      "duration_seconds": 1.07447,
+      "preview_url": "https://cdn.freesound.org/previews/277/277312_2017016-hq.mp3",
+      "downloads": 1078,
+      "page_url": "https://freesound.org/people/elliotlp/sounds/277312/",
+      "license_label": "Creative Commons 0",
+      "description": "Writing on paper with a pencil. Created and used for game jam entry: http://ludumdare.com/compo/ludum-dare-32/?action=preview&uid;=2881",
+      "rating": 4.9,
+      "rating_count": 21
+    },
+    {
+      "id": "fs:562153",
+      "title": "Pen sign writing 1 sec.mp3",
+      "author": "aleKfx",
+      "duration_seconds": 1.24227,
+      "preview_url": "https://cdn.freesound.org/previews/562/562153_12617248-hq.mp3",
+      "downloads": 244,
+      "page_url": "https://freesound.org/people/aleKfx/sounds/562153/",
+      "license_label": "Creative Commons 0",
+      "description": "I'm going to make some sounds for a project, so I thought why not share them? These sounds are homemade and free to use with no attribution/credit needed (⊃｡•́‿•̀｡)⊃ have fun!",
+      "rating": 5.0,
+      "rating_count": 3
+    }
+  ]
+}

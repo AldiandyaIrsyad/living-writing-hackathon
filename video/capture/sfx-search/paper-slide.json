@@ -1,0 +1,86 @@
+{
+  "provider": "freesound",
+  "query": "paper slide",
+  "license_policy": "cc0",
+  "ordering": "relevance; popularity is supporting evidence only",
+  "results": [
+    {
+      "id": "fs:470189",
+      "title": "55_Coger_Foto.wav (Sliding Paper)",
+      "author": "Atrius1",
+      "duration_seconds": 0.370794,
+      "preview_url": "https://cdn.freesound.org/previews/470/470189_9982371-hq.mp3",
+      "downloads": 912,
+      "page_url": "https://freesound.org/people/Atrius1/sounds/470189/",
+      "license_label": "Creative Commons 0",
+      "description": "deslizar de un objeto como el papel sobre la madera [The sound produced by sliding a paper object over an object like a table)",
+      "rating": 4.8,
+      "rating_count": 21
+    },
+    {
+      "id": "fs:648387",
+      "title": "SlidePaperOnPaper.mp3",
+      "author": "Korczu",
+      "duration_seconds": 0.448875,
+      "preview_url": "https://cdn.freesound.org/previews/648/648387_13739319-hq.mp3",
+      "downloads": 1294,
+      "page_url": "https://freesound.org/people/Korczu/sounds/648387/",
+      "license_label": "Creative Commons 0",
+      "description": "sliding paper on paper",
+      "rating": 4.8,
+      "rating_count": 21
+    },
+    {
+      "id": "fs:154403",
+      "title": "paper slide.wav",
+      "author": "semccab",
+      "duration_seconds": 1.38938,
+      "preview_url": "https://cdn.freesound.org/previews/154/154403_2592496-hq.mp3",
+      "downloads": 2553,
+      "page_url": "https://freesound.org/people/semccab/sounds/154403/",
+      "license_label": "Creative Commons 0",
+      "description": "piece of paper being slid across a desk",
+      "rating": 4.8,
+      "rating_count": 12
+    },
+    {
+      "id": "fs:472445",
+      "title": "17- desvanecer.wav",
+      "author": "mushusito",
+      "duration_seconds": 1.41626,
+      "preview_url": "https://cdn.freesound.org/previews/472/472445_10009057-hq.mp3",
+      "downloads": 275,
+      "page_url": "https://freesound.org/people/mushusito/sounds/472445/",
+      "license_label": "Creative Commons 0",
+      "description": "sliding a paper sheet",
+      "rating": 4.7,
+      "rating_count": 3
+    },
+    {
+      "id": "fs:672035",
+      "title": "x3m_unfold_slidel.wav",
+      "author": "X3msnake",
+      "duration_seconds": 0.5195,
+      "preview_url": "https://cdn.freesound.org/previews/672/672035_2570152-hq.mp3",
+      "downloads": 45,
+      "page_url": "https://freesound.org/people/X3msnake/sounds/672035/",
+      "license_label": "Creative Commons 0",
+      "description": "Paper sliding, dragging across a floor",
+      "rating": null,
+      "rating_count": null
+    },
+    {
+      "id": "fs:444431",
+      "title": "Sliding Envelope.wav",
+      "author": "MTJohnson",
+      "duration_seconds": 1.152,
+      "preview_url": "https://cdn.freesound.org/previews/444/444431_8522109-hq.mp3",
+      "downloads": 2897,
+      "page_url": "https://freesound.org/people/MTJohnson/sounds/444431/",
+      "license_label": "Creative Commons 0",
+      "description": "Sliding an envelope across a desk",
+      "rating": 4.9,
+      "rating_count": 40
+    }
+  ]
+}
